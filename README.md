@@ -1,7 +1,7 @@
 # The WNBA Schedule
 
 [![CI](https://github.com/ismayc/wnba-schedule/actions/workflows/ci.yml/badge.svg)](https://github.com/ismayc/wnba-schedule/actions/workflows/ci.yml)
-[![coverage](https://img.shields.io/endpoint?url=https://the-wnba-schedule.netlify.app/coverage.json)](https://github.com/ismayc/wnba-schedule/actions/workflows/ci.yml)
+[![coverage](https://img.shields.io/endpoint?url=https://ismayc.github.io/wnba-schedule/coverage.json)](https://github.com/ismayc/wnba-schedule/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 🔗 **Live:** [ismayc.github.io/wnba-schedule](https://ismayc.github.io/wnba-schedule/) ·
