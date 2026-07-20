@@ -3,6 +3,17 @@ import { formatTime, formatZoneAbbr, liveState, countdown } from '../utils/time.
 import { useFollow } from '../context/follow.jsx'
 import TeamLogo from './TeamLogo.jsx'
 
+// Halftime and end-of-quarter are stable states; a running clock is not. Falls back
+// to ESPN's own label when the period is unknown.
+export function livePeriod(game) {
+  const label = game.statusLabel || ''
+  if (/half/i.test(label)) return 'HALF'
+  if (/end/i.test(label)) return label.toUpperCase()
+  const p = game.period
+  if (!p) return label.toUpperCase() || 'LIVE'
+  return p > 4 ? (p - 4 > 1 ? `OT${p - 4}` : 'OT') : `Q${p}`
+}
+
 function Side({ abbr, score, winner, hideScores }) {
   const team = TEAM_BY_ABBR[abbr]
   const { isFollowed } = useFollow()
@@ -39,8 +50,11 @@ export default function GameCard({ game, tz, hideScores, onOpen }) {
     >
       <div className="game-when">
         {state === 'live' ? (
-          <span className="live-badge">
-            ● {game.statusLabel || 'LIVE'}
+          // A basketball score changes every ~35 seconds, so anything shown here is
+          // stale by up to one refresh. The period is durable enough to display;
+          // the exact game clock is not, so it stays in the tooltip.
+          <span className="live-badge" title={`${game.statusLabel || 'Live'} — as of the last refresh`}>
+            ● {livePeriod(game)}
           </span>
         ) : state === 'void' ? (
           <span className="void-badge">{game.canceled ? 'Canceled' : 'Postponed'}</span>

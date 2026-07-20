@@ -53,6 +53,30 @@ standings exactly:
 With those handled, derived W-L, home/road splits, last-10, and streaks match ESPN's
 published standings exactly for all 15 teams.
 
+### Scoring frequency: why there are no per-basket events
+
+The biggest structural difference from a soccer viewer. Goals are rare enough to
+enumerate as events — scorer, minute, penalty — and a Golden Boot table can be *derived*
+from them. Basketball can't work that way: ~65 scoring plays per game, ~20,000 per
+season.
+
+So the model inverts. Games store a final score, and player leaderboards come from
+**pre-aggregated season stat lines** rather than being summed from events. Two things
+fill the gap that losing the event stream would otherwise leave:
+
+- **Quarter line scores** are the analogue of a goal timeline. A final score of 98–93
+  hides whether a team led by 20 or trailed all night; the quarter breakdown shows it,
+  with the higher scorer of each quarter marked. Committed for every played game, and
+  every one is asserted to sum to its final score.
+- **Per-game leaders** (points/rebounds/assists) answer "who did it" without an event
+  list.
+
+Frequency also changes the *live* display. A soccer app can show a goal the moment it
+lands and be right for the next ten minutes; a basketball score is stale within seconds.
+So the live badge shows the **period** (`Q3`, `HALF`, `OT`) rather than a running game
+clock, which would imply a precision a 30-second poll can't deliver. The exact feed
+status stays in the tooltip.
+
 ### Format notes
 
 The WNBA is not a group-stage tournament, and two details drive most of the app's logic:

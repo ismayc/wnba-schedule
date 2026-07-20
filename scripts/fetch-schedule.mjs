@@ -154,6 +154,82 @@ async function fetchSchedule(teams) {
   return [...byId.values()].sort((a, b) => a.tip.localeCompare(b.tip) || a.id.localeCompare(b.id))
 }
 
+// Basketball has no analogue to enumerating goals — a game has ~65 scoring plays and
+// the season has ~20,000, so per-basket events are neither fetchable nor useful. The
+// meaningful unit is the QUARTER: a line score says how a game actually went in a way
+// a single final score cannot ("won by 8" vs "led by 20 and held on").
+//
+// Line scores and per-game leaders live only on the scoreboard endpoint, not the
+// team-schedule endpoint the rest of this script uses. The scoreboard accepts a date
+// RANGE, so a month per request covers the season in ~6 calls.
+const yyyymm = (iso) => iso.slice(0, 7)
+const monthRange = (ym) => {
+  const [y, m] = ym.split('-').map(Number)
+  const last = new Date(Date.UTC(y, m, 0)).getUTCDate()
+  return `${y}${String(m).padStart(2, '0')}01-${y}${String(m).padStart(2, '0')}${last}`
+}
+
+// The three categories ESPN reports per game. "rating" is a composite summary line and
+// duplicates the others, so it's dropped.
+const LEADER_CATS = ['points', 'rebounds', 'assists']
+
+async function enrichWithBoxScores(games) {
+  const months = [...new Set(games.map((g) => yyyymm(g.tip)))].sort()
+  const byId = new Map()
+
+  for (const ym of months) {
+    const d = await getJson(
+      `${SITE}/scoreboard?dates=${monthRange(ym)}&limit=400`
+    )
+    for (const ev of d.events || []) {
+      const c = ev.competitions?.[0]
+      if (!c) continue
+      const side = (ha) => c.competitors.find((t) => t.homeAway === ha)
+      const home = side('home')
+      const away = side('away')
+      if (!home || !away) continue
+
+      const line = (t) => (t.linescores || []).map((l) => Number(l.value))
+      const hl = line(home)
+      const al = line(away)
+
+      const stars = (c.competitors || [])
+        .flatMap((t) =>
+          (t.leaders || [])
+            .filter((l) => LEADER_CATS.includes(l.name))
+            .map((l) => {
+              const top = l.leaders?.[0]
+              if (!top) return null
+              return {
+                cat: l.name,
+                v: top.displayValue,
+                who: top.athlete?.shortName || top.athlete?.displayName,
+                team: t.team.abbreviation,
+              }
+            })
+        )
+        .filter(Boolean)
+
+      byId.set(ev.id, {
+        line: hl.length || al.length ? { home: hl, away: al } : undefined,
+        stars: stars.length ? stars : undefined,
+      })
+    }
+  }
+
+  let n = 0
+  for (const g of games) {
+    const extra = byId.get(g.id)
+    if (!extra) continue
+    if (extra.line) {
+      g.line = extra.line
+      n++
+    }
+    if (extra.stars) g.stars = extra.stars
+  }
+  return n
+}
+
 // Season stat lines for every qualified player, in a single request. The core-API
 // /leaders endpoint returns athletes as $ref links (≈75 extra fetches to resolve
 // names); this one inlines name, team, and position, so the app ships leaderboards
@@ -243,6 +319,10 @@ async function main() {
   const games = await fetchSchedule(teams)
   const counts = games.reduce((a, g) => ({ ...a, [g.seasonType]: (a[g.seasonType] || 0) + 1 }), {})
   console.log(`  ${games.length} games`, counts)
+
+  // Must run before the schedule is written — it enriches `games` in place.
+  console.log('Fetching line scores…')
+  console.log(`  ${await enrichWithBoxScores(games)} games with quarter breakdowns`)
 
   // Logos are keyed by slug and resolved at render time from /logos/, so the committed
   // data carries no absolute ESPN URLs.

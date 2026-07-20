@@ -24,6 +24,100 @@ function useSeries(games, a, b) {
   }, [games, a, b])
 }
 
+// Basketball's answer to a goal timeline. Individual baskets are too numerous to
+// enumerate (~65 a game), but the quarter breakdown carries the shape of the game —
+// "won by 8" and "led by 20 and held on" look identical in a final score.
+function LineScore({ game, hideScores }) {
+  if (!game.line || hideScores) return null
+
+  const { home, away } = game.line
+  const periods = Math.max(home.length, away.length)
+  if (!periods) return null
+
+  const label = (i) => (i < 4 ? `Q${i + 1}` : periods - 4 > 1 ? `OT${i - 3}` : 'OT')
+  const sum = (arr) => arr.reduce((a, b) => a + b, 0)
+
+  const Row = ({ abbr, vals, total }) => (
+    <tr>
+      <th scope="row">
+        <TeamLogo abbr={abbr} size={18} />
+        <span>{abbr}</span>
+      </th>
+      {Array.from({ length: periods }, (_, i) => {
+        const mine = vals[i]
+        const theirs = (abbr === game.home ? away : home)[i]
+        // Bolding the higher number per quarter turns the row into a momentum read.
+        const won = mine != null && theirs != null && mine > theirs
+        return (
+          <td key={i} className={won ? 'q-won' : ''}>
+            {mine ?? '–'}
+          </td>
+        )
+      })}
+      <td className="q-total">{total}</td>
+    </tr>
+  )
+
+  return (
+    <>
+      <h4 className="md-sub">By quarter</h4>
+      <div className="table-scroll">
+        <table className="linescore">
+          <thead>
+            <tr>
+              <th />
+              {Array.from({ length: periods }, (_, i) => (
+                <th key={i}>{label(i)}</th>
+              ))}
+              <th className="q-total">T</th>
+            </tr>
+          </thead>
+          <tbody>
+            <Row abbr={game.away} vals={away} total={sum(away)} />
+            <Row abbr={game.home} vals={home} total={sum(home)} />
+          </tbody>
+        </table>
+      </div>
+    </>
+  )
+}
+
+const CAT_LABEL = { points: 'PTS', rebounds: 'REB', assists: 'AST' }
+
+// The per-game equivalent of "who scored" — aggregated leaders rather than an event
+// list, for the same reason.
+function GameLeaders({ game }) {
+  if (!game.stars?.length) return null
+  const byTeam = [game.away, game.home].map((abbr) => ({
+    abbr,
+    rows: game.stars.filter((s) => s.team === abbr),
+  }))
+  if (!byTeam.some((t) => t.rows.length)) return null
+
+  return (
+    <>
+      <h4 className="md-sub">Game leaders</h4>
+      <div className="leaders-split">
+        {byTeam.map(({ abbr, rows }) => (
+          <div key={abbr} className="gl-team">
+            <div className="gl-head">
+              <TeamLogo abbr={abbr} size={18} />
+              <span>{abbr}</span>
+            </div>
+            {rows.map((s) => (
+              <div className="gl-row" key={s.cat}>
+                <span className="gl-cat">{CAT_LABEL[s.cat] || s.cat}</span>
+                <span className="gl-who">{s.who}</span>
+                <span className="gl-v">{s.v}</span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </>
+  )
+}
+
 function TaleRow({ label, left, right, betterLeft }) {
   return (
     <div className="tale-row">
@@ -121,6 +215,9 @@ export default function GameDetail({ game, games, tz, hideScores, onClose, onPic
             </div>
           )}
         </dl>
+
+        <LineScore game={game} hideScores={hideScores} />
+        <GameLeaders game={game} />
 
         <h4 className="md-sub">Tale of the tape</h4>
         <div className="tale">
