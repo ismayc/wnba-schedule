@@ -114,6 +114,7 @@ npm run coverage:badge   # tests with coverage, writes public/coverage.json
 
 npm run fetch:schedule   # regenerate committed data from ESPN
 npm run check:schedule   # report drift between committed data and the live feed
+npm run verify:live      # check the live overlay's assumptions against a game in progress
 ```
 
 `scripts/` uses **Node built-ins only** — no imports from `node_modules` — so CI can run
@@ -134,6 +135,12 @@ the edge cases you wouldn't think to invent.
 - **Format invariants** that would otherwise depend on this week's results (like
   "seeding ignores conference") are tested with synthetic data instead, so they don't
   break when the standings shift.
+
+One gap the suite structurally cannot close: the live overlay's field mapping was
+inferred from completed and scheduled games, and the tests mock ESPN using the same
+inferences — so they agree with the assumption by construction. `npm run verify:live`,
+run while a game is actually in progress, is the only check that compares those
+assumptions to reality.
 
 ## Deploy
 
