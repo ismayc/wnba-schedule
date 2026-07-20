@@ -1,16 +1,20 @@
 import { useMemo, useState } from 'react'
 import { buildBracket, layout, polar, CENTER, RING } from '../utils/bracket.js'
 import { TEAM_BY_ABBR } from '../data/teams.js'
+import { useFollow } from '../context/follow.jsx'
 import TeamLogo from './TeamLogo.jsx'
 
 function Node({ pos, abbr, label, size, className = '', title, onClick, dim }) {
   const { x, y } = polar(pos.angle, pos.r)
   const style = { left: `${x}%`, top: `${y}%` }
   const team = TEAM_BY_ABBR[abbr]
+  const { isFollowed } = useFollow()
 
   return (
     <button
-      className={`rb-node ${className} ${dim ? 'is-dim' : ''} ${team ? '' : 'is-empty'}`}
+      className={`rb-node ${className} ${dim ? 'is-dim' : ''} ${team ? '' : 'is-empty'} ${
+        isFollowed(abbr) ? 'followed' : ''
+      }`}
       style={style}
       onClick={() => team && onClick?.(abbr)}
       title={title || team?.displayName || label}

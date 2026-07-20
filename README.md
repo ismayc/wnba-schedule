@@ -26,6 +26,8 @@ snapshot of the season.
 | 🎯 **Radial** | The same bracket as concentric rings — seeds outside, the title in the middle. |
 | 📈 **Stats** | Season totals, league leaders across 8 categories, scoring margin, and the playoff race with magic numbers. |
 
+**Star a team** from any game card, standings row, or team panel to highlight it
+across every view, filter the schedule to "My teams", and scope live alerts to it.
 Clicking any team opens a **team panel** — splits, form, leading scorers, and what's
 next. Plus: light/dark themes, spoiler-free mode, shareable URLs, live alerts for
 notable moments, a game-detail modal with a quarter line score and season series,

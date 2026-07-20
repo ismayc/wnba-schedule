@@ -657,6 +657,23 @@ select:hover,
   color: var(--gold);
 }
 
+/* The star sits inside a clickable card, so it needs its own hit area. */
+.side .star {
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 3px;
+  border-radius: 5px;
+  order: -1;
+}
+
+.side:last-child .star {
+  order: 1;
+}
+
+.side .star:hover {
+  background: var(--bg-soft);
+}
+
 .at {
   color: var(--text-faint);
   font-size: 12px;
@@ -1290,6 +1307,10 @@ select:hover,
   opacity: 0.5;
 }
 
+.bx-side.followed .bx-name {
+  color: var(--gold);
+}
+
 .bx-empty {
   min-height: 30px;
 }
@@ -1414,6 +1435,11 @@ select:hover,
 
 .rb-node.is-dim {
   opacity: 0.32;
+}
+
+.rb-node.followed {
+  border-color: var(--gold);
+  border-width: 2px;
 }
 
 .rb-node.is-empty {

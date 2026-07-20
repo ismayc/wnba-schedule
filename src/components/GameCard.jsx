@@ -16,9 +16,26 @@ export function livePeriod(game) {
 
 function Side({ abbr, score, winner, hideScores }) {
   const team = TEAM_BY_ABBR[abbr]
-  const { isFollowed } = useFollow()
+  const { isFollowed, toggle } = useFollow()
+  const on = isFollowed(abbr)
+
   return (
-    <div className={`side ${winner ? 'winner' : ''} ${isFollowed(abbr) ? 'followed' : ''}`}>
+    <div className={`side ${winner ? 'winner' : ''} ${on ? 'followed' : ''}`}>
+      <button
+        className={`star ${on ? 'on' : ''}`}
+        // The whole card is a button that opens the game detail, so the star has to
+        // stop the click from reaching it — otherwise following also opens a modal.
+        onClick={(e) => {
+          e.stopPropagation()
+          toggle(abbr)
+        }}
+        onKeyDown={(e) => e.stopPropagation()}
+        aria-pressed={on}
+        aria-label={`${on ? 'Unfollow' : 'Follow'} ${team?.displayName || abbr}`}
+        title={`${on ? 'Unfollow' : 'Follow'} ${team?.displayName || abbr}`}
+      >
+        {on ? '★' : '☆'}
+      </button>
       <TeamLogo abbr={abbr} size={32} />
       <span className="side-name">
         <span className="side-loc">{team?.location}</span>

@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { buildBracket, PLAYOFF_ROUNDS } from '../utils/bracket.js'
 import { TEAM_BY_ABBR } from '../data/teams.js'
 import { formatDate } from '../utils/time.js'
+import { useFollow } from '../context/follow.jsx'
 import TeamLogo from './TeamLogo.jsx'
 
 // One dot per game in the series: filled for a played game, hollow for one still to
@@ -22,6 +23,7 @@ function SeriesDots({ series, team }) {
 
 function Side({ abbr, label, seed, wins, isWinner, decided, onPick }) {
   const team = TEAM_BY_ABBR[abbr]
+  const { isFollowed } = useFollow()
 
   if (!team) {
     return (
@@ -32,7 +34,11 @@ function Side({ abbr, label, seed, wins, isWinner, decided, onPick }) {
   }
 
   return (
-    <div className={`bx-side ${isWinner ? 'bx-won' : decided ? 'bx-lost' : ''}`}>
+    <div
+      className={`bx-side ${isWinner ? 'bx-won' : decided ? 'bx-lost' : ''} ${
+        isFollowed(abbr) ? 'followed' : ''
+      }`}
+    >
       {seed && <span className="bx-seed">{seed}</span>}
       <button className="bx-team" onClick={() => onPick?.(abbr)}>
         <TeamLogo abbr={abbr} size={24} />
