@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "coverage:badge": "vitest run --coverage && node scripts/coverage-badge.mjs",
     "fetch:schedule": "node scripts/fetch-schedule.mjs --season 2026",
     "check:schedule": "node scripts/check-schedule.mjs"
   },

@@ -1,6 +1,7 @@
 # The WNBA Schedule
 
 [![CI](https://github.com/ismayc/wnba-schedule/actions/workflows/ci.yml/badge.svg)](https://github.com/ismayc/wnba-schedule/actions/workflows/ci.yml)
+[![coverage](https://img.shields.io/endpoint?url=https://the-wnba-schedule.netlify.app/coverage.json)](https://github.com/ismayc/wnba-schedule/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **Live:** [the-wnba-schedule.netlify.app](https://the-wnba-schedule.netlify.app) ·
@@ -109,6 +110,7 @@ npm install
 npm run dev              # local dev server
 npm test                 # unit + render tests
 npm run build            # production bundle
+npm run coverage:badge   # tests with coverage, writes public/coverage.json
 
 npm run fetch:schedule   # regenerate committed data from ESPN
 npm run check:schedule   # report drift between committed data and the live feed

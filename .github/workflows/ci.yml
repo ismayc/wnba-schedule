@@ -24,7 +24,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm test
+      # Runs the full suite AND writes public/coverage.json for the README badge.
+      # Replaces a separate `npm test` step so the suite isn't run twice.
+      - run: npm run coverage:badge
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
@@ -64,6 +66,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run coverage:badge # writes public/coverage.json for the README badge
       - run: npm run build
       - name: Deploy
         if: env.NETLIFY_AUTH_TOKEN != ''
