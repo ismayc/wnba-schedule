@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { GAMES } from './data/schedule.js'
 import { SEASON, TEAMS } from './data/teams.js'
 import { detectTimezone, timezoneOptions } from './utils/time.js'
@@ -13,6 +13,8 @@ import RadialBracket from './components/RadialBracket.jsx'
 import GameDetail from './components/GameDetail.jsx'
 import WeekView from './components/WeekView.jsx'
 import { downloadIcs } from './utils/ics.js'
+import Toasts from './components/Toasts.jsx'
+import { detectEvents, eventKey } from './services/alerts.js'
 import TeamLogo from './components/TeamLogo.jsx'
 
 const VIEWS = [
@@ -41,6 +43,15 @@ export default function App() {
   const [live, setLive] = useState(null)
   const [updatedAt, setUpdatedAt] = useState(null)
   const [detail, setDetail] = useState(null)
+  const [alerts, setAlerts] = useState(() => {
+    try {
+      return localStorage.getItem('wnba:alerts') === '1'
+    } catch {
+      return false
+    }
+  })
+  const [toasts, setToasts] = useState([])
+  const prevGames = useRef(null)
 
   const { count: followedCount, followed } = useFollow()
 
@@ -76,6 +87,34 @@ export default function App() {
       clearInterval(id)
     }
   }, [load, nLive, seasonOver])
+
+  // Notable-moment detection, diffed against the previous poll. Runs regardless of
+  // whether alerts are on, so toggling it on mid-game doesn't replay old moments as
+  // if they just happened.
+  useEffect(() => {
+    const prev = prevGames.current
+    prevGames.current = games
+    if (!prev || !alerts) return
+
+    const found = detectEvents(prev, games, {
+      teams: onlyFollowed || followedCount ? followed : null,
+    })
+    if (!found.length) return
+
+    setToasts((cur) => {
+      const seen = new Set(cur.map((t) => t.key))
+      const fresh = found.map((e) => ({ ...e, key: eventKey(e) })).filter((e) => !seen.has(e.key))
+      // Newest first, and never more than a handful on screen at once.
+      return [...fresh, ...cur].slice(0, 4)
+    })
+  }, [games, alerts, followed, followedCount, onlyFollowed])
+
+  // Toasts retire on their own; a lingering stack would bury the page.
+  useEffect(() => {
+    if (!toasts.length) return
+    const id = setTimeout(() => setToasts((cur) => cur.slice(0, -1)), 9000)
+    return () => clearTimeout(id)
+  }, [toasts])
 
   // Keep the URL in step with the view so any state is shareable.
   useEffect(() => {
@@ -138,6 +177,22 @@ export default function App() {
             aria-pressed={hideScores}
           >
             {hideScores ? '🙈' : '👁'}
+          </button>
+          <button
+            className={`ghost ${alerts ? 'on' : ''}`}
+            onClick={() => {
+              const next = !alerts
+              setAlerts(next)
+              try {
+                localStorage.setItem('wnba:alerts', next ? '1' : '0')
+              } catch {
+                /* ignore */
+              }
+            }}
+            title={alerts ? 'Live alerts on' : 'Live alerts off'}
+            aria-pressed={alerts}
+          >
+            {alerts ? '🔔' : '🔕'}
           </button>
           <button className="ghost" onClick={toggleTheme} title="Toggle theme">
             {theme === 'dark' ? '☀️' : '🌙'}
@@ -223,6 +278,12 @@ export default function App() {
           <StatsView games={games} tz={tz} onPickTeam={(t) => (setTeam(t), setView('schedule'))} />
         )}
       </main>
+
+      <Toasts
+        events={toasts}
+        onOpen={(g) => setDetail(g)}
+        onDismiss={(key) => setToasts((cur) => cur.filter((t) => t.key !== key))}
+      />
 
       <GameDetail
         game={detail}

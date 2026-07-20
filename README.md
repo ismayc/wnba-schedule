@@ -79,6 +79,14 @@ So the live badge shows the **period** (`Q3`, `HALF`, `OT`) rather than a runnin
 clock, which would imply a precision a 30-second poll can't deliver. The exact feed
 status stays in the tooltip.
 
+And it rules out goal-style alerts. One notification per basket would fire ~65 times a
+game. The 🔔 toggle instead surfaces the moments that change how a game *feels* —
+tipoff, a lead change, a one-possession fourth quarter, and the final — detected by
+diffing poll snapshots, so no play-by-play feed is needed. A close fourth quarter
+alerts once on entering that state, not every 30 seconds while it holds, and a
+buzzer-beater that both flips the lead and ends the game is reported as one moment
+rather than three.
+
 ### Format notes
 
 The WNBA is not a group-stage tournament, and two details drive most of the app's logic:
