@@ -13,13 +13,15 @@ snapshot of the season.
 | View | What it does |
 |---|---|
 | 📋 **Schedule** | Every game grouped by the calendar day *you* see, opened to today. Filter by team or by the teams you follow. |
+| 📆 **Week** | A Sun–Sat grid you can page through, collapsing to a two-column agenda on a phone. |
 | 📊 **Regular Season** | League seeding with the playoff cutline, or conference tables. W/L, PCT, GB, home/road splits, last-10, streak, net rating. |
 | 🏆 **Playoffs** | The bracket, where each slot is a best-of series. Projected from current standings until the real field is set. |
 | 🎯 **Radial** | The same bracket as concentric rings — seeds outside, the title in the middle. |
 | 📈 **Stats** | Season totals, league leaders across 8 categories, scoring margin, and the playoff race with magic numbers. |
 
 Plus: light/dark themes, spoiler-free mode, shareable URLs, a game-detail modal with a
-season series and tale of the tape, and installable-PWA support.
+quarter line score and season series, `.ics` calendar export (whole season or one
+team's), and installable-PWA support.
 
 ## Data
 

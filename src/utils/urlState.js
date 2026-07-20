@@ -16,7 +16,7 @@ export const DEFAULTS = {
   mine: false,
 }
 
-const VALID_VIEWS = ['schedule', 'standings', 'playoffs', 'radial', 'stats']
+const VALID_VIEWS = ['schedule', 'week', 'standings', 'playoffs', 'radial', 'stats']
 
 export function readState(search = window.location.search) {
   const p = new URLSearchParams(search)

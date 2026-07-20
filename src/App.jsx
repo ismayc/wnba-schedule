@@ -11,10 +11,13 @@ import StatsView from './components/StatsView.jsx'
 import Bracket from './components/Bracket.jsx'
 import RadialBracket from './components/RadialBracket.jsx'
 import GameDetail from './components/GameDetail.jsx'
+import WeekView from './components/WeekView.jsx'
+import { downloadIcs } from './utils/ics.js'
 import TeamLogo from './components/TeamLogo.jsx'
 
 const VIEWS = [
   { id: 'schedule', label: '📋 Schedule' },
+  { id: 'week', label: '📆 Week' },
   { id: 'standings', label: '📊 Regular Season' },
   { id: 'playoffs', label: '🏆 Playoffs' },
   { id: 'radial', label: '🎯 Radial' },
@@ -155,7 +158,7 @@ export default function App() {
         ))}
       </nav>
 
-      {view === 'schedule' && (
+      {(view === 'schedule' || view === 'week') && (
         <div className="filters">
           <label className="field">
             <span className="sr-only">Team</span>
@@ -182,6 +185,18 @@ export default function App() {
               <TeamLogo abbr={team} size={18} /> Clear
             </button>
           )}
+          <button
+            className="chip"
+            onClick={() =>
+              downloadIcs(scheduleGames, {
+                filename: team ? `wnba-${team.toLowerCase()}.ics` : 'wnba-2026.ics',
+                name: team ? `${TEAMS.find((t) => t.abbr === team)?.displayName} ${SEASON}` : `WNBA ${SEASON}`,
+              })
+            }
+            title="Download these games as a calendar file"
+          >
+            📅 Export{scheduleGames.length !== games.length ? ` (${scheduleGames.length})` : ''}
+          </button>
         </div>
       )}
 
@@ -193,6 +208,9 @@ export default function App() {
             hideScores={hideScores}
             onOpen={setDetail}
           />
+        )}
+        {view === 'week' && (
+          <WeekView games={scheduleGames} tz={tz} hideScores={hideScores} onOpen={setDetail} />
         )}
         {view === 'standings' && <StandingsView games={games} onPick={(t) => (setTeam(t), setView('schedule'))} />}
         {view === 'playoffs' && (

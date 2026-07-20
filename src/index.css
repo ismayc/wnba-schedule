@@ -1018,6 +1018,141 @@ select:hover,
   padding: 6px 8px;
 }
 
+/* ── Week ───────────────────────────────────────────────────────────── */
+.wk-nav {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.wk-nav .ghost:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.wk {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.wk-col {
+  min-width: 0;
+}
+
+.wk-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 5px;
+  padding: 5px 2px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 6px;
+}
+
+.wk-dow {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+.wk-date {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.wk-head.is-today {
+  border-bottom-color: var(--accent);
+}
+
+.wk-head.is-today .wk-dow,
+.wk-head.is-today .wk-date {
+  color: var(--accent);
+}
+
+.wk-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-height: 44px;
+}
+
+.wk-game {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 6px 7px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.wk-game:hover {
+  background: var(--card-hover);
+  border-color: var(--accent);
+}
+
+.wk-game.is-mine {
+  border-color: var(--gold);
+}
+
+.wk-game.is-live {
+  border-color: var(--live);
+}
+
+.wk-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.wk-abbr {
+  font-size: 11px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wk-pts {
+  margin-left: auto;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+}
+
+.wk-pts.won {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.wk-time {
+  font-size: 10px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  padding-top: 1px;
+}
+
+/* Seven columns don't fit a phone; stack into a two-column agenda instead. */
+@media (max-width: 720px) {
+  .wk {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .wk-head {
+    justify-content: flex-start;
+  }
+}
+
 /* ── Bracket ────────────────────────────────────────────────────────── */
 .banner {
   background: var(--accent-soft);
