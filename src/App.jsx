@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { GAMES } from './data/schedule.js'
 import { SEASON, TEAMS } from './data/teams.js'
 import { detectTimezone, timezoneOptions } from './utils/time.js'

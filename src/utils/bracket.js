@@ -14,7 +14,6 @@
 import { seedings } from './standings.js'
 import { SERIES_LENGTH, PLAYOFF_ROUNDS } from '../data/schedule.js'
 
-export const ROUND_ORDER = ['R1', 'SF', 'Final']
 export { PLAYOFF_ROUNDS, SERIES_LENGTH }
 
 // Seed pairings for the first round, in bracket order (top half then bottom half).
@@ -111,9 +110,9 @@ export function buildBracket(games) {
 
   // Normally the first round is located by seed: slot 0 is the 1v8 series, and so on.
   // But seeding comes from regular-season records, so a game list containing only
-  // playoff games (a fixture, or a mid-postseason feed) can't resolve it. When the
-  // seed lookup fails to find series that demonstrably exist, fall back to the real
-  // series in chronological order rather than reporting an empty bracket.
+  // playoff games (a fixture, or a mid-postseason feed) can't resolve it, and the
+  // bracket would come back empty despite the series plainly existing. The fallback
+  // below recovers position from the semifinals instead.
   const bySeedSlots = R1_PAIRS.map(([hi, lo], i) =>
     slot('R1', bySeed[hi]?.abbr, bySeed[lo]?.abbr, {
       seeds: [hi, lo],
@@ -177,10 +176,6 @@ export function buildBracket(games) {
     seeded: seeded.slice(0, 8),
   }
 }
-
-// Flat list in draw order, for the radial layout.
-export const bracketSlots = (bracket) =>
-  ROUND_ORDER.flatMap((r) => bracket.rounds[r].map((s) => ({ ...s, round: r })))
 
 // ── Radial geometry ──────────────────────────────────────────────────────────
 // Kept here rather than in the component so it can be tested without a DOM.
