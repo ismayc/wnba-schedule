@@ -1984,15 +1984,30 @@ select:hover,
 
 /* ── Footer ─────────────────────────────────────────────────────────── */
 .foot {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
   margin-top: 36px;
   padding-top: 14px;
   border-top: 1px solid var(--border);
   font-size: 12px;
   color: var(--text-faint);
+  line-height: 1.5;
+}
+
+.foot-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.foot a {
+  color: var(--accent);
+}
+
+.disclaimer,
+.credit {
+  margin: 0;
 }
 
 @keyframes pulse {

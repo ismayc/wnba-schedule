@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "description": "An unofficial, timezone-aware viewer for the WNBA season — schedule, standings, playoff bracket, and stats.",
+  "author": "Chester Ismay",
   "license": "MIT",
   "scripts": {
     "dev": "vite",

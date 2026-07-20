@@ -333,15 +333,37 @@ export default function App() {
       />
 
       <footer className="foot">
-        <span>
-          Unofficial fan project · not affiliated with the WNBA. Data from ESPN&apos;s public
-          feeds.
-        </span>
-        {updatedAt && (
-          <span className="dim">
-            Updated {updatedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-          </span>
-        )}
+        <p className="disclaimer">
+          An unofficial fan-made project. Not affiliated with, endorsed by, or sponsored by the
+          WNBA. Team names and logos are trademarks of their respective owners. Schedule,
+          results, and player data via{' '}
+          <a href="https://www.espn.com/wnba/" target="_blank" rel="noopener noreferrer">
+            ESPN
+          </a>
+          .
+        </p>
+        <div className="foot-row">
+          <p className="credit">
+            Created by{' '}
+            <a href="https://chester.rbind.io" target="_blank" rel="noopener noreferrer">
+              Chester Ismay
+            </a>{' '}
+            ·{' '}
+            <a
+              href="https://github.com/ismayc/wnba-schedule"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View source on GitHub
+            </a>
+          </p>
+          {updatedAt && (
+            <span className="dim">
+              Updated{' '}
+              {updatedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+            </span>
+          )}
+        </div>
       </footer>
     </div>
   )

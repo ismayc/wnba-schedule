@@ -147,7 +147,11 @@ a subpath (GitHub Pages `/wnba-schedule/`) with no separate build.
 
 ## Credits
 
-Unofficial fan project. Not affiliated with or endorsed by the WNBA. Team names and
-logos belong to their respective owners. Data from ESPN's public feeds.
+Created by [Chester Ismay](https://chester.rbind.io). Source on
+[GitHub](https://github.com/ismayc/wnba-schedule).
+
+Unofficial fan project. Not affiliated with, endorsed by, or sponsored by the WNBA.
+Team names and logos are trademarks of their respective owners. Schedule, results, and
+player data via ESPN's public feeds.
 
 MIT licensed.
