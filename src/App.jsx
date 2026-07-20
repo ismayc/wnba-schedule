@@ -7,12 +7,15 @@ import { useFollow } from './context/follow.jsx'
 import ScheduleView from './components/ScheduleView.jsx'
 import StandingsView from './components/StandingsView.jsx'
 import StatsView from './components/StatsView.jsx'
+import Bracket from './components/Bracket.jsx'
+import RadialBracket from './components/RadialBracket.jsx'
 import TeamLogo from './components/TeamLogo.jsx'
 
 const VIEWS = [
   { id: 'schedule', label: '📋 Schedule' },
   { id: 'standings', label: '📊 Regular Season' },
   { id: 'playoffs', label: '🏆 Playoffs' },
+  { id: 'radial', label: '🎯 Radial' },
   { id: 'stats', label: '📈 Stats' },
 ]
 
@@ -176,9 +179,10 @@ export default function App() {
         )}
         {view === 'standings' && <StandingsView games={games} onPick={(t) => (setTeam(t), setView('schedule'))} />}
         {view === 'playoffs' && (
-          <section className="view">
-            <p className="empty">Playoff bracket lands here once the field is set.</p>
-          </section>
+          <Bracket games={games} tz={tz} onPick={(t) => (setTeam(t), setView('schedule'))} />
+        )}
+        {view === 'radial' && (
+          <RadialBracket games={games} onPick={(t) => (setTeam(t), setView('schedule'))} />
         )}
         {view === 'stats' && (
           <StatsView games={games} tz={tz} onPickTeam={(t) => (setTeam(t), setView('schedule'))} />
