@@ -1,5 +1,11 @@
 # The WNBA Schedule
 
+[![CI](https://github.com/ismayc/wnba-schedule/actions/workflows/ci.yml/badge.svg)](https://github.com/ismayc/wnba-schedule/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+**Live:** [the-wnba-schedule.netlify.app](https://the-wnba-schedule.netlify.app) ·
+[ismayc.github.io/wnba-schedule](https://ismayc.github.io/wnba-schedule/)
+
 An unofficial viewer for the WNBA season: every game in your timezone, live scores,
 standings, the playoff bracket, and league leaders.
 
@@ -129,8 +135,15 @@ the edge cases you wouldn't think to invent.
 
 ## Deploy
 
-Built with `base: './'`, so the same `dist/` works at a domain root or under a subpath.
-`netlify.toml` is included; any static host works.
+Built with `base: './'`, so the same `dist/` works at a domain root (Netlify) and under
+a subpath (GitHub Pages `/wnba-schedule/`) with no separate build.
+
+- **GitHub Pages** deploys automatically from `ci.yml` on every push to `main`, gated on
+  tests passing.
+- **Netlify** deploys from the same workflow, but only once `NETLIFY_AUTH_TOKEN` is set
+  as a repository secret (`NETLIFY_SITE_ID` is already stored as a repo variable). Until
+  then that step is skipped and Netlify can be updated with
+  `npx netlify-cli deploy --prod --dir dist`.
 
 ## Credits
 
