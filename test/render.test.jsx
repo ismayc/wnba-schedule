@@ -5,6 +5,7 @@ import StandingsView from '../src/components/StandingsView.jsx'
 import ScheduleView from '../src/components/ScheduleView.jsx'
 import GameCard from '../src/components/GameCard.jsx'
 import { GAMES } from '../src/data/schedule.js'
+import { dayKey, todayKey } from '../src/utils/time.js'
 
 const TZ = 'America/New_York'
 
@@ -87,13 +88,63 @@ describe('GameCard', () => {
 
 describe('ScheduleView', () => {
   it('groups games under day headings', () => {
-    render(<ScheduleView games={GAMES.slice(0, 12)} tz={TZ} />)
-    expect(screen.getAllByRole('button').length).toBeGreaterThan(0)
+    const { container } = render(<ScheduleView games={GAMES} tz={TZ} showPast />)
+    expect(container.querySelectorAll('.day').length).toBeGreaterThan(0)
     expect(screen.getAllByText(/game/).length).toBeGreaterThan(0)
   })
 
   it('shows an empty state when filters match nothing', () => {
     render(<ScheduleView games={[]} tz={TZ} />)
     expect(screen.getByText(/No games match/i)).toBeInTheDocument()
+  })
+
+  // Past days are dropped whole rather than by tip-off time, so a game earlier
+  // today still counts as today.
+  describe('past days', () => {
+    const today = todayKey(TZ)
+    const keysOf = (c) =>
+      [...c.querySelectorAll('.day')].map((d) => d.querySelector('.day-head span').textContent)
+
+    it('hides previous days by default', () => {
+      const { container } = render(<ScheduleView games={GAMES} tz={TZ} />)
+      const shown = new Set(
+        GAMES.filter((g) => dayKey(g.tip, TZ) >= today).map((g) => dayKey(g.tip, TZ))
+      )
+      expect(container.querySelectorAll('.day')).toHaveLength(shown.size)
+    })
+
+    it('reveals them when asked', () => {
+      const { container: hidden } = render(<ScheduleView games={GAMES} tz={TZ} />)
+      const nHidden = hidden.querySelectorAll('.day').length
+
+      const { container: shown } = render(<ScheduleView games={GAMES} tz={TZ} showPast />)
+      const nShown = shown.querySelectorAll('.day').length
+
+      expect(nShown).toBeGreaterThan(nHidden)
+      // Every day in the season is accounted for.
+      const allKeys = new Set(GAMES.map((g) => dayKey(g.tip, TZ)))
+      expect(nShown).toBe(allKeys.size)
+    })
+
+    it('keeps today visible in both states', () => {
+      for (const showPast of [false, true]) {
+        const { container, unmount } = render(
+          <ScheduleView games={GAMES} tz={TZ} showPast={showPast} />
+        )
+        // "Today" is the label the day header uses for the current date.
+        expect(keysOf(container)).toContain('Today')
+        unmount()
+      }
+    })
+
+    it('renders only future-or-today days when hiding', () => {
+      const { container } = render(<ScheduleView games={GAMES} tz={TZ} />)
+      // The first rendered day must not precede today.
+      const firstGame = GAMES.filter((g) => dayKey(g.tip, TZ) >= today).sort((a, b) =>
+        a.tip.localeCompare(b.tip)
+      )[0]
+      expect(container.querySelectorAll('.day').length).toBeGreaterThan(0)
+      expect(dayKey(firstGame.tip, TZ) >= today).toBe(true)
+    })
   })
 })

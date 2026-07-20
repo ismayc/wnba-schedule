@@ -14,6 +14,7 @@ export const DEFAULTS = {
   team: '',
   hide: false,
   mine: false,
+  past: false,
 }
 
 const VALID_VIEWS = ['schedule', 'week', 'standings', 'playoffs', 'radial', 'stats']
@@ -32,6 +33,7 @@ export function readState(search = window.location.search) {
     team: p.get('team') || DEFAULTS.team,
     hide: p.get('hide') === '1',
     mine: p.get('mine') === '1',
+    past: p.get('past') === '1',
   }
 }
 
@@ -54,6 +56,7 @@ export function toSearch(state, detectedTz) {
   if (state.team) p.set('team', state.team)
   if (state.hide) p.set('hide', '1')
   if (state.mine) p.set('mine', '1')
+  if (state.past) p.set('past', '1')
   const s = p.toString()
   return s ? `?${s}` : ''
 }

@@ -2,12 +2,12 @@ import { useMemo, useRef, useEffect } from 'react'
 import { dayKey, dayLabel, todayKey } from '../utils/time.js'
 import GameCard from './GameCard.jsx'
 
-export default function ScheduleView({ games, tz, hideScores, onOpen }) {
+export default function ScheduleView({ games, tz, hideScores, showPast = false, onOpen }) {
   const todayRef = useRef(null)
   const today = todayKey(tz)
 
   // Bucket by the calendar day the viewer sees, not by UTC date.
-  const days = useMemo(() => {
+  const allDays = useMemo(() => {
     const map = new Map()
     for (const g of games) {
       const key = dayKey(g.tip, tz)
@@ -17,10 +17,19 @@ export default function ScheduleView({ games, tz, hideScores, onOpen }) {
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b))
   }, [games, tz])
 
-  // Land the viewer on today rather than at the season opener in May.
+  // Days are dropped whole rather than filtering individual games, so a game earlier
+  // today still shows — "past" means a previous calendar day in the viewer's zone,
+  // not simply a tip-off already in the past.
+  const days = useMemo(
+    () => (showPast ? allDays : allDays.filter(([key]) => key >= today)),
+    [allDays, showPast, today]
+  )
+
+  // Land the viewer on today rather than at the season opener in May. Only needed
+  // when past days are showing; otherwise today is already the first thing rendered.
   useEffect(() => {
-    todayRef.current?.scrollIntoView({ block: 'start' })
-  }, [])
+    if (showPast) todayRef.current?.scrollIntoView({ block: 'start' })
+  }, [showPast])
 
   if (!days.length) {
     return (

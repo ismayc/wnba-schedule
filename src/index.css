@@ -230,6 +230,21 @@ select:hover,
   border-radius: 999px;
 }
 
+/* Count of what's hidden behind a toggle. */
+.chip-count {
+  background: var(--bg-soft);
+  border-radius: 999px;
+  padding: 0 6px;
+  font-size: 11px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.chip.on .chip-count {
+  background: var(--card);
+  color: var(--accent);
+}
+
 .seg {
   display: flex;
   gap: 0;

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { GAMES } from './data/schedule.js'
 import { SEASON, TEAMS } from './data/teams.js'
-import { detectTimezone, timezoneOptions } from './utils/time.js'
+import { detectTimezone, timezoneOptions, dayKey, todayKey } from './utils/time.js'
 import { readState, writeState } from './utils/urlState.js'
 import { applyLive, fetchLive, liveCount } from './services/espn.js'
 import { useFollow } from './context/follow.jsx'
@@ -41,6 +41,9 @@ export default function App() {
   const [hideScores, setHideScores] = useState(initial.hide)
   const [team, setTeam] = useState(initial.team)
   const [onlyFollowed, setOnlyFollowed] = useState(initial.mine)
+  // Hidden by default: 194 of this season's 332 games are already played, so opening
+  // on the season opener in May would bury today under months of finals.
+  const [showPast, setShowPast] = useState(initial.past)
   const [live, setLive] = useState(null)
   const [updatedAt, setUpdatedAt] = useState(null)
   const [detail, setDetail] = useState(null)
@@ -120,8 +123,8 @@ export default function App() {
 
   // Keep the URL in step with the view so any state is shareable.
   useEffect(() => {
-    writeState({ view, tz, team, hide: hideScores, mine: onlyFollowed }, detectedTz)
-  }, [view, tz, team, hideScores, onlyFollowed, detectedTz])
+    writeState({ view, tz, team, hide: hideScores, mine: onlyFollowed, past: showPast }, detectedTz)
+  }, [view, tz, team, hideScores, onlyFollowed, showPast, detectedTz])
 
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark'
@@ -142,6 +145,16 @@ export default function App() {
       return true
     })
   }, [games, team, onlyFollowed, followed, followedCount])
+
+  const pastDayCount = useMemo(() => {
+    const today = todayKey(tz)
+    const keys = new Set()
+    for (const g of scheduleGames) {
+      const key = dayKey(g.tip, tz)
+      if (key < today) keys.add(key)
+    }
+    return keys.size
+  }, [scheduleGames, tz])
 
   return (
     <div className="app">
@@ -242,6 +255,18 @@ export default function App() {
               <TeamLogo abbr={team} size={18} /> Clear
             </button>
           )}
+          {view === 'schedule' && pastDayCount > 0 && (
+            <button
+              className={`chip ${showPast ? 'on' : ''}`}
+              onClick={() => setShowPast((v) => !v)}
+              aria-pressed={showPast}
+              title={showPast ? 'Hide previous days' : 'Show previous days'}
+            >
+              <span aria-hidden="true">{showPast ? '▾' : '▸'}</span>{' '}
+              {showPast ? 'Hide' : 'Show'} past days
+              <span className="chip-count">{pastDayCount}</span>
+            </button>
+          )}
           <button
             className="chip"
             onClick={() =>
@@ -263,6 +288,7 @@ export default function App() {
             games={scheduleGames}
             tz={tz}
             hideScores={hideScores}
+            showPast={showPast}
             onOpen={setDetail}
           />
         )}

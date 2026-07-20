@@ -18,7 +18,7 @@ snapshot of the season.
 
 | View | What it does |
 |---|---|
-| 📋 **Schedule** | Every game grouped by the calendar day *you* see, opened to today. Filter by team or by the teams you follow. |
+| 📋 **Schedule** | Every game grouped by the calendar day *you* see, opening on today — previous days are hidden behind a toggle. Filter by team or by the teams you follow. |
 | 📆 **Week** | A Sun–Sat grid you can page through, collapsing to a two-column agenda on a phone. |
 | 📊 **Regular Season** | League seeding with the playoff cutline, or conference tables. W/L, PCT, GB, home/road splits, last-10, streak, net rating. |
 | 🏆 **Playoffs** | The bracket, where each slot is a best-of series. Projected from current standings until the real field is set. |

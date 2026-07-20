@@ -9,16 +9,18 @@ describe('readState', () => {
       team: '',
       hide: false,
       mine: false,
+      past: false,
     })
   })
 
   it('reads every supported key', () => {
-    expect(readState('?view=stats&tz=America/Chicago&team=MIN&hide=1&mine=1')).toEqual({
+    expect(readState('?view=stats&tz=America/Chicago&team=MIN&hide=1&mine=1&past=1')).toEqual({
       view: 'stats',
       tz: 'America/Chicago',
       team: 'MIN',
       hide: true,
       mine: true,
+      past: true,
     })
   })
 
@@ -61,7 +63,14 @@ describe('toSearch', () => {
   })
 
   it('round-trips through readState', () => {
-    const state = { view: 'playoffs', tz: 'Europe/London', team: 'LV', hide: true, mine: true }
+    const state = {
+      view: 'playoffs',
+      tz: 'Europe/London',
+      team: 'LV',
+      hide: true,
+      mine: true,
+      past: true,
+    }
     expect(readState(toSearch(state, detected))).toEqual(state)
   })
 })
