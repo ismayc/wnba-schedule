@@ -271,6 +271,8 @@ select:hover,
   display: grid;
   gap: 16px;
   grid-template-columns: 1fr;
+  /* Cards size to their own content instead of stretching to the tallest sibling. */
+  align-items: start;
 }
 
 .empty {
@@ -636,6 +638,360 @@ select:hover,
 
 .countdown {
   color: var(--accent);
+}
+
+/* ── Stats ──────────────────────────────────────────────────────────── */
+/* Data-mark colors are separate from --accent on purpose: the orange is UI
+   chrome (buttons, active states) and never encodes data, so a mark is never
+   confused for a control. The diverging pair below is the validated blue↔red,
+   checked against these exact card surfaces in both themes. */
+:root,
+:root[data-theme='dark'] {
+  --viz-pos: #3987e5;
+  --viz-neg: #e66767;
+  --viz-bar: #3987e5;
+  --viz-zero: #383835;
+}
+
+:root[data-theme='light'] {
+  --viz-pos: #2a78d6;
+  --viz-neg: #e34948;
+  --viz-bar: #2a78d6;
+  --viz-zero: #c3c2b7;
+}
+
+.card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.fine {
+  color: var(--text-faint);
+  font-size: 11.5px;
+  margin: 8px 0 10px;
+}
+
+.fine.top {
+  margin-top: -4px;
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 11px 12px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+.tile-btn {
+  cursor: pointer;
+}
+
+.tile-btn:hover,
+.tile.open {
+  border-color: var(--accent);
+}
+
+.tile-value {
+  font-size: 23px;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.tile-label {
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+.tile-sub {
+  font-size: 10.5px;
+  color: var(--text-faint);
+}
+
+.tile-caret {
+  position: absolute;
+  top: 9px;
+  right: 10px;
+  font-size: 10px;
+  color: var(--text-faint);
+}
+
+.drill {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 8px 0 0;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.drill li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 2px;
+}
+
+.drill-date {
+  color: var(--text-dim);
+  width: 82px;
+  flex: 0 0 auto;
+  font-size: 12px;
+}
+
+.drill-score {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.drill-note {
+  margin-left: auto;
+  color: var(--text-faint);
+  font-size: 11.5px;
+}
+
+/* Category switcher — one category shown at a time, so the chart is a single
+   series and needs no legend. */
+.cats {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.cat {
+  font: inherit;
+  font-size: 11.5px;
+  padding: 3px 8px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--bg-soft);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.cat:hover {
+  color: var(--text);
+}
+
+.cat.on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.leaders {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.leaders td {
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.leaders tr:last-child td {
+  border-bottom: 0;
+}
+
+.lead-rank {
+  width: 22px;
+  text-align: right;
+  color: var(--text-faint);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.lead-team button {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+}
+
+.lead-name {
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.lead-pos {
+  color: var(--text-faint);
+  font-size: 11px;
+  margin-left: 6px;
+}
+
+.lead-bar {
+  width: 45%;
+  min-width: 60px;
+}
+
+/* 4px rounded data-end, anchored to the baseline. */
+.bar {
+  display: block;
+  height: 9px;
+  width: var(--w);
+  background: var(--viz-bar);
+  border-radius: 0 4px 4px 0;
+}
+
+.lead-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  width: 54px;
+}
+
+/* Diverging: bars grow out from a shared zero line. */
+.margin {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.margin-row {
+  display: grid;
+  grid-template-columns: 108px 1fr 82px;
+  align-items: center;
+  gap: 8px;
+}
+
+.margin-team {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 0;
+  padding: 2px 0;
+  color: inherit;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.margin-team span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.margin-team:hover span {
+  color: var(--accent);
+}
+
+.margin-track {
+  position: relative;
+  height: 18px;
+}
+
+.margin-zero {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--viz-zero);
+}
+
+.margin-bar {
+  position: absolute;
+  top: 4px;
+  height: 10px;
+  width: var(--w);
+}
+
+.margin-bar.pos {
+  left: 50%;
+  background: var(--viz-pos);
+  border-radius: 0 4px 4px 0;
+}
+
+.margin-bar.neg {
+  right: 50%;
+  background: var(--viz-neg);
+  border-radius: 4px 0 0 4px;
+}
+
+.margin-label {
+  position: absolute;
+  top: 1px;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+}
+
+/* Anchored past the end of its own bar, reading the same --w the bar does. */
+.margin-label.pos {
+  left: calc(50% + var(--w, 0%));
+  margin-left: 6px;
+}
+
+.margin-label.neg {
+  right: calc(50% + var(--w, 0%));
+  margin-right: 6px;
+}
+
+.margin-split {
+  text-align: right;
+  font-size: 11.5px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.margin-split i {
+  font-style: normal;
+  opacity: 0.5;
+  margin: 0 3px;
+}
+
+/* Status always ships icon + word, never color alone. */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+.status i {
+  font-style: normal;
+}
+
+.st-good {
+  color: var(--win);
+  font-weight: 600;
+}
+.st-out {
+  color: var(--text-faint);
+}
+.st-in {
+  color: var(--viz-pos);
+}
+.st-chase {
+  color: var(--text-dim);
+}
+
+.race td {
+  padding: 6px 8px;
 }
 
 /* ── Footer ─────────────────────────────────────────────────────────── */

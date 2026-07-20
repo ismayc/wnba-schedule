@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const SITE = 'https://site.api.espn.com/apis/site/v2/sports/basketball/wnba'
+const WEB = 'https://site.web.api.espn.com/apis/common/v3/sports/basketball/wnba'
 
 const args = process.argv.slice(2)
 const SEASON = Number(args[args.indexOf('--season') + 1]) || new Date().getFullYear()
@@ -153,6 +154,53 @@ async function fetchSchedule(teams) {
   return [...byId.values()].sort((a, b) => a.tip.localeCompare(b.tip) || a.id.localeCompare(b.id))
 }
 
+// Season stat lines for every qualified player, in a single request. The core-API
+// /leaders endpoint returns athletes as $ref links (≈75 extra fetches to resolve
+// names); this one inlines name, team, and position, so the app ships leaderboards
+// with zero runtime requests.
+const STAT_KEYS = {
+  general: ['gamesPlayed', 'avgMinutes', 'doubleDouble', 'tripleDouble', 'per', 'avgRebounds'],
+  offensive: [
+    'points', 'avgPoints', 'avgFgMade', 'avgFgAtt', 'fgPct',
+    'avgThreeMade', 'avgThreeAtt', 'threePct',
+    'avgFtMade', 'avgFtAtt', 'ftPct', 'avgAssists', 'avgTurnovers',
+  ],
+  defensive: ['avgSteals', 'avgBlocks'],
+}
+
+const round = (v, p = 1) =>
+  typeof v === 'number' && Number.isFinite(v) ? Number(v.toFixed(p)) : null
+
+async function fetchLeaders() {
+  const d = await getJson(
+    `${WEB}/statistics/byathlete?region=us&lang=en&season=${SEASON}&seasontype=2&limit=300`
+  )
+
+  return (d.athletes || [])
+    .map(({ athlete: a, categories }) => {
+      const stats = {}
+      for (const cat of categories || []) {
+        const keys = STAT_KEYS[cat.name]
+        if (!keys) continue
+        keys.forEach((key, i) => {
+          // Percentages arrive as 0-100 floats with float noise (40.00000059…).
+          const precision = key.endsWith('Pct') ? 1 : key === 'points' ? 0 : 1
+          stats[key] = round(cat.values?.[i], precision)
+        })
+      }
+      return {
+        id: a.id,
+        name: a.displayName,
+        short: a.shortName,
+        team: a.teamShortName,
+        pos: a.position?.abbreviation || null,
+        ...stats,
+      }
+    })
+    .filter((p) => p.team && p.gamesPlayed)
+    .sort((a, b) => (b.avgPoints ?? 0) - (a.avgPoints ?? 0))
+}
+
 // Logos never render larger than ~64px, so pull them through ESPN's image combiner at
 // 160px instead of mirroring the 500px originals — ~8KB each rather than ~43KB.
 const LOGO_PX = 160
@@ -219,6 +267,20 @@ async function main() {
       `export const PLAYOFF_ROUNDS = { R1: 'First Round', SF: 'Semifinals', Final: 'WNBA Finals' }\n\n` +
       `// Best-of length per round, for series progress rendering.\n` +
       `export const SERIES_LENGTH = { R1: 3, SF: 5, Final: 7 }\n`
+  )
+
+  console.log('Fetching player stats…')
+  const leaders = await fetchLeaders()
+  console.log(`  ${leaders.length} qualified players`)
+
+  await writeFile(
+    join(ROOT, 'src/data/leaders.js'),
+    banner(`${WEB}/statistics/byathlete?season=${SEASON}&seasontype=2`) +
+      `// Season averages for every qualified player. Regenerated with the schedule,\n` +
+      `// so leaderboards are a build-time concern rather than a runtime fetch.\n` +
+      `export const PLAYERS = [\n` +
+      leaders.map((p) => `  ${JSON.stringify(p)},`).join('\n') +
+      `\n]\n`
   )
 
   if (WITH_LOGOS) {

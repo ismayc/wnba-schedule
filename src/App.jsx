@@ -6,6 +6,7 @@ import { applyLive, fetchLive, liveCount } from './services/espn.js'
 import { useFollow } from './context/follow.jsx'
 import ScheduleView from './components/ScheduleView.jsx'
 import StandingsView from './components/StandingsView.jsx'
+import StatsView from './components/StatsView.jsx'
 import TeamLogo from './components/TeamLogo.jsx'
 
 const VIEWS = [
@@ -180,9 +181,7 @@ export default function App() {
           </section>
         )}
         {view === 'stats' && (
-          <section className="view">
-            <p className="empty">Stats coming next.</p>
-          </section>
+          <StatsView games={games} tz={tz} onPickTeam={(t) => (setTeam(t), setView('schedule'))} />
         )}
       </main>
 
