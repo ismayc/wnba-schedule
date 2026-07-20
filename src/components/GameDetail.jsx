@@ -6,6 +6,7 @@ import { playersByTeam } from '../utils/stats.js'
 import { watchableServices } from '../utils/watch.js'
 import { useServices } from '../context/services.jsx'
 import { useModalA11y } from '../hooks/useModalA11y.js'
+import Lineups from './Lineups.jsx'
 import TeamLogo from './TeamLogo.jsx'
 
 const one = (n) => n.toFixed(1)
@@ -240,6 +241,7 @@ export default function GameDetail({ game, games, tz, hideScores, onClose, onPic
 
         <LineScore game={game} hideScores={hideScores} />
         <GameLeaders game={game} />
+        <Lineups game={game} hideScores={hideScores} />
 
         <h4 className="md-sub">Tale of the tape</h4>
         <div className="tale">

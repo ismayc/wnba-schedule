@@ -1,6 +1,9 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+// Lineups fetches the ESPN summary when a game opens; it has its own suite
+// (lineups.test.jsx), so stub it out here to keep these tests off the network.
+vi.mock('../src/components/Lineups.jsx', () => ({ default: () => null }))
 import GameDetail from '../src/components/GameDetail.jsx'
 import { GAMES } from '../src/data/schedule.js'
 

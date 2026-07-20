@@ -1833,6 +1833,87 @@ select:hover,
   gap: 10px;
 }
 
+/* ── Starting lineups ───────────────────────────────────────────────── */
+.lineups {
+  margin-top: 14px;
+}
+.lu-note {
+  font-size: 12.5px;
+  margin: 2px 0 0;
+}
+.lu-sides {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.lu-side {
+  background: var(--bg-soft);
+  border-radius: 9px;
+  padding: 8px 10px;
+  min-width: 0;
+}
+.lu-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding-bottom: 5px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.lu-head strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.lu-player {
+  display: grid;
+  grid-template-columns: 22px 1fr auto auto;
+  gap: 6px;
+  align-items: baseline;
+  font-size: 12.5px;
+  padding: 3px 0;
+}
+.lu-jersey {
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.lu-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lu-pos {
+  color: var(--text-faint);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.lu-line {
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  font-size: 11.5px;
+}
+.lu-bench {
+  margin-top: 6px;
+}
+.lu-bench summary {
+  cursor: pointer;
+  font-size: 11.5px;
+  color: var(--text-dim);
+  padding: 2px 0;
+}
+.lu-bench summary:hover {
+  color: var(--text);
+}
+
 .gl-team {
   background: var(--bg-soft);
   border-radius: 9px;

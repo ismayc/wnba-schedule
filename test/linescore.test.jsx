@@ -1,5 +1,7 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
+// Lineups fetches on open; stub it so these render tests stay off the network.
+vi.mock('../src/components/Lineups.jsx', () => ({ default: () => null }))
 import GameDetail from '../src/components/GameDetail.jsx'
 import { livePeriod } from '../src/components/GameCard.jsx'
 import { GAMES } from '../src/data/schedule.js'
