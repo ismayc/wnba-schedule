@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import StandingsView from '../src/components/StandingsView.jsx'
 import ScheduleView from '../src/components/ScheduleView.jsx'
 import GameCard from '../src/components/GameCard.jsx'
+import { ServicesProvider } from '../src/context/services.jsx'
 import { GAMES } from '../src/data/schedule.js'
 import { dayKey, todayKey } from '../src/utils/time.js'
 
@@ -12,6 +13,7 @@ const TZ = 'America/New_York'
 beforeEach(() => {
   // jsdom has no layout, so scrollIntoView is absent.
   Element.prototype.scrollIntoView = vi.fn()
+  localStorage.clear()
 })
 
 describe('StandingsView', () => {
@@ -85,19 +87,32 @@ describe('GameCard', () => {
     expect(screen.getByText('Postponed')).toBeInTheDocument()
   })
 
-  it('labels games on the owner’s services and skips ones that are not', () => {
-    const { container, rerender } = render(
-      <GameCard game={{ ...base, broadcast: ['NBC', 'Peacock'] }} tz={TZ} />
+  it('labels games on the viewer’s chosen services and skips ones that are not', () => {
+    // Viewer has YouTube TV and Peacock.
+    localStorage.setItem('wnba:services', JSON.stringify(['youtubetv', 'peacock']))
+    const withServices = (game) => (
+      <ServicesProvider>
+        <GameCard game={game} tz={TZ} />
+      </ServicesProvider>
     )
+
+    // NBC + Peacock simulcast is watchable both ways — labels in catalog order.
+    const { container, rerender } = render(withServices({ ...base, broadcast: ['NBC', 'Peacock'] }))
     const watch = container.querySelector('.watch')
-    expect(watch).toHaveAccessibleName('Watch on YouTube TV, Peacock')
+    expect(watch).toHaveAccessibleName('Watch on Peacock, YouTube TV')
     expect([...watch.querySelectorAll('.watch-chip')].map((c) => c.textContent)).toEqual([
-      'YouTube TV',
       'Peacock',
+      'YouTube TV',
     ])
 
-    // League Pass-only games carry no watchable-service badge.
-    rerender(<GameCard game={{ ...base, broadcast: ['WNBA League Pass'] }} tz={TZ} />)
+    // A game only on services the viewer lacks carries no badge.
+    rerender(withServices({ ...base, broadcast: ['WNBA League Pass'] }))
+    expect(container.querySelector('.watch')).toBeNull()
+  })
+
+  it('shows no service badge until the viewer picks services', () => {
+    // No provider / empty selection → the raw broadcast still renders, but no badge.
+    const { container } = render(<GameCard game={{ ...base, broadcast: ['NBC', 'Peacock'] }} tz={TZ} />)
     expect(container.querySelector('.watch')).toBeNull()
   })
 })

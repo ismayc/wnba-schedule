@@ -4,6 +4,7 @@ import { formatDate, formatTime, formatZoneAbbr, liveState, countdown } from '..
 import { computeStandings, countsForStandings } from '../utils/standings.js'
 import { playersByTeam } from '../utils/stats.js'
 import { watchableServices } from '../utils/watch.js'
+import { useServices } from '../context/services.jsx'
 import { useModalA11y } from '../hooks/useModalA11y.js'
 import TeamLogo from './TeamLogo.jsx'
 
@@ -131,10 +132,13 @@ function TaleRow({ label, left, right, betterLeft }) {
 
 export default function GameDetail({ game, games, tz, hideScores, onClose, onPickTeam }) {
   const ref = useModalA11y(onClose, !!game)
+  const { services } = useServices()
   const table = useMemo(() => computeStandings(games), [games])
   const series = useSeries(games, game?.away, game?.home)
 
   if (!game) return null
+
+  const watch = watchableServices(game.broadcast, services)
 
   const away = TEAM_BY_ABBR[game.away]
   const home = TEAM_BY_ABBR[game.home]
@@ -208,17 +212,15 @@ export default function GameDetail({ game, games, tz, hideScores, onClose, onPic
               <dt>Watch</dt>
               <dd>
                 {game.broadcast.join(' · ')}
-                {watchableServices(game.broadcast).length > 0 && (
+                {watch.length > 0 && (
                   <span
                     className="watch"
-                    aria-label={`Watch on ${watchableServices(game.broadcast)
-                      .map((s) => s.label)
-                      .join(', ')}`}
+                    aria-label={`Watch on ${watch.map((s) => s.label).join(', ')}`}
                   >
                     <span className="watch-tv" aria-hidden="true">
                       📺
                     </span>
-                    {watchableServices(game.broadcast).map((s) => (
+                    {watch.map((s) => (
                       <span key={s.key} className="watch-chip">
                         {s.label}
                       </span>

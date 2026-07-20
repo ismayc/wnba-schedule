@@ -3,6 +3,7 @@ import { act, render, screen, within, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from '../src/App.jsx'
 import { FollowProvider } from '../src/context/follow.jsx'
+import { ServicesProvider } from '../src/context/services.jsx'
 
 // App is the wiring layer — polling, filters, URL state, and which view is on screen.
 // These are integration tests over that wiring, not over the views themselves.
@@ -13,7 +14,9 @@ import { FollowProvider } from '../src/context/follow.jsx'
 const mount = async () => {
   const utils = render(
     <FollowProvider>
-      <App />
+      <ServicesProvider>
+        <App />
+      </ServicesProvider>
     </FollowProvider>
   )
   await act(async () => {})
@@ -89,6 +92,50 @@ describe('App', () => {
     const after = document.querySelectorAll('.game').length
     expect(after).toBeGreaterThan(0)
     expect(after).toBeLessThan(before)
+  })
+
+  describe('my services', () => {
+    it('opens the picker from the filter bar and remembers picks', async () => {
+      await mount()
+      // With nothing chosen, the chip invites you to choose.
+      await userEvent.click(screen.getByRole('button', { name: /Choose my services/ }))
+      const dialog = screen.getByRole('dialog', { name: 'My services' })
+      await userEvent.click(within(dialog).getByLabelText(/Peacock/))
+      expect(JSON.parse(localStorage.getItem('wnba:services'))).toContain('peacock')
+      // Closing reveals the filter toggle with the count.
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Done' }))
+      expect(screen.getByRole('button', { name: /On my services \(1\)/ })).toBeInTheDocument()
+    })
+
+    it('narrows the schedule to watchable games and remembers the choice', async () => {
+      localStorage.setItem('wnba:services', JSON.stringify(['youtubetv', 'prime', 'peacock']))
+      await mount()
+      const before = document.querySelectorAll('.game').length
+      const btn = screen.getByRole('button', { name: /On my services/ })
+      expect(btn).toHaveAttribute('aria-pressed', 'false')
+
+      await userEvent.click(btn)
+      expect(btn).toHaveAttribute('aria-pressed', 'true')
+      expect(localStorage.getItem('wnba:watchOnly')).toBe('1')
+
+      const after = document.querySelectorAll('.game').length
+      expect(after).toBeGreaterThan(0)
+      expect(after).toBeLessThan(before)
+      // Every remaining card carries a watchable-service badge.
+      for (const card of document.querySelectorAll('.game')) {
+        expect(within(card).getAllByText(/YouTube TV|Prime Video|Peacock/).length).toBeGreaterThan(0)
+      }
+    })
+
+    it('restores the filter from localStorage on load', async () => {
+      localStorage.setItem('wnba:services', JSON.stringify(['youtubetv']))
+      localStorage.setItem('wnba:watchOnly', '1')
+      await mount()
+      expect(screen.getByRole('button', { name: /On my services/ })).toHaveAttribute(
+        'aria-pressed',
+        'true'
+      )
+    })
   })
 
   describe('past days', () => {

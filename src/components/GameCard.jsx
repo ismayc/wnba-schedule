@@ -2,6 +2,7 @@ import { TEAM_BY_ABBR } from '../data/teams.js'
 import { formatTime, formatZoneAbbr, liveState, countdown } from '../utils/time.js'
 import { watchableServices } from '../utils/watch.js'
 import { useFollow } from '../context/follow.jsx'
+import { useServices } from '../context/services.jsx'
 import TeamLogo from './TeamLogo.jsx'
 
 // Halftime and end-of-quarter are stable states; a running clock is not. Falls back
@@ -48,6 +49,7 @@ function Side({ abbr, score, winner, hideScores }) {
 }
 
 export default function GameCard({ game, tz, hideScores, onOpen }) {
+  const { services } = useServices()
   const state = liveState(game)
   const scored = game.score && !hideScores
   const [hs, as] = game.score || []
@@ -58,9 +60,10 @@ export default function GameCard({ game, tz, hideScores, onOpen }) {
   if (game.venue) meta.push(game.city ? `${game.venue}, ${game.city}` : game.venue)
   if (game.broadcast?.length) meta.push(game.broadcast.slice(0, 3).join(' · '))
 
-  // Which of the owner's subscriptions carry this game — a 📺 icon plus a label
-  // per service (YouTube TV, Prime Video, Peacock).
-  const watch = watchableServices(game.broadcast)
+  // Which of the viewer's chosen services carry this game — a 📺 icon plus a label
+  // per service. Empty (no badge) until the viewer picks services; the raw network
+  // list above still shows where the game is on.
+  const watch = watchableServices(game.broadcast, services)
 
   return (
     <article

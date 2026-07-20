@@ -1,41 +1,58 @@
-// Which of the site owner's streaming/TV subscriptions can show a given game.
+// The streaming services and TV packages a viewer can tell us they have, so the
+// schedule can flag which games they can actually watch — and filter to them.
 //
-// A game's `broadcast` is a flat list of ESPN network names mixing national
-// networks, regional sports networks, and streaming exclusives. We map that to
-// the three services actually subscribed to — YouTube TV, Amazon Prime Video,
-// and Peacock — so the schedule can flag what's watchable and on which service.
+// A game's `broadcast` is a flat list of ESPN network names. Streaming exclusives
+// (Peacock, Prime Video, Paramount+, Disney+) are matched by their own name. A
+// live-TV *bundle* (YouTube TV, Hulu + Live TV, Fubo, Sling, cable) never appears
+// in that list — it carries a game whenever the game airs on a national linear
+// network the bundle carries, so each bundle is defined by the networks it carries.
+// Bundle carriage differs by bundle and, in reality, by market and over time; the
+// mappings here are the national defaults and are deliberately approximate.
 //
-// YouTube TV is a *bundle*, not a broadcaster: it never appears in ESPN's list.
-// It carries a game whenever that game airs on a linear network YouTube TV
-// carries in every US market. Local/regional affiliates (KOMO, Fox 5 NY, …) are
-// deliberately excluded — YouTube TV only carries those in their home market, so
-// a nationwide label would be wrong. Peacock and Prime Video are streaming
-// exclusives matched by exact name; the regional "Prime Video-Seattle" feed
-// needs an in-market add-on beyond standard Prime, so it is excluded too.
+// Regional/local feeds (Prime Video-Seattle, KOMO-TV, RSNs) are intentionally left
+// out — their availability is market-dependent, so a single answer would be wrong.
 
-// National linear networks YouTube TV carries in every US market.
-const YOUTUBE_TV_NETWORKS = new Set([
-  'ESPN',
-  'ABC',
-  'CBS',
-  'NBC',
-  'USA Net',
-  'ION',
-  'CNBC',
-  'NBA TV',
-])
+// National linear networks, by the exact name ESPN emits in `broadcast`.
+const ESPN = 'ESPN'
+const ABC = 'ABC'
+const CBS = 'CBS'
+const NBC = 'NBC'
+const USA = 'USA Net'
+const ION = 'ION'
+const CNBC = 'CNBC'
+const NBATV = 'NBA TV'
 
-// Order here is the order labels render in.
-export const MY_SERVICES = [
-  { key: 'youtubetv', label: 'YouTube TV', match: (name) => YOUTUBE_TV_NETWORKS.has(name) },
-  { key: 'prime', label: 'Prime Video', match: (name) => name === 'Prime Video' },
-  { key: 'peacock', label: 'Peacock', match: (name) => name === 'Peacock' },
+// carries(...names) → a matcher that's true when a game's broadcast list names any
+// of them.
+const carries = (...names) => {
+  const set = new Set(names)
+  return (broadcast) => broadcast.some((n) => set.has(n))
+}
+
+// Ordered streaming-first, then live-TV bundles. This is also the display order for
+// badges and the picker. `kind` only labels the picker ('Streaming' vs 'Live TV').
+export const SERVICE_CATALOG = [
+  { key: 'prime', label: 'Prime Video', kind: 'stream', match: carries('Prime Video') },
+  { key: 'peacock', label: 'Peacock', kind: 'stream', match: carries('Peacock') },
+  { key: 'paramount', label: 'Paramount+', kind: 'stream', match: carries('Paramount+', CBS) },
+  { key: 'disney', label: 'Disney+ / ESPN+', kind: 'stream', match: carries('Disney+', ESPN) },
+  { key: 'nbatv', label: 'NBA TV', kind: 'stream', match: carries(NBATV) },
+  { key: 'leaguepass', label: 'WNBA League Pass', kind: 'stream', match: carries('WNBA League Pass') },
+  { key: 'youtubetv', label: 'YouTube TV', kind: 'bundle', match: carries(ESPN, ABC, CBS, NBC, USA, ION, CNBC, NBATV) },
+  { key: 'hulu', label: 'Hulu + Live TV', kind: 'bundle', match: carries(ESPN, ABC, CBS, NBC, USA, CNBC, NBATV) },
+  { key: 'fubo', label: 'Fubo', kind: 'bundle', match: carries(ABC, CBS, NBC, USA, ION, CNBC) },
+  { key: 'sling', label: 'Sling TV', kind: 'bundle', match: carries(ESPN, USA, CNBC, NBATV) },
+  { key: 'cable', label: 'Cable / Satellite', kind: 'bundle', match: carries(ESPN, ABC, CBS, NBC, USA, ION, CNBC, NBATV) },
 ]
 
-// The services from MY_SERVICES that can show this broadcast list, in display
-// order. Returns [] when nothing subscribed carries the game (League Pass-only,
-// regional-only, TSN, etc.).
-export function watchableServices(broadcast) {
-  if (!broadcast?.length) return []
-  return MY_SERVICES.filter((s) => broadcast.some((name) => s.match(name)))
+export const SERVICE_BY_KEY = Object.fromEntries(SERVICE_CATALOG.map((s) => [s.key, s]))
+
+// The viewer's selected services (by key) that carry this game, in catalog order.
+// Returns [] when nothing is selected or the broadcast is unknown — so a viewer who
+// hasn't chosen services sees no personalized badge (the raw network list in the
+// card meta still shows where the game is on).
+export function watchableServices(broadcast, selectedKeys) {
+  if (!broadcast?.length || !selectedKeys?.length) return []
+  const selected = new Set(selectedKeys)
+  return SERVICE_CATALOG.filter((s) => selected.has(s.key) && s.match(broadcast))
 }

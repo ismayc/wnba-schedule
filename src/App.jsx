@@ -4,7 +4,9 @@ import { SEASON, TEAMS } from './data/teams.js'
 import { detectTimezone, timezoneOptions, dayKey, todayKey } from './utils/time.js'
 import { readState, writeState } from './utils/urlState.js'
 import { applyLive, fetchLive, liveCount } from './services/espn.js'
+import { watchableServices } from './utils/watch.js'
 import { useFollow } from './context/follow.jsx'
+import { useServices } from './context/services.jsx'
 import ScheduleView from './components/ScheduleView.jsx'
 import StandingsView from './components/StandingsView.jsx'
 import StatsView from './components/StatsView.jsx'
@@ -12,9 +14,10 @@ import Bracket from './components/Bracket.jsx'
 import RadialBracket from './components/RadialBracket.jsx'
 import GameDetail from './components/GameDetail.jsx'
 import WeekView from './components/WeekView.jsx'
-import { downloadIcs } from './utils/ics.js'
+import CalendarModal from './components/CalendarModal.jsx'
 import Toasts from './components/Toasts.jsx'
 import TeamPanel from './components/TeamPanel.jsx'
+import ServicesModal from './components/ServicesModal.jsx'
 import { detectEvents, eventKey } from './services/alerts.js'
 import TeamLogo from './components/TeamLogo.jsx'
 
@@ -44,6 +47,17 @@ export default function App() {
   // Hidden by default: 194 of this season's 332 games are already played, so opening
   // on the season opener in May would bury today under months of finals.
   const [showPast, setShowPast] = useState(initial.past)
+  // "Only games I can watch" — filters to games on the viewer's chosen services (see
+  // the services context). Off by default, but remembered across visits in localStorage
+  // like a followed team rather than living in the shareable URL.
+  const [watchOnly, setWatchOnly] = useState(() => {
+    try {
+      return localStorage.getItem('wnba:watchOnly') === '1'
+    } catch {
+      return false
+    }
+  })
+  const [showServices, setShowServices] = useState(false)
   const [live, setLive] = useState(null)
   const [updatedAt, setUpdatedAt] = useState(null)
   const [detail, setDetail] = useState(null)
@@ -56,9 +70,11 @@ export default function App() {
   })
   const [toasts, setToasts] = useState([])
   const [teamPanel, setTeamPanel] = useState(null)
+  const [showCalendar, setShowCalendar] = useState(false)
   const prevGames = useRef(null)
 
   const { count: followedCount, followed } = useFollow()
+  const { services, count: serviceCount } = useServices()
 
   // Committed schedule + live overlay. Everything downstream is derived from this.
   const games = useMemo(() => applyLive(GAMES, live), [live])
@@ -142,9 +158,12 @@ export default function App() {
     return games.filter((g) => {
       if (team && g.home !== team && g.away !== team) return false
       if (onlyFollowed && followedCount && !followed.has(g.home) && !followed.has(g.away)) return false
+      // A no-op unless services are chosen — clearing them all shouldn't hide everything.
+      if (watchOnly && serviceCount && watchableServices(g.broadcast, services).length === 0)
+        return false
       return true
     })
-  }, [games, team, onlyFollowed, followed, followedCount])
+  }, [games, team, onlyFollowed, followed, followedCount, watchOnly, services, serviceCount])
 
   const pastDayCount = useMemo(() => {
     const today = todayKey(tz)
@@ -250,6 +269,42 @@ export default function App() {
               ★ My teams ({followedCount})
             </button>
           )}
+          {serviceCount === 0 ? (
+            <button
+              className="chip"
+              onClick={() => setShowServices(true)}
+              title="Pick the streaming services and TV packages you have"
+            >
+              📺 Choose my services
+            </button>
+          ) : (
+            <span className="chip-group">
+              <button
+                className={`chip ${watchOnly ? 'on' : ''}`}
+                onClick={() => {
+                  const next = !watchOnly
+                  setWatchOnly(next)
+                  try {
+                    localStorage.setItem('wnba:watchOnly', next ? '1' : '0')
+                  } catch {
+                    /* private mode — the filter just won't be remembered */
+                  }
+                }}
+                aria-pressed={watchOnly}
+                title="Only show games on my services"
+              >
+                📺 On my services ({serviceCount})
+              </button>
+              <button
+                className="chip chip-icon"
+                onClick={() => setShowServices(true)}
+                aria-label="Edit my services"
+                title="Edit my services"
+              >
+                ⚙
+              </button>
+            </span>
+          )}
           {team && (
             <button className="chip" onClick={() => setTeam('')}>
               <TeamLogo abbr={team} size={18} /> Clear
@@ -269,15 +324,10 @@ export default function App() {
           )}
           <button
             className="chip"
-            onClick={() =>
-              downloadIcs(scheduleGames, {
-                filename: team ? `wnba-${team.toLowerCase()}.ics` : 'wnba-2026.ics',
-                name: team ? `${TEAMS.find((t) => t.abbr === team)?.displayName} ${SEASON}` : `WNBA ${SEASON}`,
-              })
-            }
-            title="Download these games as a calendar file"
+            onClick={() => setShowCalendar(true)}
+            title="Subscribe to or download a calendar of these games"
           >
-            📅 Export{scheduleGames.length !== games.length ? ` (${scheduleGames.length})` : ''}
+            📅 Calendar
           </button>
         </div>
       )}
@@ -331,6 +381,16 @@ export default function App() {
         onClose={() => setDetail(null)}
         onPickTeam={(t) => (setTeam(t), setView('schedule'))}
       />
+
+      {showCalendar && (
+        <CalendarModal
+          games={games}
+          filtered={scheduleGames}
+          onClose={() => setShowCalendar(false)}
+        />
+      )}
+
+      {showServices && <ServicesModal onClose={() => setShowServices(false)} />}
 
       <footer className="foot">
         <p className="disclaimer">
