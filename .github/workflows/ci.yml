@@ -51,6 +51,12 @@ jobs:
     needs: test
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
+    # Declared at JOB level deliberately. A step's own `env:` block is not in scope
+    # for that step's `if:`, so gating on it there would skip the deploy forever —
+    # green, and silently doing nothing, even once the secret exists.
+    env:
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: ${{ vars.NETLIFY_SITE_ID }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -61,10 +67,10 @@ jobs:
       - run: npm run build
       - name: Deploy
         if: env.NETLIFY_AUTH_TOKEN != ''
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ vars.NETLIFY_SITE_ID }}
         run: npx netlify-cli@17 deploy --prod --dir dist
+      - name: Note why the deploy was skipped
+        if: env.NETLIFY_AUTH_TOKEN == ''
+        run: echo "::notice::Netlify deploy skipped — add the NETLIFY_AUTH_TOKEN repository secret to enable it."
 
   # The data scripts use Node built-ins only, so they run on a bare checkout with no
   # install step. This job guards that property — if someone adds an npm import to a
