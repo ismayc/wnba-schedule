@@ -1738,6 +1738,130 @@ select:hover,
   }
 }
 
+/* ── Team panel ─────────────────────────────────────────────────────── */
+.tp-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tp-head > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.tp-name {
+  font-size: 19px;
+}
+
+.tp-sub {
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+
+.tp-stats {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.tp-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 8px 4px;
+  background: var(--bg-soft);
+  border-radius: 9px;
+}
+
+.tp-stat-v {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.tp-stat-l {
+  font-size: 10px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tp-form {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.tp-chip {
+  width: 25px;
+  height: 25px;
+  border-radius: 7px;
+  border: 0;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #fff;
+}
+
+.tp-chip.w {
+  background: var(--win);
+}
+.tp-chip.l {
+  background: var(--loss);
+}
+.tp-chip:hover {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.tp-roster {
+  display: grid;
+  gap: 2px;
+}
+
+.tp-player {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 8px;
+  background: var(--bg-soft);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.tp-p-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tp-p-line {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.tp-p-line i {
+  font-style: normal;
+  color: var(--text-faint);
+  font-size: 10px;
+}
+
+@media (max-width: 560px) {
+  .tp-stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 /* ── Toasts ─────────────────────────────────────────────────────────── */
 .toasts {
   position: fixed;

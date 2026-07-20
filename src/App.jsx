@@ -14,6 +14,7 @@ import GameDetail from './components/GameDetail.jsx'
 import WeekView from './components/WeekView.jsx'
 import { downloadIcs } from './utils/ics.js'
 import Toasts from './components/Toasts.jsx'
+import TeamPanel from './components/TeamPanel.jsx'
 import { detectEvents, eventKey } from './services/alerts.js'
 import TeamLogo from './components/TeamLogo.jsx'
 
@@ -51,6 +52,7 @@ export default function App() {
     }
   })
   const [toasts, setToasts] = useState([])
+  const [teamPanel, setTeamPanel] = useState(null)
   const prevGames = useRef(null)
 
   const { count: followedCount, followed } = useFollow()
@@ -267,15 +269,15 @@ export default function App() {
         {view === 'week' && (
           <WeekView games={scheduleGames} tz={tz} hideScores={hideScores} onOpen={setDetail} />
         )}
-        {view === 'standings' && <StandingsView games={games} onPick={(t) => (setTeam(t), setView('schedule'))} />}
+        {view === 'standings' && <StandingsView games={games} onPick={setTeamPanel} />}
         {view === 'playoffs' && (
-          <Bracket games={games} tz={tz} onPick={(t) => (setTeam(t), setView('schedule'))} />
+          <Bracket games={games} tz={tz} onPick={setTeamPanel} />
         )}
         {view === 'radial' && (
-          <RadialBracket games={games} onPick={(t) => (setTeam(t), setView('schedule'))} />
+          <RadialBracket games={games} onPick={setTeamPanel} />
         )}
         {view === 'stats' && (
-          <StatsView games={games} tz={tz} onPickTeam={(t) => (setTeam(t), setView('schedule'))} />
+          <StatsView games={games} tz={tz} onPickTeam={setTeamPanel} />
         )}
       </main>
 
@@ -283,6 +285,16 @@ export default function App() {
         events={toasts}
         onOpen={(g) => setDetail(g)}
         onDismiss={(key) => setToasts((cur) => cur.filter((t) => t.key !== key))}
+      />
+
+      <TeamPanel
+        abbr={teamPanel}
+        games={games}
+        tz={tz}
+        hideScores={hideScores}
+        onClose={() => setTeamPanel(null)}
+        onSchedule={(t) => (setTeam(t), setView('schedule'))}
+        onOpenGame={(g) => (setTeamPanel(null), setDetail(g))}
       />
 
       <GameDetail

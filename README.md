@@ -19,9 +19,10 @@ snapshot of the season.
 | 🎯 **Radial** | The same bracket as concentric rings — seeds outside, the title in the middle. |
 | 📈 **Stats** | Season totals, league leaders across 8 categories, scoring margin, and the playoff race with magic numbers. |
 
-Plus: light/dark themes, spoiler-free mode, shareable URLs, a game-detail modal with a
-quarter line score and season series, `.ics` calendar export (whole season or one
-team's), and installable-PWA support.
+Clicking any team opens a **team panel** — splits, form, leading scorers, and what's
+next. Plus: light/dark themes, spoiler-free mode, shareable URLs, live alerts for
+notable moments, a game-detail modal with a quarter line score and season series,
+`.ics` calendar export (whole season or one team's), and installable-PWA support.
 
 ## Data
 
