@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { GAMES } from './data/schedule.js'
 import { SEASON, TEAMS } from './data/teams.js'
-import { detectTimezone, timezoneOptions, todayKey } from './utils/time.js'
+import { detectTimezone, timezoneOptions } from './utils/time.js'
+import { readState, writeState } from './utils/urlState.js'
 import { applyLive, fetchLive, liveCount } from './services/espn.js'
 import { useFollow } from './context/follow.jsx'
 import ScheduleView from './components/ScheduleView.jsx'
@@ -9,6 +10,7 @@ import StandingsView from './components/StandingsView.jsx'
 import StatsView from './components/StatsView.jsx'
 import Bracket from './components/Bracket.jsx'
 import RadialBracket from './components/RadialBracket.jsx'
+import GameDetail from './components/GameDetail.jsx'
 import TeamLogo from './components/TeamLogo.jsx'
 
 const VIEWS = [
@@ -23,14 +25,19 @@ const LIVE_REFRESH_MS = 30_000
 const IDLE_REFRESH_MS = 120_000
 
 export default function App() {
+  // Read the shared link once, on mount.
+  const detectedTz = useMemo(detectTimezone, [])
+  const initial = useMemo(() => readState(), [])
+
   const [theme, setTheme] = useState(() => document.documentElement.dataset.theme || 'dark')
-  const [view, setView] = useState('schedule')
-  const [tz, setTz] = useState(detectTimezone)
-  const [hideScores, setHideScores] = useState(false)
-  const [team, setTeam] = useState('')
-  const [onlyFollowed, setOnlyFollowed] = useState(false)
+  const [view, setView] = useState(initial.view)
+  const [tz, setTz] = useState(initial.tz || detectedTz)
+  const [hideScores, setHideScores] = useState(initial.hide)
+  const [team, setTeam] = useState(initial.team)
+  const [onlyFollowed, setOnlyFollowed] = useState(initial.mine)
   const [live, setLive] = useState(null)
   const [updatedAt, setUpdatedAt] = useState(null)
+  const [detail, setDetail] = useState(null)
 
   const { count: followedCount, followed } = useFollow()
 
@@ -66,6 +73,11 @@ export default function App() {
       clearInterval(id)
     }
   }, [load, nLive, seasonOver])
+
+  // Keep the URL in step with the view so any state is shareable.
+  useEffect(() => {
+    writeState({ view, tz, team, hide: hideScores, mine: onlyFollowed }, detectedTz)
+  }, [view, tz, team, hideScores, onlyFollowed, detectedTz])
 
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark'
@@ -175,7 +187,12 @@ export default function App() {
 
       <main>
         {view === 'schedule' && (
-          <ScheduleView games={scheduleGames} tz={tz} hideScores={hideScores} />
+          <ScheduleView
+            games={scheduleGames}
+            tz={tz}
+            hideScores={hideScores}
+            onOpen={setDetail}
+          />
         )}
         {view === 'standings' && <StandingsView games={games} onPick={(t) => (setTeam(t), setView('schedule'))} />}
         {view === 'playoffs' && (
@@ -188,6 +205,15 @@ export default function App() {
           <StatsView games={games} tz={tz} onPickTeam={(t) => (setTeam(t), setView('schedule'))} />
         )}
       </main>
+
+      <GameDetail
+        game={detail}
+        games={games}
+        tz={tz}
+        hideScores={hideScores}
+        onClose={() => setDetail(null)}
+        onPickTeam={(t) => (setTeam(t), setView('schedule'))}
+      />
 
       <footer className="foot">
         <span>

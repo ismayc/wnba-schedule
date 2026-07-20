@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="The WNBA Schedule">
+  <rect width="64" height="64" rx="14" fill="#0e1117"/>
+  <circle cx="32" cy="32" r="17" fill="none" stroke="#ff7a29" stroke-width="3.5"/>
+  <path d="M32 15v34M15 32h34" stroke="#ff7a29" stroke-width="3"/>
+  <path d="M21 19c7 7 7 19 0 26M43 19c-7 7-7 19 0 26" fill="none" stroke="#ff7a29" stroke-width="3"/>
+</svg>

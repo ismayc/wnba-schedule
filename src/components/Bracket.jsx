@@ -140,10 +140,10 @@ export default function Bracket({ games, tz, onPick }) {
       {projected && (
         <div className="card">
           <h3 className="card-title">The field, as it stands</h3>
-          <ol className="field">
+          <ol className="bx-field">
             {seeded.map((r) => (
               <li key={r.abbr}>
-                <span className="field-seed">{r.seed}</span>
+                <span className="bx-field-seed">{r.seed}</span>
                 <TeamLogo abbr={r.abbr} size={20} />
                 <span>{r.team.name}</span>
                 <span className="dim">

@@ -1,0 +1,105 @@
+# The WNBA Schedule
+
+An unofficial viewer for the WNBA season: every game in your timezone, live scores,
+standings, the playoff bracket, and league leaders.
+
+No backend, no API keys, no tracking. The whole app is a static bundle plus a committed
+snapshot of the season.
+
+---
+
+## Views
+
+| View | What it does |
+|---|---|
+| 📋 **Schedule** | Every game grouped by the calendar day *you* see, opened to today. Filter by team or by the teams you follow. |
+| 📊 **Regular Season** | League seeding with the playoff cutline, or conference tables. W/L, PCT, GB, home/road splits, last-10, streak, net rating. |
+| 🏆 **Playoffs** | The bracket, where each slot is a best-of series. Projected from current standings until the real field is set. |
+| 🎯 **Radial** | The same bracket as concentric rings — seeds outside, the title in the middle. |
+| 📈 **Stats** | Season totals, league leaders across 8 categories, scoring margin, and the playoff race with magic numbers. |
+
+Plus: light/dark themes, spoiler-free mode, shareable URLs, a game-detail modal with a
+season series and tale of the tape, and installable-PWA support.
+
+## Data
+
+Everything comes from ESPN's public, keyless, CORS-open feeds.
+
+**The season is committed, not fetched.** `scripts/fetch-schedule.mjs` generates
+`src/data/schedule.js`, `src/data/teams.js`, and `src/data/leaders.js`, and mirrors team
+logos into `public/logos/`. The app therefore renders a complete season — including
+every result so far — with **zero requests on load**. At runtime, ESPN's scoreboard is
+polled only to overlay games that are live or just finished (every 30s while a game is
+in progress, 2 min otherwise, never once the season ends).
+
+That snapshot is refreshed twice daily by `.github/workflows/refresh-data.yml`, which
+regenerates the data, runs the test suite against it, and opens a PR. Standings are
+*derived* from the committed scores, so a bad refresh surfaces as a failing test rather
+than a quietly wrong table.
+
+### Three feed quirks worth knowing
+
+These are the difference between "looks about right" and matching the official
+standings exactly:
+
+1. **The Commissioner's Cup Championship is not a regular-season game.** It appears in
+   the schedule feed like any other, but doesn't count toward the standings. It's
+   reclassified as `seasonType: 'cup'` and excluded.
+2. **A postponed game appears twice** — the original slot *and* its makeup date, both
+   live in the feed. The dead one is flagged and skipped.
+3. **Broadcast data has two shapes.** The team-schedule feed uses `media.shortName`;
+   the scoreboard uses `names[]`. Both are accepted.
+
+With those handled, derived W-L, home/road splits, last-10, and streaks match ESPN's
+published standings exactly for all 15 teams.
+
+### Format notes
+
+The WNBA is not a group-stage tournament, and two details drive most of the app's logic:
+
+- **Seeding is league-wide 1–8, not by conference.** Conference is presentational.
+- **A playoff slot is a series, not a game** — best-of-3, then best-of-5, then
+  best-of-7 — and the bracket is *fixed*: semifinal pairings don't re-seed.
+
+## Develop
+
+```bash
+npm install
+npm run dev              # local dev server
+npm test                 # unit + render tests
+npm run build            # production bundle
+
+npm run fetch:schedule   # regenerate committed data from ESPN
+npm run check:schedule   # report drift between committed data and the live feed
+```
+
+`scripts/` uses **Node built-ins only** — no imports from `node_modules` — so CI can run
+the data jobs on a bare checkout with no install step. A CI job enforces this.
+
+### Testing approach
+
+The suite leans on real data rather than hand-made fixtures, because real data contains
+the edge cases you wouldn't think to invent.
+
+- **Standings** are checked against the actual 2026 season, and the numbers are
+  independently verifiable against ESPN's published standings.
+- **The bracket** is tested against the complete 2025 postseason
+  (`test/fixtures/playoffs-2025.js`) — 24 games, 7 series — because the 2026 bracket
+  doesn't exist until September. It reproduces the real outcome: Las Vegas over Phoenix
+  4–0. That fixture caught two bugs a synthetic test would have reproduced my own
+  assumptions right past.
+- **Format invariants** that would otherwise depend on this week's results (like
+  "seeding ignores conference") are tested with synthetic data instead, so they don't
+  break when the standings shift.
+
+## Deploy
+
+Built with `base: './'`, so the same `dist/` works at a domain root or under a subpath.
+`netlify.toml` is included; any static host works.
+
+## Credits
+
+Unofficial fan project. Not affiliated with or endorsed by the WNBA. Team names and
+logos belong to their respective owners. Data from ESPN's public feeds.
+
+MIT licensed.

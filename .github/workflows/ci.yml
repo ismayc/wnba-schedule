@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          retention-days: 7
+
+  # The data scripts use Node built-ins only, so they run on a bare checkout with no
+  # install step. This job guards that property — if someone adds an npm import to a
+  # script, the nightly refresh would break silently at 6am instead of here.
+  scripts-runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Scripts must not import from node_modules
+        run: |
+          if grep -rnE "^\s*import .* from ['\"][^.n]" scripts/ | grep -v "node:"; then
+            echo "::error::scripts/ may only import Node built-ins (node:*) or relative paths"
+            exit 1
+          fi
+          echo "OK — scripts/ depends only on Node built-ins"
