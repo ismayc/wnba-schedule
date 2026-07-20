@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { buildIcs, escapeText, fold, toIcsDate } from '../src/utils/ics.js'
+import {
+  buildIcs,
+  escapeText,
+  fold,
+  googleCalendarUrl,
+  toIcsDate,
+  webcalUrl,
+} from '../src/utils/ics.js'
 import { GAMES } from '../src/data/schedule.js'
 
 const NOW = '2026-07-20T12:00:00.000Z'
@@ -109,5 +116,32 @@ describe('buildIcs', () => {
     for (const line of lines(ics)) {
       expect(new TextEncoder().encode(line).length).toBeLessThanOrEqual(75)
     }
+  })
+})
+
+describe('webcalUrl', () => {
+  it('swaps https/http for the webcal scheme so a calendar app subscribes', () => {
+    expect(webcalUrl('https://the-wnba-schedule.netlify.app/calendar.ics')).toBe(
+      'webcal://the-wnba-schedule.netlify.app/calendar.ics'
+    )
+    expect(webcalUrl('http://x/y.ics')).toBe('webcal://x/y.ics')
+  })
+
+  it('leaves a query string (and its commas) intact', () => {
+    expect(webcalUrl('https://host/calendar.ics?teams=MIN,NY')).toBe(
+      'webcal://host/calendar.ics?teams=MIN,NY'
+    )
+  })
+
+  it('passes through a non-http scheme unchanged', () => {
+    expect(webcalUrl('webcal://host/y.ics')).toBe('webcal://host/y.ics')
+  })
+})
+
+describe('googleCalendarUrl', () => {
+  it('wraps a RAW (un-encoded) webcal URL in Google’s cid deep link', () => {
+    expect(googleCalendarUrl('https://host/calendar.ics?teams=MIN,NY')).toBe(
+      'https://www.google.com/calendar/render?cid=webcal://host/calendar.ics?teams=MIN,NY'
+    )
   })
 })
