@@ -3,6 +3,7 @@ import { TEAM_BY_ABBR } from '../data/teams.js'
 import { formatDate, formatTime, formatZoneAbbr, liveState, countdown } from '../utils/time.js'
 import { computeStandings, countsForStandings } from '../utils/standings.js'
 import { playersByTeam } from '../utils/stats.js'
+import { watchableServices } from '../utils/watch.js'
 import { useModalA11y } from '../hooks/useModalA11y.js'
 import TeamLogo from './TeamLogo.jsx'
 
@@ -205,7 +206,26 @@ export default function GameDetail({ game, games, tz, hideScores, onClose, onPic
           {game.broadcast?.length && (
             <div>
               <dt>Watch</dt>
-              <dd>{game.broadcast.join(' · ')}</dd>
+              <dd>
+                {game.broadcast.join(' · ')}
+                {watchableServices(game.broadcast).length > 0 && (
+                  <span
+                    className="watch"
+                    aria-label={`Watch on ${watchableServices(game.broadcast)
+                      .map((s) => s.label)
+                      .join(', ')}`}
+                  >
+                    <span className="watch-tv" aria-hidden="true">
+                      📺
+                    </span>
+                    {watchableServices(game.broadcast).map((s) => (
+                      <span key={s.key} className="watch-chip">
+                        {s.label}
+                      </span>
+                    ))}
+                  </span>
+                )}
+              </dd>
             </div>
           )}
           {game.note && (

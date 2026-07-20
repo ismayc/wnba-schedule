@@ -696,6 +696,35 @@ select:hover,
   color: var(--accent);
 }
 
+/* Games the owner can actually watch (YouTube TV / Prime Video / Peacock). The
+   green matches --win: it reads as "available" without competing with the
+   orange UI accent. */
+.watch {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--win);
+}
+
+.watch-tv {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.watch-chip {
+  border: 1px solid color-mix(in srgb, var(--win) 45%, transparent);
+  border-radius: 999px;
+  padding: 1px 7px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+/* In the detail modal the badge trails the full network list, so give it room. */
+.md-facts .watch {
+  margin-left: 8px;
+}
+
 /* ── Stats ──────────────────────────────────────────────────────────── */
 /* Data-mark colors are separate from --accent on purpose: the orange is UI
    chrome (buttons, active states) and never encodes data, so a mark is never

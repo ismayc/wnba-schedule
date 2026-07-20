@@ -84,6 +84,22 @@ describe('GameCard', () => {
     render(<GameCard game={{ ...base, score: undefined, postponed: true }} tz={TZ} />)
     expect(screen.getByText('Postponed')).toBeInTheDocument()
   })
+
+  it('labels games on the owner’s services and skips ones that are not', () => {
+    const { container, rerender } = render(
+      <GameCard game={{ ...base, broadcast: ['NBC', 'Peacock'] }} tz={TZ} />
+    )
+    const watch = container.querySelector('.watch')
+    expect(watch).toHaveAccessibleName('Watch on YouTube TV, Peacock')
+    expect([...watch.querySelectorAll('.watch-chip')].map((c) => c.textContent)).toEqual([
+      'YouTube TV',
+      'Peacock',
+    ])
+
+    // League Pass-only games carry no watchable-service badge.
+    rerender(<GameCard game={{ ...base, broadcast: ['WNBA League Pass'] }} tz={TZ} />)
+    expect(container.querySelector('.watch')).toBeNull()
+  })
 })
 
 describe('ScheduleView', () => {

@@ -1,5 +1,6 @@
 import { TEAM_BY_ABBR } from '../data/teams.js'
 import { formatTime, formatZoneAbbr, liveState, countdown } from '../utils/time.js'
+import { watchableServices } from '../utils/watch.js'
 import { useFollow } from '../context/follow.jsx'
 import TeamLogo from './TeamLogo.jsx'
 
@@ -57,6 +58,10 @@ export default function GameCard({ game, tz, hideScores, onOpen }) {
   if (game.venue) meta.push(game.city ? `${game.venue}, ${game.city}` : game.venue)
   if (game.broadcast?.length) meta.push(game.broadcast.slice(0, 3).join(' · '))
 
+  // Which of the owner's subscriptions carry this game — a 📺 icon plus a label
+  // per service (YouTube TV, Prime Video, Peacock).
+  const watch = watchableServices(game.broadcast)
+
   return (
     <article
       className={`game state-${state}`}
@@ -96,6 +101,18 @@ export default function GameCard({ game, tz, hideScores, onOpen }) {
         {meta.map((m) => (
           <span key={m}>{m}</span>
         ))}
+        {watch.length > 0 && (
+          <span className="watch" aria-label={`Watch on ${watch.map((s) => s.label).join(', ')}`}>
+            <span className="watch-tv" aria-hidden="true">
+              📺
+            </span>
+            {watch.map((s) => (
+              <span key={s.key} className="watch-chip">
+                {s.label}
+              </span>
+            ))}
+          </span>
+        )}
         {state === 'upcoming' && countdown(game.tip) && (
           <span className="countdown">in {countdown(game.tip)}</span>
         )}
