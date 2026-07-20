@@ -4,11 +4,12 @@
 [![coverage](https://img.shields.io/endpoint?url=https://the-wnba-schedule.netlify.app/coverage.json)](https://github.com/ismayc/wnba-schedule/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Live:** [the-wnba-schedule.netlify.app](https://the-wnba-schedule.netlify.app) ·
-[ismayc.github.io/wnba-schedule](https://ismayc.github.io/wnba-schedule/)
+🔗 **Live:** [ismayc.github.io/wnba-schedule](https://ismayc.github.io/wnba-schedule/) ·
+[the-wnba-schedule.netlify.app](https://the-wnba-schedule.netlify.app)
 
-An unofficial viewer for the WNBA season: every game in your timezone, live scores,
-standings, the playoff bracket, and league leaders.
+A React + Vite web app showing every game of the WNBA season in **your** timezone —
+with live scores, where to watch on your streaming services, league-wide standings, the
+playoff bracket, and league leaders.
 
 No backend, no API keys, no tracking. The whole app is a static bundle plus a committed
 snapshot of the season.
@@ -29,9 +30,11 @@ snapshot of the season.
 **Star a team** from any game card, standings row, or team panel to highlight it
 across every view, filter the schedule to "My teams", and scope live alerts to it.
 Clicking any team opens a **team panel** — splits, form, leading scorers, and what's
-next. Plus: light/dark themes, spoiler-free mode, shareable URLs, live alerts for
-notable moments, a game-detail modal with a quarter line score and season series,
-`.ics` calendar export (whole season or one team's), and installable-PWA support.
+next. Each game card also flags **where to watch** — a 📺 badge naming the streaming
+services that carry it (YouTube TV, Prime Video, Peacock). Plus: light/dark themes,
+spoiler-free mode, shareable URLs, live alerts for notable moments, a game-detail modal
+with a quarter line score and season series, `.ics` calendar export (whole season or one
+team's), and installable-PWA support.
 
 ## Data
 
