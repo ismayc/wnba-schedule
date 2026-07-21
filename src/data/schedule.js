@@ -206,6 +206,7 @@ export const GAMES = [
   {"id":"401857089","tip":"2026-07-22T23:30:00.000Z","seasonType":"regular","home":"WSH","away":"LV","venue":"CareFirst Arena","city":"Washington","state":"DC","broadcast":["WNBA League Pass","MNMT","Vegas 34"]},
   {"id":"401857090","tip":"2026-07-23T00:00:00.000Z","seasonType":"regular","home":"IND","away":"CON","venue":"Gainbridge Fieldhouse","city":"Indianapolis","state":"IN","broadcast":["USA Net","WTHR Channel 13"]},
   {"id":"401857091","tip":"2026-07-23T02:00:00.000Z","seasonType":"regular","home":"POR","away":"DAL","venue":"Moda Center","city":"Portland","state":"OR","broadcast":["USA Net","CNBC","Fox 12 Plus","KFAA-TV"]},
+  {"id":"401857320","tip":"2026-07-26T00:30:00.000Z","seasonType":"allstar","home":"COOP","away":"SPO","venue":"United Center","city":"Chicago","state":"IL","broadcast":["ABC","Disney+"],"note":"AT&T WNBA All-Star Game","homeName":"Team Coop","awayName":"Team Spoon"},
   {"id":"401857092","tip":"2026-07-28T23:30:00.000Z","seasonType":"regular","home":"WSH","away":"CON","venue":"CareFirst Arena","city":"Washington","state":"DC","broadcast":["WNBA League Pass","MNMT","NBC Sports BO"]},
   {"id":"401857093","tip":"2026-07-29T00:00:00.000Z","seasonType":"regular","home":"MIN","away":"TOR","venue":"Target Center","city":"Minneapolis","state":"MN","broadcast":["WNBA League Pass","TSN","Victory+ MIN"]},
   {"id":"401857094","tip":"2026-07-29T01:30:00.000Z","seasonType":"regular","home":"SEA","away":"IND","venue":"Climate Pledge Arena","city":"Seattle","state":"WA","broadcast":["ESPN","MeTV Indianapolis"]},
