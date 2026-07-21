@@ -120,15 +120,30 @@ describe('the committed 2026 season', () => {
   })
 
   it('seeds the conference leader on record, not on leading its conference', () => {
-    // ATL tops the East but sits behind several West teams overall — seeding is
-    // league-wide.
+    // The East's best team sits behind several West teams overall — seeding is
+    // league-wide. Asserted without naming the current leader so the refresh can't break
+    // it: the East's leader isn't seed 1, which means the overall top seed is a West team.
     const eastLeader = seeded.find((r) => CONFERENCE_BY_ABBR[r.abbr] === 'E')
     expect(eastLeader.seed).toBeGreaterThan(1)
-    expect(seeded[0].abbr).toBe('MIN')
+    expect(CONFERENCE_BY_ABBR[seeded[0].abbr]).toBe('W')
   })
 
-  it('matches ESPN: Minnesota leads at 20-6', () => {
-    expect(seeded[0]).toMatchObject({ abbr: 'MIN', w: 20, l: 6, gb: 0 })
+  it('gives the leader a record that independently recounts the committed games', () => {
+    // Refresh-stable: recompute the current leader's W–L straight from the games (a
+    // different code path than computeStandings) and assert the table agrees. Catches a
+    // miscounted or home/away-swapped record without hardcoding a number the nightly
+    // data refresh moves — the old "MIN 20-6" assertion broke the refresh the moment the
+    // leader next played.
+    const leader = seeded[0].abbr
+    let w = 0
+    let l = 0
+    for (const g of GAMES) {
+      if (!countsForStandings(g) || (g.home !== leader && g.away !== leader)) continue
+      const leaderWon = g.home === leader ? g.score[0] > g.score[1] : g.score[1] > g.score[0]
+      leaderWon ? w++ : l++
+    }
+    expect(w).toBeGreaterThan(l) // the #1 seed has a winning record
+    expect(seeded[0]).toMatchObject({ w, l, gb: 0 })
   })
 
   it('orders strictly by win percentage before tiebreakers', () => {

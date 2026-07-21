@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import TeamPanel from '../src/components/TeamPanel.jsx'
 import { FollowProvider } from '../src/context/follow.jsx'
 import { GAMES } from '../src/data/schedule.js'
+import { seedings } from '../src/utils/standings.js'
 
 const TZ = 'America/New_York'
 const open = (abbr = 'MIN', props = {}) =>
@@ -21,11 +22,13 @@ describe('TeamPanel', () => {
 
   it('shows the team, record, conference, and seed', () => {
     open('MIN')
+    // Derive the record and seed from the committed data so the nightly refresh doesn't
+    // break this on MIN's next game (an en-dash separates W and L).
+    const min = seedings(GAMES).find((r) => r.abbr === 'MIN')
     expect(screen.getByRole('dialog', { name: 'Minnesota Lynx' })).toBeInTheDocument()
-    // Verified against ESPN: Minnesota leads the league at 20-6.
-    expect(screen.getByText(/20–6/)).toBeInTheDocument()
+    expect(screen.getByText(new RegExp(`${min.w}–${min.l}`))).toBeInTheDocument()
     expect(screen.getByText(/Western Conference/)).toBeInTheDocument()
-    expect(screen.getByText(/seed 1/)).toBeInTheDocument()
+    expect(screen.getByText(new RegExp(`seed ${min.seed}`))).toBeInTheDocument()
   })
 
   it('shows the six headline splits', () => {
