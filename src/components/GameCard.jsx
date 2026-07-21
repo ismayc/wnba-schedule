@@ -48,6 +48,64 @@ function Side({ abbr, score, winner, hideScores }) {
   )
 }
 
+// The when-column: live period, void badge, final, or tip time — shared by the regular
+// and All-Star cards.
+function Timing({ game, tz, state }) {
+  return (
+    <div className="game-when">
+      {state === 'live' ? (
+        // A basketball score changes every ~35 seconds, so anything shown here is stale
+        // by up to one refresh. The period is durable enough to display; the exact game
+        // clock is not, so it stays in the tooltip.
+        <span className="live-badge" title={`${game.statusLabel || 'Live'} — as of the last refresh`}>
+          ● {livePeriod(game)}
+        </span>
+      ) : state === 'void' ? (
+        <span className="void-badge">{game.canceled ? 'Canceled' : 'Postponed'}</span>
+      ) : game.score ? (
+        <span className="final-badge">Final{game.ot ? (game.ot > 1 ? `/${game.ot}OT` : '/OT') : ''}</span>
+      ) : (
+        <>
+          <span className="time">{formatTime(game.tip, tz)}</span>
+          <span className="zone">{formatZoneAbbr(game.tip, tz)}</span>
+        </>
+      )}
+    </div>
+  )
+}
+
+// The 📺 badge + the leftover networks, shared by both card types.
+function Meta({ game, watch, lead, extra }) {
+  const meta = []
+  if (game.venue) meta.push(game.city ? `${game.venue}, ${game.city}` : game.venue)
+  // Drop any network already shown as a badge (e.g. "Peacock") so it isn't repeated; a
+  // bundle badge's underlying network (ESPN for YouTube TV) still shows.
+  const networks = broadcastNotBadged(game.broadcast, watch)
+  if (networks.length) meta.push(networks.slice(0, 3).join(' · '))
+
+  return (
+    <div className="game-meta">
+      {lead}
+      {meta.map((m) => (
+        <span key={m}>{m}</span>
+      ))}
+      {watch.length > 0 && (
+        <span className="watch" aria-label={`Watch on ${watch.map((s) => s.label).join(', ')}`}>
+          <span className="watch-tv" aria-hidden="true">
+            📺
+          </span>
+          {watch.map((s) => (
+            <span key={s.key} className="watch-chip">
+              {s.label}
+            </span>
+          ))}
+        </span>
+      )}
+      {extra}
+    </div>
+  )
+}
+
 export default function GameCard({ game, tz, hideScores, onOpen }) {
   const { services } = useServices()
   const state = liveState(game)
@@ -60,40 +118,44 @@ export default function GameCard({ game, tz, hideScores, onOpen }) {
   // per service. Empty (no badge) until the viewer picks services.
   const watch = watchableServices(game.broadcast, services)
 
-  const meta = []
-  if (game.venue) meta.push(game.city ? `${game.venue}, ${game.city}` : game.venue)
-  // Drop any network already shown as a 📺 badge (e.g. "Peacock") so it isn't repeated;
-  // the underlying networks of a bundle badge (ESPN for YouTube TV) still show.
-  const networks = broadcastNotBadged(game.broadcast, watch)
-  if (networks.length) meta.push(networks.slice(0, 3).join(' · '))
+  const open = () => onOpen?.(game)
+  const onKey = (e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), open())
+
+  // The All-Star Game's sides are captain-drafted (no franchise, no logo), so it reads as
+  // an event rather than a matchup of the 15 teams.
+  if (game.seasonType === 'allstar') {
+    return (
+      <article className="game allstar" role="button" tabIndex={0} onClick={open} onKeyDown={onKey}>
+        <Timing game={game} tz={tz} state={state} />
+        <div className="allstar-body">
+          <span className="allstar-tag">⭐ {game.note || 'All-Star Game'}</span>
+          <span className="allstar-matchup">
+            <span className="allstar-team">{game.awayName || game.away}</span>
+            {scored ? (
+              <span className="allstar-score">
+                {as} – {hs}
+              </span>
+            ) : (
+              <span className="allstar-vs">vs</span>
+            )}
+            <span className="allstar-team">{game.homeName || game.home}</span>
+          </span>
+        </div>
+        <Meta
+          game={game}
+          watch={watch}
+          extra={
+            state === 'upcoming' &&
+            countdown(game.tip) && <span className="countdown">in {countdown(game.tip)}</span>
+          }
+        />
+      </article>
+    )
+  }
 
   return (
-    <article
-      className={`game state-${state}`}
-      role="button"
-      tabIndex={0}
-      onClick={() => onOpen?.(game)}
-      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onOpen?.(game))}
-    >
-      <div className="game-when">
-        {state === 'live' ? (
-          // A basketball score changes every ~35 seconds, so anything shown here is
-          // stale by up to one refresh. The period is durable enough to display;
-          // the exact game clock is not, so it stays in the tooltip.
-          <span className="live-badge" title={`${game.statusLabel || 'Live'} — as of the last refresh`}>
-            ● {livePeriod(game)}
-          </span>
-        ) : state === 'void' ? (
-          <span className="void-badge">{game.canceled ? 'Canceled' : 'Postponed'}</span>
-        ) : game.score ? (
-          <span className="final-badge">Final{game.ot ? (game.ot > 1 ? `/${game.ot}OT` : '/OT') : ''}</span>
-        ) : (
-          <>
-            <span className="time">{formatTime(game.tip, tz)}</span>
-            <span className="zone">{formatZoneAbbr(game.tip, tz)}</span>
-          </>
-        )}
-      </div>
+    <article className={`game state-${state}`} role="button" tabIndex={0} onClick={open} onKeyDown={onKey}>
+      <Timing game={game} tz={tz} state={state} />
 
       <div className="game-teams">
         <Side abbr={game.away} score={as} winner={awayWon} hideScores={hideScores} />
@@ -101,27 +163,15 @@ export default function GameCard({ game, tz, hideScores, onOpen }) {
         <Side abbr={game.home} score={hs} winner={homeWon} hideScores={hideScores} />
       </div>
 
-      <div className="game-meta">
-        {game.note && <span className="note">{game.note}</span>}
-        {meta.map((m) => (
-          <span key={m}>{m}</span>
-        ))}
-        {watch.length > 0 && (
-          <span className="watch" aria-label={`Watch on ${watch.map((s) => s.label).join(', ')}`}>
-            <span className="watch-tv" aria-hidden="true">
-              📺
-            </span>
-            {watch.map((s) => (
-              <span key={s.key} className="watch-chip">
-                {s.label}
-              </span>
-            ))}
-          </span>
-        )}
-        {state === 'upcoming' && countdown(game.tip) && (
-          <span className="countdown">in {countdown(game.tip)}</span>
-        )}
-      </div>
+      <Meta
+        game={game}
+        watch={watch}
+        lead={game.note && <span className="note">{game.note}</span>}
+        extra={
+          state === 'upcoming' &&
+          countdown(game.tip) && <span className="countdown">in {countdown(game.tip)}</span>
+        }
+      />
     </article>
   )
 }

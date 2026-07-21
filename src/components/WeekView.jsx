@@ -35,6 +35,27 @@ function Cell({ dayGames, tz, isToday, hideScores, onOpen }) {
         const done = g.score && !hideScores
         const [hs, as] = g.score || []
         const mine = isFollowed(g.home) || isFollowed(g.away)
+
+        // The All-Star Game's captain-drafted sides have no logos, so it gets its own
+        // compact treatment rather than the two-logo rows.
+        if (g.seasonType === 'allstar') {
+          return (
+            <button
+              key={g.id}
+              className="wk-game wk-allstar"
+              onClick={() => onOpen?.(g)}
+              title="AT&T WNBA All-Star Game"
+            >
+              <span className="wk-allstar-tag">⭐ All-Star</span>
+              <span className="wk-allstar-teams">
+                {g.awayName || g.away} · {g.homeName || g.home}
+              </span>
+              {!g.score && <span className="wk-time">{formatTime(g.tip, tz)}</span>}
+              {done && <span className="wk-pts">{as} – {hs}</span>}
+            </button>
+          )
+        }
+
         return (
           <button
             key={g.id}

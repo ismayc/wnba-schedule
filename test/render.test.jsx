@@ -119,6 +119,29 @@ describe('GameCard', () => {
     const { container } = render(<GameCard game={{ ...base, broadcast: ['NBC', 'Peacock'] }} tz={TZ} />)
     expect(container.querySelector('.watch')).toBeNull()
   })
+
+  it('renders the All-Star game as a distinct event card, no franchise sides', () => {
+    const allStar = {
+      id: 'as1',
+      tip: '2026-07-26T00:30:00.000Z',
+      seasonType: 'allstar',
+      home: 'COOP',
+      away: 'SPO',
+      homeName: 'Team Coop',
+      awayName: 'Team Spoon',
+      venue: 'United Center',
+      city: 'Chicago',
+      broadcast: ['ABC', 'Disney+'],
+      note: 'AT&T WNBA All-Star Game',
+    }
+    const { container } = render(<GameCard game={allStar} tz={TZ} />)
+    expect(container.querySelector('.game.allstar')).toBeInTheDocument()
+    expect(screen.getByText('Team Spoon')).toBeInTheDocument()
+    expect(screen.getByText('Team Coop')).toBeInTheDocument()
+    expect(screen.getByText(/All-Star Game/)).toBeInTheDocument()
+    // The drafted sides aren't franchises — no logo'd .side, no follow star.
+    expect(container.querySelector('.side')).toBeNull()
+  })
 })
 
 describe('ScheduleView', () => {

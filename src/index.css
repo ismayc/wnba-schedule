@@ -700,6 +700,54 @@ select:hover,
   color: var(--accent);
 }
 
+/* ── All-Star card ──────────────────────────────────────────────────── */
+/* A gold-tinted card that reads as an event, not one of the 15-team matchups
+   (its captain-drafted sides have no logos). */
+.game.allstar {
+  border-color: color-mix(in srgb, var(--gold) 45%, var(--border));
+  background: color-mix(in srgb, var(--gold) 7%, var(--card));
+}
+
+.allstar-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.allstar-tag {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gold);
+}
+
+.allstar-matchup {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.allstar-vs {
+  color: var(--text-faint);
+  font-weight: 400;
+  font-size: 13px;
+}
+
+.allstar-score {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.md-allstar-mark {
+  font-size: 40px;
+  line-height: 1;
+}
+
 /* Games the owner can actually watch (YouTube TV / Prime Video / Peacock). The
    green matches --win: it reads as "available" without competing with the
    orange UI accent. */
@@ -1176,6 +1224,25 @@ select:hover,
 
 .wk-game.is-live {
   border-color: var(--live);
+}
+
+.wk-game.wk-allstar {
+  border-color: color-mix(in srgb, var(--gold) 45%, var(--border));
+  background: color-mix(in srgb, var(--gold) 8%, var(--card));
+}
+
+.wk-allstar-tag {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--gold);
+}
+
+.wk-allstar-teams {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.25;
 }
 
 .wk-row {

@@ -97,4 +97,26 @@ describe('GameDetail', () => {
     await userEvent.click(screen.getByRole('tab', { name: 'Matchup' }))
     expect(screen.getByText(/Season series/)).toBeInTheDocument()
   })
+
+  it('renders the All-Star game without a record or a Matchup tab', () => {
+    const allStar = {
+      id: 'as1',
+      tip: '2026-07-26T00:30:00.000Z',
+      seasonType: 'allstar',
+      home: 'COOP',
+      away: 'SPO',
+      homeName: 'Team Coop',
+      awayName: 'Team Spoon',
+      venue: 'United Center',
+      city: 'Chicago',
+      broadcast: ['ABC', 'Disney+'],
+      note: 'AT&T WNBA All-Star Game',
+    }
+    // Would throw if it tried to read a standings record for COOP/SPO.
+    open(allStar)
+    expect(screen.getByText('Team Spoon')).toBeInTheDocument()
+    expect(screen.getByText('Team Coop')).toBeInTheDocument()
+    // The captain-drafted sides aren't in the standings, so no tale-of-the-tape tab.
+    expect(screen.queryByRole('tab', { name: 'Matchup' })).toBeNull()
+  })
 })

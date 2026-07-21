@@ -155,6 +155,30 @@ async function fetchSchedule(teams) {
   return [...byId.values()].sort((a, b) => a.tip.localeCompare(b.tip) || a.id.localeCompare(b.id))
 }
 
+// The All-Star Game lives on the scoreboard, not in any team's schedule — its
+// captain-drafted sides ("Team Spoon", "Team Coop") aren't franchises, so a per-team
+// fetch never sees it. Pull the July window (WNBA All-Star is always mid-July) and keep
+// the ALL-STAR-type event. Its teams have no logos and ALL-CAPS names, so carry tidy
+// display names on the game for the UI, which can't look them up in TEAMS.
+const titleCase = (s) => s.toLowerCase().replace(/\b\w/g, (m) => m.toUpperCase())
+
+async function fetchAllStar() {
+  const d = await getJson(`${SITE}/scoreboard?dates=${SEASON}0701-${SEASON}0801&limit=100`)
+  return (d.events || [])
+    .filter((ev) => ev.competitions?.[0]?.type?.abbreviation === 'ALLSTAR')
+    .map((ev) => {
+      const game = normalizeEvent(ev)
+      if (!game) return null
+      const c = ev.competitions[0]
+      const nameOf = (ha) => {
+        const t = c.competitors.find((x) => x.homeAway === ha)?.team || {}
+        return titleCase(t.displayName || t.shortDisplayName || t.abbreviation || '')
+      }
+      return { ...game, homeName: nameOf('home'), awayName: nameOf('away') }
+    })
+    .filter(Boolean)
+}
+
 // Basketball has no analogue to enumerating goals — a game has ~65 scoring plays and
 // the season has ~20,000, so per-basket events are neither fetchable nor useful. The
 // meaningful unit is the QUARTER: a line score says how a game actually went in a way
@@ -283,6 +307,11 @@ async function main() {
 
   console.log('Fetching schedules…')
   const games = await fetchSchedule(teams)
+  const allStar = await fetchAllStar()
+  if (allStar.length) {
+    games.push(...allStar)
+    games.sort((a, b) => a.tip.localeCompare(b.tip) || a.id.localeCompare(b.id))
+  }
   const counts = games.reduce((a, g) => ({ ...a, [g.seasonType]: (a[g.seasonType] || 0) + 1 }), {})
   console.log(`  ${games.length} games`, counts)
 
