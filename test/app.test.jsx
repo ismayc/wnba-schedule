@@ -7,6 +7,7 @@ import userEvent from '@testing-library/user-event'
 vi.mock('../src/services/summary.js', () => ({ fetchGameSummary: () => Promise.resolve(null) }))
 import App from '../src/App.jsx'
 import { FollowProvider } from '../src/context/follow.jsx'
+import { GAMES } from '../src/data/schedule.js'
 import { ServicesProvider } from '../src/context/services.jsx'
 
 // App is the wiring layer — polling, filters, URL state, and which view is on screen.
@@ -268,5 +269,21 @@ describe('App', () => {
       await userEvent.click(document.querySelector('.game'))
       expect(screen.getByRole('dialog', { name: 'Game detail' })).toBeInTheDocument()
     })
+  })
+})
+
+describe('game deep link', () => {
+  it('opens straight onto the linked game detail, then drops the one-shot param', async () => {
+    window.history.replaceState(null, '', `/?game=${GAMES[0].id}`)
+    await mount()
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    // The param is read-only: the first URL write returns to plain filter state.
+    expect(new URLSearchParams(window.location.search).get('game')).toBeNull()
+  })
+
+  it('ignores a deep link to a game not in the committed season', async () => {
+    window.history.replaceState(null, '', '/?game=000000')
+    await mount()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })
