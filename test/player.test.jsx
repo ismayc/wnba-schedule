@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import PlayerModal from '../src/components/PlayerModal.jsx'
 import { fetchPlayer, headshotUrl } from '../src/services/player.js'
+import { flagUrl } from '../src/utils/flag.js'
 
 const overview = {
   athlete: {
@@ -15,6 +16,9 @@ const overview = {
     team: { displayName: 'Las Vegas Aces' },
   },
 }
+
+// birthPlace only rides on the core athlete record, fetched separately.
+const core = { birthPlace: { city: 'Columbia', state: 'SC', country: 'USA' } }
 
 const gamelog = {
   labels: ['MIN', 'PTS', 'REB', 'AST', 'STL', 'BLK', 'TO', 'FG', 'FG%', '3PT', '3P%', 'FT', 'FT%', 'PF'],
@@ -37,9 +41,11 @@ const gamelog = {
 }
 
 const stub = () => {
-  globalThis.fetch = vi.fn((url) =>
-    Promise.resolve({ ok: true, json: async () => (String(url).endsWith('/gamelog') ? gamelog : overview) })
-  )
+  globalThis.fetch = vi.fn((url) => {
+    const u = String(url)
+    const body = u.endsWith('/gamelog') ? gamelog : u.includes('sports.core.api') ? core : overview
+    return Promise.resolve({ ok: true, json: async () => body })
+  })
 }
 
 const player = {
@@ -76,7 +82,14 @@ describe('fetchPlayer (service)', () => {
   it('parses bio and maps game-log stats by the feed’s labels, most recent first', async () => {
     stub()
     const { bio, games } = await fetchPlayer('3149391')
-    expect(bio).toMatchObject({ jersey: '22', pos: 'C', height: `6' 4"`, age: 29, college: 'South Carolina' })
+    expect(bio).toMatchObject({
+      jersey: '22',
+      pos: 'C',
+      height: `6' 4"`,
+      age: 29,
+      college: 'South Carolina',
+      country: 'USA',
+    })
     // Sorted newest-first regardless of feed order (e1 = 7/19 comes before e2 = 7/15).
     expect(games.map((g) => g.opp)).toEqual(['PHX', 'SEA'])
     expect(games[0]).toMatchObject({ result: 'W', atVs: 'vs' })
@@ -92,6 +105,19 @@ describe('fetchPlayer (service)', () => {
 
   it('builds a deterministic headshot URL', () => {
     expect(headshotUrl('3149391')).toContain('/headshots/wnba/players/full/3149391.png')
+  })
+})
+
+describe('flagUrl', () => {
+  it('maps a country name onto its ESPN IOC flag code', () => {
+    expect(flagUrl('USA')).toContain('/countries/500/usa.png')
+    expect(flagUrl('Australia')).toContain('/countries/500/aus.png')
+    expect(flagUrl('United States')).toContain('/countries/500/usa.png')
+  })
+
+  it('returns null for a country it has no code for', () => {
+    expect(flagUrl('Wakanda')).toBeNull()
+    expect(flagUrl(null)).toBeNull()
   })
 })
 
@@ -112,6 +138,13 @@ describe('PlayerModal (component)', () => {
     // The fetched recent games fill in.
     expect(await screen.findByText('PHX')).toBeInTheDocument()
     expect(screen.getByText('SEA')).toBeInTheDocument()
+    // Birthplace country + its flag arrive with the bio fetch.
+    expect(screen.getByText('USA')).toBeInTheDocument()
+    const flag = document.querySelector('img.pm-flag')
+    expect(flag?.getAttribute('src')).toContain('/countries/500/usa.png')
+    // A flag that 404s hides itself rather than showing a broken image.
+    fireEvent.error(flag)
+    expect(flag.style.display).toBe('none')
   })
 
   it('falls back to the player’s initials when the headshot 404s', () => {

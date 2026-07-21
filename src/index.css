@@ -2277,6 +2277,20 @@ select:hover,
   font-size: 12px;
 }
 
+.pm-origin {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+}
+
+.pm-flag {
+  width: 20px;
+  height: 14px;
+  border-radius: 2px;
+  object-fit: cover;
+}
+
 .pm-stats {
   display: grid;
   grid-template-columns: repeat(6, 1fr);

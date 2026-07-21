@@ -4,23 +4,28 @@
 // a failure degrades to stats-only rather than blocking.
 
 const WEB = 'https://site.web.api.espn.com/apis/common/v3/sports/basketball/wnba'
+// birthPlace (city/state/country) is not on the site overview — only on the core
+// athlete record — so the pop-out's country line takes a second keyless request.
+const CORE = 'https://sports.core.api.espn.com/v2/sports/basketball/leagues/wnba/athletes'
 
 // Deterministic headshot URL — no request needed. The <img> hides itself on a 404.
 export const headshotUrl = (id) =>
   `https://a.espncdn.com/i/headshots/wnba/players/full/${id}.png`
 
-function parseBio(data) {
+function parseBio(data, core) {
   const a = data?.athlete
-  if (!a) return null
+  const bp = core?.birthPlace || a?.birthPlace || null
+  if (!a && !bp) return null
   return {
-    jersey: a.jersey || null,
-    pos: a.position?.abbreviation || null,
-    height: a.displayHeight || null,
-    weight: a.displayWeight || null,
-    age: typeof a.age === 'number' ? a.age : null,
-    college: a.college?.name || null,
-    team: a.team?.displayName || null,
-    experience: typeof a.experience?.years === 'number' ? a.experience.years : null,
+    jersey: a?.jersey || null,
+    pos: a?.position?.abbreviation || null,
+    height: a?.displayHeight || null,
+    weight: a?.displayWeight || null,
+    age: typeof a?.age === 'number' ? a.age : null,
+    college: a?.college?.name || null,
+    country: bp?.country || null,
+    team: a?.team?.displayName || null,
+    experience: typeof a?.experience?.years === 'number' ? a.experience.years : null,
   }
 }
 
@@ -57,13 +62,15 @@ function parseGames(data, limit = 6) {
 export async function fetchPlayer(id, { signal } = {}) {
   let overview = null
   let gamelog = null
+  let core = null
   try {
-    ;[overview, gamelog] = await Promise.all([
+    ;[overview, gamelog, core] = await Promise.all([
       fetch(`${WEB}/athletes/${id}`, { signal }).then((r) => (r.ok ? r.json() : null)),
       fetch(`${WEB}/athletes/${id}/gamelog`, { signal }).then((r) => (r.ok ? r.json() : null)),
+      fetch(`${CORE}/${id}`, { signal }).then((r) => (r.ok ? r.json() : null)),
     ])
   } catch {
     return null
   }
-  return { bio: parseBio(overview), games: parseGames(gamelog) }
+  return { bio: parseBio(overview, core), games: parseGames(gamelog) }
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { TEAM_BY_ABBR } from '../data/teams.js'
 import { formatDate } from '../utils/time.js'
 import { fetchPlayer, headshotUrl } from '../services/player.js'
+import { flagUrl } from '../utils/flag.js'
 import { useModalA11y } from '../hooks/useModalA11y.js'
 import TeamLogo from './TeamLogo.jsx'
 
@@ -86,11 +87,29 @@ export default function PlayerModal({ player, tz, onClose }) {
               {player.pos ? ` · ${player.pos}` : ''}
               {bio?.jersey ? ` · #${bio.jersey}` : ''}
             </span>
-            {bio && (
+            {bio && (bio.height || bio.weight || bio.age || bio.college) && (
               <span className="pm-bio dim">
                 {[bio.height, bio.weight, bio.age && `Age ${bio.age}`, bio.college]
                   .filter(Boolean)
                   .join(' · ')}
+              </span>
+            )}
+            {bio?.country && (
+              <span className="pm-origin dim">
+                {flagUrl(bio.country) && (
+                  <img
+                    className="pm-flag"
+                    src={flagUrl(bio.country)}
+                    alt=""
+                    width="20"
+                    height="14"
+                    loading="lazy"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none'
+                    }}
+                  />
+                )}
+                {bio.country}
               </span>
             )}
           </div>
