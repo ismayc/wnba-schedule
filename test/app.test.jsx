@@ -160,6 +160,25 @@ describe('App', () => {
       const count = Number(within(btn).getByText(/^\d+$/).textContent)
       expect(count).toBeGreaterThan(0)
     })
+
+    it('remembers the choice per-device in localStorage', async () => {
+      await mount()
+      await userEvent.click(screen.getByRole('button', { name: /past days/ }))
+      await waitFor(() => expect(localStorage.getItem('wnba:showPast')).toBe('1'))
+    })
+
+    it('restores from localStorage when the link says nothing', async () => {
+      localStorage.setItem('wnba:showPast', '1')
+      await mount()
+      expect(screen.getByRole('button', { name: /past days/ })).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('lets an explicit ?past= in a shared link override the saved preference', async () => {
+      localStorage.setItem('wnba:showPast', '1')
+      window.history.replaceState(null, '', '/?past=0')
+      await mount()
+      expect(screen.getByRole('button', { name: /past days/ })).toHaveAttribute('aria-pressed', 'false')
+    })
   })
 
   describe('spoiler-free mode', () => {

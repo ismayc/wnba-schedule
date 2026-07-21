@@ -38,6 +38,9 @@ export function readState(search = window.location.search) {
     hideExplicit: p.has('hide'),
     mine: p.get('mine') === '1',
     past: p.get('past') === '1',
+    // Like hideExplicit: whether the link carried a past-days choice, so a saved
+    // preference only applies when the link says nothing.
+    pastExplicit: p.has('past'),
   }
 }
 

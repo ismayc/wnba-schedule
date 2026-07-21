@@ -53,9 +53,17 @@ export default function App() {
   })
   const [team, setTeam] = useState(initial.team)
   const [onlyFollowed, setOnlyFollowed] = useState(initial.mine)
-  // Hidden by default: 194 of this season's 332 games are already played, so opening
-  // on the season opener in May would bury today under months of finals.
-  const [showPast, setShowPast] = useState(initial.past)
+  // Off by default (194 of this season's 332 games are already played, so opening on the
+  // season opener in May would bury today under months of finals), but remembered
+  // per-device once toggled — like spoiler-free mode. A shared ?past= still wins on load.
+  const [showPast, setShowPast] = useState(() => {
+    if (initial.pastExplicit) return initial.past
+    try {
+      return localStorage.getItem('wnba:showPast') === '1'
+    } catch {
+      return false
+    }
+  })
   // "Only games I can watch" — filters to games on the viewer's chosen services (see
   // the services context). Off by default, but remembered across visits in localStorage
   // like a followed team rather than living in the shareable URL.
@@ -160,6 +168,15 @@ export default function App() {
       /* private mode — the preference just won't persist */
     }
   }, [hideScores])
+
+  // Same for the "show past days" toggle — remembered per-device, ?past= still overrides.
+  useEffect(() => {
+    try {
+      localStorage.setItem('wnba:showPast', showPast ? '1' : '0')
+    } catch {
+      /* private mode — the preference just won't persist */
+    }
+  }, [showPast])
 
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark'

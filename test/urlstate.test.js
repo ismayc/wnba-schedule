@@ -11,6 +11,7 @@ describe('readState', () => {
       hideExplicit: false,
       mine: false,
       past: false,
+      pastExplicit: false,
     })
   })
 
@@ -23,6 +24,7 @@ describe('readState', () => {
       hideExplicit: true,
       mine: true,
       past: true,
+      pastExplicit: true,
     })
   })
 
@@ -73,7 +75,11 @@ describe('toSearch', () => {
       mine: true,
       past: true,
     }
-    // readState also reports whether hide was explicit; toSearch wrote it, so it is.
-    expect(readState(toSearch(state, detected))).toEqual({ ...state, hideExplicit: true })
+    // readState also reports whether hide/past were explicit; toSearch wrote them, so both are.
+    expect(readState(toSearch(state, detected))).toEqual({
+      ...state,
+      hideExplicit: true,
+      pastExplicit: true,
+    })
   })
 })
