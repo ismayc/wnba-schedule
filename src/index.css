@@ -64,7 +64,11 @@ body {
 .app {
   max-width: 1080px;
   margin: 0 auto;
-  padding: 22px 18px 64px;
+  /* Reserve the iOS status-bar / notch space. The page opts into the full screen
+     (viewport-fit=cover + a translucent status bar), so without this the title slides
+     under the clock on a phone. env() is 0 where there's no inset (desktop). */
+  padding: calc(22px + env(safe-area-inset-top, 0px)) calc(18px + env(safe-area-inset-right, 0px))
+    64px calc(18px + env(safe-area-inset-left, 0px));
 }
 
 h1,
@@ -2583,6 +2587,31 @@ select:hover,
 
   .side-loc {
     display: none;
+  }
+
+  /* Stack the two teams so each nickname gets the full card width instead of half —
+     beside the star, logo, and score, half a phone leaves "Mystics" as "M…". Both rows
+     read the same way: star · logo · name … score. */
+  .game-teams {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .at {
+    display: none;
+  }
+
+  .side:last-child {
+    flex-direction: row;
+    text-align: left;
+  }
+
+  .side:last-child .star {
+    order: -1;
+  }
+
+  .side:last-child .side-score {
+    margin-inline: auto 0;
   }
 
   .brand h1 {
