@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import StandingsView from '../src/components/StandingsView.jsx'
 import ScheduleView from '../src/components/ScheduleView.jsx'
+import StatsView from '../src/components/StatsView.jsx'
 import GameCard from '../src/components/GameCard.jsx'
 import { ServicesProvider } from '../src/context/services.jsx'
 import { GAMES } from '../src/data/schedule.js'
@@ -141,6 +142,25 @@ describe('GameCard', () => {
     expect(screen.getByText(/All-Star Game/)).toBeInTheDocument()
     // The drafted sides aren't franchises — no logo'd .side, no follow star.
     expect(container.querySelector('.side')).toBeNull()
+  })
+})
+
+describe('StatsView leaders', () => {
+  it('forces one decimal on per-game averages so the column stays aligned', () => {
+    const { container } = render(<StatsView games={GAMES} tz={TZ} />)
+    // Default category is Points (PPG): every value reads like "21.0", never bare "21".
+    const vals = [...container.querySelectorAll('.lead-value')].map((n) => n.textContent)
+    expect(vals.length).toBeGreaterThan(0)
+    for (const v of vals) expect(v).toMatch(/^\d+\.\d$/)
+  })
+
+  it('opens the player pop-out with the full stat row when a name is clicked', async () => {
+    const onPickPlayer = vi.fn()
+    const { container } = render(<StatsView games={GAMES} tz={TZ} onPickPlayer={onPickPlayer} />)
+    await userEvent.click(container.querySelector('.lead-player'))
+    expect(onPickPlayer).toHaveBeenCalledWith(
+      expect.objectContaining({ name: expect.any(String), avgPoints: expect.any(Number) })
+    )
   })
 })
 

@@ -86,11 +86,14 @@ function TotalsStrip({ games, tz }) {
 // One category at a time = a single series, so no legend is needed; the heading
 // names it. Bars are a sequential blue, with the value direct-labelled.
 
-function Leaders({ onPickTeam }) {
+function Leaders({ onPickTeam, onPickPlayer }) {
   const [cat, setCat] = useState(LEADER_CATEGORIES[0])
   const rows = useMemo(() => leaderboard(cat.key, { limit: 10 }), [cat])
   const max = rows[0]?.value || 1
   const isPct = cat.key.endsWith('Pct')
+  // Double-doubles are a whole-number count; every other category is a per-game average
+  // that reads as ".0" when whole, so the column stays decimal-aligned (21.0 under 21.1).
+  const isCount = cat.key === 'doubleDouble'
 
   return (
     <div className="card">
@@ -121,14 +124,16 @@ function Leaders({ onPickTeam }) {
                 </button>
               </td>
               <td className="lead-name">
-                {p.name}
+                <button className="lead-player" onClick={() => onPickPlayer?.(p)}>
+                  {p.name}
+                </button>
                 <span className="lead-pos">{p.pos}</span>
               </td>
               <td className="lead-bar">
                 <span className="bar" style={{ '--w': `${(p.value / max) * 100}%` }} />
               </td>
               <td className="lead-value">
-                {isPct ? `${one(p.value)}%` : p.value}
+                {isPct ? `${one(p.value)}%` : isCount ? p.value : one(p.value)}
               </td>
             </tr>
           ))}
@@ -271,14 +276,14 @@ function PlayoffRace({ games, onPickTeam }) {
   )
 }
 
-export default function StatsView({ games, tz, onPickTeam }) {
+export default function StatsView({ games, tz, onPickTeam, onPickPlayer }) {
   return (
     <section className="view">
       <div className="view-head">
         <h2>Stats</h2>
       </div>
       <TotalsStrip games={games} tz={tz} />
-      <Leaders onPickTeam={onPickTeam} />
+      <Leaders onPickTeam={onPickTeam} onPickPlayer={onPickPlayer} />
       <div className="grid-2">
         <MarginChart games={games} onPickTeam={onPickTeam} />
         <PlayoffRace games={games} onPickTeam={onPickTeam} />
