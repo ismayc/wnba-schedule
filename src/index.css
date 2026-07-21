@@ -2245,6 +2245,15 @@ select:hover,
   flex: 0 0 auto;
 }
 
+.pm-shot.pm-initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
 .pm-id {
   display: flex;
   flex-direction: column;

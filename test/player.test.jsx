@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import PlayerModal from '../src/components/PlayerModal.jsx'
 import { fetchPlayer, headshotUrl } from '../src/services/player.js'
 
@@ -112,5 +112,14 @@ describe('PlayerModal (component)', () => {
     // The fetched recent games fill in.
     expect(await screen.findByText('PHX')).toBeInTheDocument()
     expect(screen.getByText('SEA')).toBeInTheDocument()
+  })
+
+  it('falls back to the player’s initials when the headshot 404s', () => {
+    stub()
+    const { container } = render(<PlayerModal player={player} tz="America/New_York" onClose={() => {}} />)
+    // jsdom never loads the image, so simulate the 404.
+    fireEvent.error(container.querySelector('img.pm-shot'))
+    expect(container.querySelector('.pm-initials')?.textContent).toBe('AW')
+    expect(container.querySelector('img.pm-shot')).toBeNull()
   })
 })

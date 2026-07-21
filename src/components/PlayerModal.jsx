@@ -7,6 +7,16 @@ import TeamLogo from './TeamLogo.jsx'
 
 const one = (n) => (typeof n === 'number' ? n.toFixed(1) : (n ?? '–'))
 
+// First + last initial, for the headshot fallback (~5 fringe players have no photo).
+const initials = (name) =>
+  (name || '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
+
 // Headline season averages, straight from the committed PLAYERS row (no fetch).
 const SEASON_STATS = [
   { key: 'avgPoints', label: 'PPG' },
@@ -20,11 +30,13 @@ const SEASON_STATS = [
 export default function PlayerModal({ player, tz, onClose }) {
   const ref = useModalA11y(onClose, !!player)
   const [extra, setExtra] = useState({ status: 'loading', bio: null, games: null })
+  const [hasShot, setHasShot] = useState(true)
   const id = player?.id
 
   useEffect(() => {
     if (!id) return
     const ctrl = new AbortController()
+    setHasShot(true) // reset the headshot fallback for the new player
     setExtra({ status: 'loading', bio: null, games: null })
     fetchPlayer(id, { signal: ctrl.signal }).then((data) => {
       if (ctrl.signal.aborted) return
@@ -53,13 +65,19 @@ export default function PlayerModal({ player, tz, onClose }) {
         </button>
 
         <div className="pm-head">
-          <img
-            className="pm-shot"
-            src={headshotUrl(player.id)}
-            alt=""
-            loading="lazy"
-            onError={(e) => (e.currentTarget.style.visibility = 'hidden')}
-          />
+          {hasShot ? (
+            <img
+              className="pm-shot"
+              src={headshotUrl(player.id)}
+              alt=""
+              loading="lazy"
+              onError={() => setHasShot(false)}
+            />
+          ) : (
+            <span className="pm-shot pm-initials" aria-hidden="true">
+              {initials(player.name)}
+            </span>
+          )}
           <div className="pm-id">
             <strong className="pm-name">{player.name}</strong>
             <span className="pm-sub">
