@@ -3,7 +3,7 @@ import { TEAM_BY_ABBR } from '../data/teams.js'
 import { formatDate, formatTime, formatZoneAbbr, liveState, countdown } from '../utils/time.js'
 import { computeStandings, countsForStandings } from '../utils/standings.js'
 import { playersByTeam } from '../utils/stats.js'
-import { watchableServices } from '../utils/watch.js'
+import { watchableServices, broadcastNotBadged } from '../utils/watch.js'
 import { fetchGameSummary } from '../services/summary.js'
 import { useServices } from '../context/services.jsx'
 import { useModalA11y } from '../hooks/useModalA11y.js'
@@ -173,6 +173,7 @@ export default function GameDetail({ game, games, tz, hideScores, onClose, onPic
   const activeTab = TABS.some((t) => t.id === tab) ? tab : TABS[0].id
 
   const watch = watchableServices(game.broadcast, services)
+  const airedOn = broadcastNotBadged(game.broadcast, watch)
 
   const away = TEAM_BY_ABBR[game.away]
   const home = TEAM_BY_ABBR[game.home]
@@ -245,7 +246,7 @@ export default function GameDetail({ game, games, tz, hideScores, onClose, onPic
             <div>
               <dt>Watch</dt>
               <dd>
-                {game.broadcast.join(' · ')}
+                {airedOn.join(' · ')}
                 {watch.length > 0 && (
                   <span
                     className="watch"

@@ -702,6 +702,9 @@ select:hover,
 .watch {
   display: inline-flex;
   align-items: center;
+  /* Wrap so every selected service that carries the game stays visible — a viewer
+     with many services on a national game can match five-plus at once. */
+  flex-wrap: wrap;
   gap: 5px;
   color: var(--win);
 }

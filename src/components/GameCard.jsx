@@ -1,6 +1,6 @@
 import { TEAM_BY_ABBR } from '../data/teams.js'
 import { formatTime, formatZoneAbbr, liveState, countdown } from '../utils/time.js'
-import { watchableServices } from '../utils/watch.js'
+import { watchableServices, broadcastNotBadged } from '../utils/watch.js'
 import { useFollow } from '../context/follow.jsx'
 import { useServices } from '../context/services.jsx'
 import TeamLogo from './TeamLogo.jsx'
@@ -56,14 +56,16 @@ export default function GameCard({ game, tz, hideScores, onOpen }) {
   const homeWon = scored && hs > as
   const awayWon = scored && as > hs
 
+  // Which of the viewer's chosen services carry this game — a 📺 icon plus a label
+  // per service. Empty (no badge) until the viewer picks services.
+  const watch = watchableServices(game.broadcast, services)
+
   const meta = []
   if (game.venue) meta.push(game.city ? `${game.venue}, ${game.city}` : game.venue)
-  if (game.broadcast?.length) meta.push(game.broadcast.slice(0, 3).join(' · '))
-
-  // Which of the viewer's chosen services carry this game — a 📺 icon plus a label
-  // per service. Empty (no badge) until the viewer picks services; the raw network
-  // list above still shows where the game is on.
-  const watch = watchableServices(game.broadcast, services)
+  // Drop any network already shown as a 📺 badge (e.g. "Peacock") so it isn't repeated;
+  // the underlying networks of a bundle badge (ESPN for YouTube TV) still show.
+  const networks = broadcastNotBadged(game.broadcast, watch)
+  if (networks.length) meta.push(networks.slice(0, 3).join(' · '))
 
   return (
     <article

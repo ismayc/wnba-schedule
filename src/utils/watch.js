@@ -47,6 +47,16 @@ export const SERVICE_CATALOG = [
 
 export const SERVICE_BY_KEY = Object.fromEntries(SERVICE_CATALOG.map((s) => [s.key, s]))
 
+// Broadcast entries not already shown as a personalized 📺 badge, so a game on
+// "Peacock" (with Peacock selected) renders one "📺 Peacock" badge rather than the
+// redundant "Peacock · 📺 Peacock". Bundle badges (e.g. YouTube TV) don't match a
+// broadcast name, so their underlying network (ESPN, NBC, …) is left in place.
+export function broadcastNotBadged(broadcast, watched) {
+  if (!broadcast?.length) return []
+  const shown = new Set((watched || []).map((s) => s.label))
+  return broadcast.filter((b) => !shown.has(b))
+}
+
 // The viewer's selected services (by key) that carry this game, in catalog order.
 // Returns [] when nothing is selected or the broadcast is unknown — so a viewer who
 // hasn't chosen services sees no personalized badge (the raw network list in the

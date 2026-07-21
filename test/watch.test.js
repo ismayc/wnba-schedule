@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { watchableServices, SERVICE_CATALOG, SERVICE_BY_KEY } from '../src/utils/watch.js'
+import {
+  watchableServices,
+  broadcastNotBadged,
+  SERVICE_CATALOG,
+  SERVICE_BY_KEY,
+} from '../src/utils/watch.js'
 
 const labels = (b, keys) => watchableServices(b, keys).map((s) => s.label)
 
@@ -27,6 +32,18 @@ describe('watchableServices', () => {
     expect(labels(['NBC', 'Peacock'], ['youtubetv', 'peacock'])).toEqual(['Peacock', 'YouTube TV'])
   })
 
+  it('lists ALL of a viewer’s many services that carry the game — never capped', () => {
+    // A viewer with more services than average, on a nationally-televised (ESPN) game:
+    // every bundle/service that carries ESPN is returned, not a truncated subset.
+    expect(labels(['ESPN'], ['youtubetv', 'hulu', 'sling', 'cable', 'disney'])).toEqual([
+      'Disney+ / ESPN+',
+      'YouTube TV',
+      'Hulu + Live TV',
+      'Sling TV',
+      'Cable / Satellite',
+    ])
+  })
+
   it('bundle carriage differs — Sling has no ABC-only game, Fubo does', () => {
     expect(labels(['ABC'], ['sling'])).toEqual([])
     expect(labels(['ABC'], ['fubo'])).toEqual(['Fubo'])
@@ -49,5 +66,23 @@ describe('watchableServices', () => {
     expect(SERVICE_BY_KEY.youtubetv.label).toBe('YouTube TV')
     expect(SERVICE_BY_KEY.peacock.kind).toBe('stream')
     expect(SERVICE_BY_KEY.youtubetv.kind).toBe('bundle')
+  })
+})
+
+describe('broadcastNotBadged', () => {
+  const svc = (label) => ({ label })
+
+  it('drops a network already shown as a badge but keeps the rest', () => {
+    expect(broadcastNotBadged(['NBC', 'Peacock'], [svc('Peacock')])).toEqual(['NBC'])
+    expect(broadcastNotBadged(['Prime Video'], [svc('Prime Video')])).toEqual([])
+  })
+
+  it('leaves a bundle badge’s underlying network in place (YouTube TV ≠ ESPN)', () => {
+    expect(broadcastNotBadged(['ESPN'], [svc('YouTube TV')])).toEqual(['ESPN'])
+  })
+
+  it('returns the whole list when nothing is badged', () => {
+    expect(broadcastNotBadged(['ESPN', 'ABC'], [])).toEqual(['ESPN', 'ABC'])
+    expect(broadcastNotBadged(undefined, [])).toEqual([])
   })
 })

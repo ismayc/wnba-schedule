@@ -104,6 +104,10 @@ describe('GameCard', () => {
       'Peacock',
       'YouTube TV',
     ])
+    // "Peacock" shows only as the badge, not repeated as a raw network; NBC (the bundle's
+    // underlying network) still shows in the meta line.
+    expect(container.querySelector('.game-meta').textContent).toContain('NBC')
+    expect(screen.getAllByText('Peacock')).toHaveLength(1)
 
     // A game only on services the viewer lacks carries no badge.
     rerender(withServices({ ...base, broadcast: ['WNBA League Pass'] }))
