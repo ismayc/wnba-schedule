@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-// Lineups fetches the ESPN summary when a game opens; it has its own suite
-// (lineups.test.jsx), so stub it out here to keep these tests off the network.
-vi.mock('../src/components/Lineups.jsx', () => ({ default: () => null }))
+// GameDetail fetches the ESPN summary when a game opens; it has its own suite
+// (summary.test.jsx), so stub the service here to keep these tests off the network.
+vi.mock('../src/services/summary.js', () => ({ fetchGameSummary: () => Promise.resolve(null) }))
 import GameDetail from '../src/components/GameDetail.jsx'
 import { GAMES } from '../src/data/schedule.js'
 
@@ -36,17 +36,18 @@ describe('GameDetail', () => {
     expect(screen.queryByText('Final')).not.toBeInTheDocument()
   })
 
-  it('hides the score in spoiler-free mode', () => {
+  it('hides the score in spoiler-free mode', async () => {
     const { container } = open(played, { hideScores: true })
     expect(container.querySelector('.md-score')).toBeNull()
-    // …including in the season-series list, which would otherwise leak results.
-    for (const el of container.querySelectorAll('.drill-score')) {
-      expect(el.textContent).toBe('—')
-    }
+    // …including in the season-series list (under Matchup), which would otherwise leak.
+    await userEvent.click(screen.getByRole('tab', { name: 'Matchup' }))
+    const scores = container.querySelectorAll('.drill-score')
+    for (const el of scores) expect(el.textContent).toBe('—')
   })
 
-  it('marks the stronger side in the tale of the tape', () => {
+  it('marks the stronger side in the tale of the tape', async () => {
     const { container } = open(played)
+    await userEvent.click(screen.getByRole('tab', { name: 'Matchup' }))
     expect(container.querySelectorAll('.tale-val.better').length).toBeGreaterThan(0)
   })
 
@@ -79,7 +80,7 @@ describe('GameDetail', () => {
     expect(onClose).toHaveBeenCalled()
   })
 
-  it('lists the season series when the teams have met', () => {
+  it('lists the season series when the teams have met', async () => {
     // Find a matchup that has been played more than once.
     const counts = {}
     for (const g of GAMES) {
@@ -93,6 +94,7 @@ describe('GameDetail', () => {
       (g) => g.score && [g.home, g.away].includes(a) && [g.home, g.away].includes(b)
     )
     open(game)
+    await userEvent.click(screen.getByRole('tab', { name: 'Matchup' }))
     expect(screen.getByText(/Season series/)).toBeInTheDocument()
   })
 })

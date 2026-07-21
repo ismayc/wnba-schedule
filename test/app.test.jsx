@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { act, render, screen, within, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-// The game detail mounts Lineups, which fetches the ESPN summary. These wiring tests
-// don't exercise lineups (they have their own suite), so stub it to keep the fetch
-// call count deterministic and the tests off the network.
-vi.mock('../src/components/Lineups.jsx', () => ({ default: () => null }))
+// The game detail fetches the ESPN summary on open. These wiring tests don't exercise
+// the summary sections (they have their own suite), so stub the service to keep the
+// fetch call count deterministic and the tests off the network.
+vi.mock('../src/services/summary.js', () => ({ fetchGameSummary: () => Promise.resolve(null) }))
 import App from '../src/App.jsx'
 import { FollowProvider } from '../src/context/follow.jsx'
 import { ServicesProvider } from '../src/context/services.jsx'

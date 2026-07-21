@@ -1,7 +1,9 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
-// Lineups fetches on open; stub it so these render tests stay off the network.
-vi.mock('../src/components/Lineups.jsx', () => ({ default: () => null }))
+import userEvent from '@testing-library/user-event'
+// GameDetail fetches the ESPN summary on open; stub the service so these render tests
+// stay off the network (the summary sections have their own suite).
+vi.mock('../src/services/summary.js', () => ({ fetchGameSummary: () => Promise.resolve(null) }))
 import GameDetail from '../src/components/GameDetail.jsx'
 import { livePeriod } from '../src/components/GameCard.jsx'
 import { GAMES } from '../src/data/schedule.js'
@@ -12,6 +14,13 @@ const otGame = GAMES.find((g) => g.line && g.ot)
 
 const open = (game, props = {}) =>
   render(<GameDetail game={game} games={GAMES} tz={TZ} onClose={() => {}} {...props} />)
+
+// The line score and game leaders live under the "Scoring" tab of a played game.
+const openScoring = async (game, props = {}) => {
+  const r = open(game, props)
+  await userEvent.click(screen.getByRole('tab', { name: 'Scoring' }))
+  return r
+}
 
 // Basketball has no enumerable scoring events, so the quarter breakdown is the
 // closest thing to a goal timeline. It has to be exactly right or it's worse than
@@ -30,20 +39,20 @@ describe('line score', () => {
     }
   })
 
-  it('renders four quarters plus a total', () => {
-    const { container } = open(withLine)
+  it('renders four quarters plus a total', async () => {
+    const { container } = await openScoring(withLine)
     const heads = [...container.querySelectorAll('.linescore thead th')].map((n) => n.textContent)
     expect(heads).toEqual(['', 'Q1', 'Q2', 'Q3', 'Q4', 'T'])
   })
 
-  it('labels overtime periods beyond the fourth quarter', () => {
-    const { container } = open(otGame)
+  it('labels overtime periods beyond the fourth quarter', async () => {
+    const { container } = await openScoring(otGame)
     const heads = [...container.querySelectorAll('.linescore thead th')].map((n) => n.textContent)
     expect(heads.slice(-2)).toEqual(['OT', 'T'])
   })
 
-  it('marks the higher scorer of each quarter', () => {
-    const { container } = open(withLine)
+  it('marks the higher scorer of each quarter', async () => {
+    const { container } = await openScoring(withLine)
     const rows = container.querySelectorAll('.linescore tbody tr')
     // Every quarter has at most one winner, and ties have none.
     for (let q = 0; q < 4; q++) {
@@ -53,8 +62,8 @@ describe('line score', () => {
     }
   })
 
-  it('is hidden in spoiler-free mode', () => {
-    const { container } = open(withLine, { hideScores: true })
+  it('is hidden in spoiler-free mode', async () => {
+    const { container } = await openScoring(withLine, { hideScores: true })
     expect(container.querySelector('.linescore')).toBeNull()
     expect(screen.queryByText('By quarter')).not.toBeInTheDocument()
   })
@@ -67,8 +76,8 @@ describe('line score', () => {
 })
 
 describe('game leaders', () => {
-  it('shows points, rebounds, and assists for both teams', () => {
-    const { container } = open(withLine)
+  it('shows points, rebounds, and assists for both teams', async () => {
+    const { container } = await openScoring(withLine)
     const teams = container.querySelectorAll('.gl-team')
     expect(teams).toHaveLength(2)
     for (const t of teams) {

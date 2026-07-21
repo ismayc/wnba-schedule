@@ -1,12 +1,13 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { TEAM_BY_ABBR } from '../data/teams.js'
 import { formatDate, formatTime, formatZoneAbbr, liveState, countdown } from '../utils/time.js'
 import { computeStandings, countsForStandings } from '../utils/standings.js'
 import { playersByTeam } from '../utils/stats.js'
 import { watchableServices } from '../utils/watch.js'
+import { fetchGameSummary } from '../services/summary.js'
 import { useServices } from '../context/services.jsx'
 import { useModalA11y } from '../hooks/useModalA11y.js'
-import Lineups from './Lineups.jsx'
+import { PlayerBox, TeamStatsSection, InjuryReport, WinProbSection } from './GameSummary.jsx'
 import TeamLogo from './TeamLogo.jsx'
 
 const one = (n) => n.toFixed(1)
@@ -137,7 +138,39 @@ export default function GameDetail({ game, games, tz, hideScores, onClose, onPic
   const table = useMemo(() => computeStandings(games), [games])
   const series = useSeries(games, game?.away, game?.home)
 
+  // One ESPN summary request per game, fanned out into the box score, team stats,
+  // injuries, attendance/officials, and win-probability sections below.
+  const [summary, setSummary] = useState({ status: 'loading', data: null })
+  const gameId = game?.id
+  useEffect(() => {
+    if (!gameId) return
+    const ctrl = new AbortController()
+    setSummary({ status: 'loading', data: null })
+    fetchGameSummary(gameId, { signal: ctrl.signal }).then((data) => {
+      if (ctrl.signal.aborted) return
+      setSummary({ status: 'ready', data })
+    })
+    return () => ctrl.abort()
+  }, [gameId])
+
+  // The detail groups into tabs so the modal isn't one long scroll. "Scoring" only
+  // exists once a game has been played (before that there's no line score to show).
+  const played = !!game?.score
+  const [tab, setTab] = useState('box')
+  useEffect(() => {
+    // Open a completed game on its box score, an upcoming one on the matchup.
+    setTab(played ? 'box' : 'matchup')
+  }, [gameId, played])
+
   if (!game) return null
+
+  const info = summary.data?.info
+  const TABS = [
+    { id: 'box', label: 'Box score' },
+    ...(played ? [{ id: 'scoring', label: 'Scoring' }] : []),
+    { id: 'matchup', label: 'Matchup' },
+  ]
+  const activeTab = TABS.some((t) => t.id === tab) ? tab : TABS[0].id
 
   const watch = watchableServices(game.broadcast, services)
 
@@ -231,6 +264,18 @@ export default function GameDetail({ game, games, tz, hideScores, onClose, onPic
               </dd>
             </div>
           )}
+          {info?.attendance != null && (
+            <div>
+              <dt>Attendance</dt>
+              <dd>{info.attendance.toLocaleString()}</dd>
+            </div>
+          )}
+          {info?.officials?.length > 0 && (
+            <div>
+              <dt>Officials</dt>
+              <dd>{info.officials.join(' · ')}</dd>
+            </div>
+          )}
           {game.note && (
             <div>
               <dt>Note</dt>
@@ -239,61 +284,92 @@ export default function GameDetail({ game, games, tz, hideScores, onClose, onPic
           )}
         </dl>
 
-        <LineScore game={game} hideScores={hideScores} />
-        <GameLeaders game={game} />
-        <Lineups game={game} hideScores={hideScores} />
-
-        <h4 className="md-sub">Tale of the tape</h4>
-        <div className="tale">
-          <TaleRow
-            label="Record"
-            left={`${A.w}–${A.l}`}
-            right={`${H.w}–${H.l}`}
-            betterLeft={A.pct === H.pct ? null : A.pct > H.pct}
-          />
-          <TaleRow
-            label="Points per game"
-            left={one(A.ppg)}
-            right={one(H.ppg)}
-            betterLeft={A.ppg === H.ppg ? null : A.ppg > H.ppg}
-          />
-          <TaleRow
-            label="Allowed per game"
-            left={one(A.oppPpg)}
-            right={one(H.oppPpg)}
-            betterLeft={A.oppPpg === H.oppPpg ? null : A.oppPpg < H.oppPpg}
-          />
-          <TaleRow
-            label="Last 10"
-            left={`${A.last10.filter(Boolean).length}–${A.last10.filter((x) => !x).length}`}
-            right={`${H.last10.filter(Boolean).length}–${H.last10.filter((x) => !x).length}`}
-          />
-          {topScorer(game.away) && topScorer(game.home) && (
-            <TaleRow
-              label="Leading scorer"
-              left={`${topScorer(game.away).short} ${topScorer(game.away).avgPoints}`}
-              right={`${topScorer(game.home).short} ${topScorer(game.home).avgPoints}`}
-            />
-          )}
+        <div className="md-tabs" role="tablist" aria-label="Game detail sections">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              role="tab"
+              aria-selected={activeTab === t.id}
+              className={`md-tab ${activeTab === t.id ? 'on' : ''}`}
+              onClick={() => setTab(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
 
-        {series.met.length > 0 && (
-          <>
-            <h4 className="md-sub">
-              Season series — {series.wins[game.away]}–{series.wins[game.home]}
-            </h4>
-            <ul className="drill">
-              {series.met.map((g) => (
-                <li key={g.id}>
-                  <span className="drill-date">{formatDate(g.tip, tz)}</span>
-                  <span className="dim">{g.away} @ {g.home}</span>
-                  <span className="drill-score">
-                    {hideScores ? '—' : `${g.score[1]} – ${g.score[0]}`}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </>
+        {activeTab === 'box' && (
+          <div className="md-panel" role="tabpanel">
+            <PlayerBox summary={summary} game={game} hideScores={hideScores} />
+            <TeamStatsSection summary={summary} game={game} hideScores={hideScores} />
+          </div>
+        )}
+
+        {activeTab === 'scoring' && (
+          <div className="md-panel" role="tabpanel">
+            <LineScore game={game} hideScores={hideScores} />
+            <GameLeaders game={game} />
+            <WinProbSection summary={summary} game={game} hideScores={hideScores} />
+          </div>
+        )}
+
+        {activeTab === 'matchup' && (
+          <div className="md-panel" role="tabpanel">
+            <h4 className="md-sub">Tale of the tape</h4>
+            <div className="tale">
+              <TaleRow
+                label="Record"
+                left={`${A.w}–${A.l}`}
+                right={`${H.w}–${H.l}`}
+                betterLeft={A.pct === H.pct ? null : A.pct > H.pct}
+              />
+              <TaleRow
+                label="Points per game"
+                left={one(A.ppg)}
+                right={one(H.ppg)}
+                betterLeft={A.ppg === H.ppg ? null : A.ppg > H.ppg}
+              />
+              <TaleRow
+                label="Allowed per game"
+                left={one(A.oppPpg)}
+                right={one(H.oppPpg)}
+                betterLeft={A.oppPpg === H.oppPpg ? null : A.oppPpg < H.oppPpg}
+              />
+              <TaleRow
+                label="Last 10"
+                left={`${A.last10.filter(Boolean).length}–${A.last10.filter((x) => !x).length}`}
+                right={`${H.last10.filter(Boolean).length}–${H.last10.filter((x) => !x).length}`}
+              />
+              {topScorer(game.away) && topScorer(game.home) && (
+                <TaleRow
+                  label="Leading scorer"
+                  left={`${topScorer(game.away).short} ${topScorer(game.away).avgPoints}`}
+                  right={`${topScorer(game.home).short} ${topScorer(game.home).avgPoints}`}
+                />
+              )}
+            </div>
+
+            {series.met.length > 0 && (
+              <>
+                <h4 className="md-sub">
+                  Season series — {series.wins[game.away]}–{series.wins[game.home]}
+                </h4>
+                <ul className="drill">
+                  {series.met.map((g) => (
+                    <li key={g.id}>
+                      <span className="drill-date">{formatDate(g.tip, tz)}</span>
+                      <span className="dim">{g.away} @ {g.home}</span>
+                      <span className="drill-score">
+                        {hideScores ? '—' : `${g.score[1]} – ${g.score[0]}`}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+
+            <InjuryReport summary={summary} game={game} />
+          </div>
         )}
 
         <div className="md-actions">
