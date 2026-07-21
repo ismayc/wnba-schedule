@@ -32,6 +32,10 @@ export function readState(search = window.location.search) {
     tz: isValidZone(tz) ? tz : null,
     team: p.get('team') || DEFAULTS.team,
     hide: p.get('hide') === '1',
+    // Whether the link explicitly carried a spoiler-free choice — lets the app tell a
+    // shared "hide=0" from an absent param, so a saved preference only applies when the
+    // link says nothing.
+    hideExplicit: p.has('hide'),
     mine: p.get('mine') === '1',
     past: p.get('past') === '1',
   }

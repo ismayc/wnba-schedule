@@ -41,7 +41,16 @@ export default function App() {
   const [theme, setTheme] = useState(() => document.documentElement.dataset.theme || 'dark')
   const [view, setView] = useState(initial.view)
   const [tz, setTz] = useState(initial.tz || detectedTz)
-  const [hideScores, setHideScores] = useState(initial.hide)
+  // Spoiler-free mode is remembered per-device like a followed team, but a shared
+  // link's explicit ?hide= still wins on load so the sender's choice carries over.
+  const [hideScores, setHideScores] = useState(() => {
+    if (initial.hideExplicit) return initial.hide
+    try {
+      return localStorage.getItem('wnba:spoilerFree') === '1'
+    } catch {
+      return false
+    }
+  })
   const [team, setTeam] = useState(initial.team)
   const [onlyFollowed, setOnlyFollowed] = useState(initial.mine)
   // Hidden by default: 194 of this season's 332 games are already played, so opening
@@ -141,6 +150,16 @@ export default function App() {
   useEffect(() => {
     writeState({ view, tz, team, hide: hideScores, mine: onlyFollowed, past: showPast }, detectedTz)
   }, [view, tz, team, hideScores, onlyFollowed, showPast, detectedTz])
+
+  // Remember spoiler-free mode per-device, like a followed team (theme and alerts persist
+  // the same way). A shared ?hide= link still overrides this on load.
+  useEffect(() => {
+    try {
+      localStorage.setItem('wnba:spoilerFree', hideScores ? '1' : '0')
+    } catch {
+      /* private mode — the preference just won't persist */
+    }
+  }, [hideScores])
 
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark'

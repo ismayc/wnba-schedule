@@ -8,6 +8,7 @@ describe('readState', () => {
       tz: null,
       team: '',
       hide: false,
+      hideExplicit: false,
       mine: false,
       past: false,
     })
@@ -19,6 +20,7 @@ describe('readState', () => {
       tz: 'America/Chicago',
       team: 'MIN',
       hide: true,
+      hideExplicit: true,
       mine: true,
       past: true,
     })
@@ -71,6 +73,7 @@ describe('toSearch', () => {
       mine: true,
       past: true,
     }
-    expect(readState(toSearch(state, detected))).toEqual(state)
+    // readState also reports whether hide was explicit; toSearch wrote it, so it is.
+    expect(readState(toSearch(state, detected))).toEqual({ ...state, hideExplicit: true })
   })
 })

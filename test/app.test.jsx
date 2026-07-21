@@ -171,6 +171,25 @@ describe('App', () => {
       await waitFor(() => expect(search().get('hide')).toBe('1'))
       expect(btn).toHaveAttribute('aria-pressed', 'true')
     })
+
+    it('also remembers the choice per-device in localStorage', async () => {
+      await mount()
+      await userEvent.click(screen.getByTitle('Spoiler-free mode'))
+      await waitFor(() => expect(localStorage.getItem('wnba:spoilerFree')).toBe('1'))
+    })
+
+    it('restores from localStorage when the link says nothing', async () => {
+      localStorage.setItem('wnba:spoilerFree', '1')
+      await mount()
+      expect(screen.getByTitle('Spoiler-free mode')).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('lets an explicit ?hide= in a shared link override the saved preference', async () => {
+      localStorage.setItem('wnba:spoilerFree', '1')
+      window.history.replaceState(null, '', '/?hide=0')
+      await mount()
+      expect(screen.getByTitle('Spoiler-free mode')).toHaveAttribute('aria-pressed', 'false')
+    })
   })
 
   describe('theme', () => {
