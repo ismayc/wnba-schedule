@@ -2021,6 +2021,12 @@ select:hover,
   .modal {
     padding: 16px 14px 18px;
   }
+
+  /* Two rosters side by side leave each half too narrow to hold a full player
+     name plus the PTS·REB·AST line, so stack them full-width on a phone. */
+  .lu-sides {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ── Team panel ─────────────────────────────────────────────────────── */
