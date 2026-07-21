@@ -10,6 +10,7 @@
 import { writeFile, mkdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { parseLeaders } from './leaders.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const SITE = 'https://site.api.espn.com/apis/site/v2/sports/basketball/wnba'
@@ -233,48 +234,13 @@ async function enrichWithBoxScores(games) {
 // Season stat lines for every qualified player, in a single request. The core-API
 // /leaders endpoint returns athletes as $ref links (≈75 extra fetches to resolve
 // names); this one inlines name, team, and position, so the app ships leaderboards
-// with zero runtime requests.
-const STAT_KEYS = {
-  general: ['gamesPlayed', 'avgMinutes', 'doubleDouble', 'tripleDouble', 'per', 'avgRebounds'],
-  offensive: [
-    'points', 'avgPoints', 'avgFgMade', 'avgFgAtt', 'fgPct',
-    'avgThreeMade', 'avgThreeAtt', 'threePct',
-    'avgFtMade', 'avgFtAtt', 'ftPct', 'avgAssists', 'avgTurnovers',
-  ],
-  defensive: ['avgSteals', 'avgBlocks'],
-}
-
-const round = (v, p = 1) =>
-  typeof v === 'number' && Number.isFinite(v) ? Number(v.toFixed(p)) : null
-
+// with zero runtime requests. Parsing (mapping each value by the feed's published
+// column name rather than by array position) lives in ./leaders.mjs so it can be tested.
 async function fetchLeaders() {
   const d = await getJson(
     `${WEB}/statistics/byathlete?region=us&lang=en&season=${SEASON}&seasontype=2&limit=300`
   )
-
-  return (d.athletes || [])
-    .map(({ athlete: a, categories }) => {
-      const stats = {}
-      for (const cat of categories || []) {
-        const keys = STAT_KEYS[cat.name]
-        if (!keys) continue
-        keys.forEach((key, i) => {
-          // Percentages arrive as 0-100 floats with float noise (40.00000059…).
-          const precision = key.endsWith('Pct') ? 1 : key === 'points' ? 0 : 1
-          stats[key] = round(cat.values?.[i], precision)
-        })
-      }
-      return {
-        id: a.id,
-        name: a.displayName,
-        short: a.shortName,
-        team: a.teamShortName,
-        pos: a.position?.abbreviation || null,
-        ...stats,
-      }
-    })
-    .filter((p) => p.team && p.gamesPlayed)
-    .sort((a, b) => (b.avgPoints ?? 0) - (a.avgPoints ?? 0))
+  return parseLeaders(d)
 }
 
 // Logos never render larger than ~64px, so pull them through ESPN's image combiner at
