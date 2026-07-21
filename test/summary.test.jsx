@@ -180,6 +180,17 @@ describe('GameSummary sections (components)', () => {
     expect(screen.getByText('Win probability')).toBeInTheDocument()
   })
 
+  it('labels the win probability "Ended" only when the game is final, else "Now"', async () => {
+    const s = await readyFrom() // winprob ends at 100% home (MIN)
+    const { rerender } = render(<WinProbSection summary={s} game={{ ...game, score: [96, 83] }} hideScores={false} />)
+    expect(screen.getByText('Ended 100% MIN')).toBeInTheDocument()
+
+    // A live game (no final score committed yet) reads as current, not ended.
+    rerender(<WinProbSection summary={s} game={{ ...game, live: true }} hideScores={false} />)
+    expect(screen.getByText('Now 100% MIN')).toBeInTheDocument()
+    expect(screen.queryByText(/^Ended/)).toBeNull()
+  })
+
   it('under spoiler-free mode shows lineups only — no box, team stats, or win prob', async () => {
     render(<AllSections summary={await readyFrom()} hideScores />)
     expect(screen.getByText('Starting lineups')).toBeInTheDocument()

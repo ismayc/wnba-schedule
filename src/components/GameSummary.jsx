@@ -1,3 +1,4 @@
+import { liveState } from '../utils/time.js'
 import TeamLogo from './TeamLogo.jsx'
 
 // The summary-derived sections of the game detail, exported one per concern so the modal
@@ -121,9 +122,13 @@ export function WinProbSection({ summary, game, hideScores }) {
   const pts = series.map((p, i) => `${((i / (n - 1)) * W).toFixed(2)},${((1 - p) * H).toFixed(2)}`)
   const line = `M${pts.join(' L')}`
   const area = `${line} L${W},${H / 2} L0,${H / 2} Z`
-  const finalHome = Math.round(series[n - 1] * 100)
-  const favored = finalHome >= 50 ? game.home : game.away
-  const pct = finalHome >= 50 ? finalHome : 100 - finalHome
+  // The last point is the LATEST probability — a final result only once the game is over,
+  // otherwise the live in-game number.
+  const latestHome = Math.round(series[n - 1] * 100)
+  const favored = latestHome >= 50 ? game.home : game.away
+  const pct = latestHome >= 50 ? latestHome : 100 - latestHome
+  const ended = liveState(game) === 'final'
+  const lead = ended ? 'Ended' : 'Now'
 
   return (
     <section className="winprob">
@@ -135,14 +140,14 @@ export function WinProbSection({ summary, game, hideScores }) {
         viewBox={`0 0 ${W} ${H}`}
         preserveAspectRatio="none"
         role="img"
-        aria-label={`Win probability chart — ${favored} ended at ${pct}%`}
+        aria-label={`Win probability chart — ${favored} ${ended ? 'ended at' : 'at'} ${pct}%`}
       >
         <path className="wp-area" d={area} />
         <line className="wp-mid" x1="0" y1={H / 2} x2={W} y2={H / 2} />
         <path className="wp-line" d={line} vectorEffect="non-scaling-stroke" />
       </svg>
       <p className="dim wp-note">
-        Ended {pct}% {favored}
+        {lead} {pct}% {favored}
       </p>
     </section>
   )
