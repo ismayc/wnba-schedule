@@ -162,9 +162,13 @@ describe('ScheduleView', () => {
     })
 
     it('keeps today visible in both states', () => {
+      // The committed snapshot doesn't always have a game today (off-days, the All-Star
+      // break), so inject one dated today rather than depending on the schedule to.
+      const todayGame = { id: 'today-1', tip: `${today}T16:00:00.000Z`, seasonType: 'regular', home: 'MIN', away: 'NY' }
+      const games = [...GAMES, todayGame]
       for (const showPast of [false, true]) {
         const { container, unmount } = render(
-          <ScheduleView games={GAMES} tz={TZ} showPast={showPast} />
+          <ScheduleView games={games} tz={TZ} showPast={showPast} />
         )
         // "Today" is the label the day header uses for the current date.
         expect(keysOf(container)).toContain('Today')
