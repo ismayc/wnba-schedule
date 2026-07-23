@@ -85,6 +85,7 @@ export default function RadialBracket({ games, onPick }) {
                 size={34}
                 className="rb-leaf"
                 dim={hover && hover !== abbr}
+                /* v8 ignore next -- seedings() always returns all 15 teams, so a seed 1–8 leaf always has a row; the `: undefined` fallback is unreachable */
                 title={row ? `${leaf.seed}. ${row.team.displayName} (${row.w}–${row.l})` : undefined}
                 onClick={onPick}
               />

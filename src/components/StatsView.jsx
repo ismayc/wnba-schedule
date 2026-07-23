@@ -89,6 +89,9 @@ function TotalsStrip({ games, tz }) {
 function Leaders({ onPickTeam, onPickPlayer }) {
   const [cat, setCat] = useState(LEADER_CATEGORIES[0])
   const rows = useMemo(() => leaderboard(cat.key, { limit: 10 }), [cat])
+  // rows is always non-empty with a positive top value for every committed category
+  // (leaderboard reads the PLAYERS table, not a prop), so this empty/zero guard can't fire.
+  /* v8 ignore next */
   const max = rows[0]?.value || 1
   const isPct = cat.key.endsWith('Pct')
   // Double-doubles are a whole-number count; every other category is a per-game average

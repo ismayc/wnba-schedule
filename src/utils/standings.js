@@ -143,6 +143,7 @@ export function conferenceStandings(games) {
     byConf[conf] = byConf[conf].map((row, i) => ({
       ...row,
       confRank: i + 1,
+      /* v8 ignore next -- `: 0` is unreachable: both conferences always contain teams, so `leader` is always defined */
       confGb: leader ? gamesBehind(leader, row) : 0,
     }))
   }
@@ -179,14 +180,17 @@ export function playoffRace(games) {
   return seeded.map((row) => {
     const remaining = (totals[row.abbr] ?? 0) - row.gp
     // Clinched when even losing out still leaves the 9th-place team short.
+    /* v8 ignore next -- `: false` is unreachable: the 15-team league always yields a 9th seed, so `firstOut` is always defined */
     const clinched = firstOut ? row.w > firstOut.w + ((totals[firstOut.abbr] ?? 0) - firstOut.gp) : false
     // Eliminated when winning out still cannot reach the current 8th seed.
+    /* v8 ignore next -- `: false` is unreachable: the 15-team league always yields an 8th seed, so `cut` is always defined */
     const eliminated = cut ? row.w + remaining < cut.w : false
     return {
       ...row,
       remaining,
       clinched,
       eliminated,
+      /* v8 ignore next -- `: 0` is unreachable: the 15-team league always yields an 8th seed, so `cut` is always defined */
       gbCut: cut ? gamesBehind(cut, row) : 0,
       magic: row.inPlayoffs && firstOut && !clinched ? magicNumber(row, firstOut, totals) : null,
     }

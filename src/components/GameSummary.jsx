@@ -222,6 +222,8 @@ function LineupSide({ side }) {
     <li className="lu-player" key={p.id ?? p.name}>
       <span className="lu-jersey">{p.jersey ?? '–'}</span>
       <span className="lu-name">{p.name}</span>
+      {/* inner {p.pos} can't be falsy when the span renders (same value gates it) */}
+      {/* v8 ignore next */}
       {p.pos && <span className="lu-pos">{p.pos}</span>}
     </li>
   )

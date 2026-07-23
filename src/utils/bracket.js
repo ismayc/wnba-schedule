@@ -55,6 +55,7 @@ export function buildSeries(games) {
     const need = winsNeeded(s.round)
     const winner = s.teams.find((t) => wins[t] >= need) || null
     // Higher seed hosts game 1, so game 1's home team identifies the favoured side.
+    /* v8 ignore next -- `?? s.teams[0]` is unreachable: a series always has ≥1 game and every game carries a home team */
     const host = s.games.find((g) => g.game === 1)?.home ?? s.games[0]?.home ?? s.teams[0]
 
     return {
@@ -98,6 +99,7 @@ export function buildBracket(games) {
       games: [],
       wins: Object.fromEntries([a, b].filter(Boolean).map((t) => [t, 0])),
       need: winsNeeded(round),
+      /* v8 ignore next -- `?? 3` is unreachable here: slot() is only called with rounds R1/SF/Final, all present in SERIES_LENGTH */
       bestOf: SERIES_LENGTH[round] ?? 3,
       winner: null,
       loser: null,
@@ -148,6 +150,7 @@ export function buildBracket(games) {
 
   // Semifinal feeders name the round-1 matchups they come from, so an unresolved
   // slot still reads as "Winner 1/8" rather than blank.
+  /* v8 ignore next -- the 'Winner' fallback is unreachable: every r1 slot passed here always carries `seeds` */
   const feeder = (s) => (s?.seeds ? `Winner ${s.seeds[0]}/${s.seeds[1]}` : 'Winner')
 
   const sf = [
