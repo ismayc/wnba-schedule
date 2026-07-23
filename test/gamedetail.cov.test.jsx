@@ -222,7 +222,12 @@ describe('GameDetail coverage', () => {
 
   it('falls back to the first tab when the active one disappears', async () => {
     const played = GAMES.find((g) => g.score && g.venue)
-    const upcoming = GAMES.find((g) => !g.score && !g.postponed && !g.canceled)
+    // Must be a real-team game so it HAS a Matchup tab to fall back to. The All-Star
+    // Game has none, and around the break it becomes the first unscored game once the
+    // pre-break games are refreshed in — which is what broke the data-refresh run.
+    const upcoming = GAMES.find(
+      (g) => !g.score && !g.postponed && !g.canceled && g.seasonType !== 'allstar'
+    )
     const { rerender } = render(
       <GameDetail game={played} games={GAMES} tz={TZ} onClose={() => {}} />
     )

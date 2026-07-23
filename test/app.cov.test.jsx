@@ -256,8 +256,12 @@ describe('game detail wiring', () => {
   })
 
   it('jumps to a team schedule from the detail', async () => {
+    // Deep-link straight to a real-team game: the "<team> schedule" actions only exist
+    // for franchises, and around the All-Star break the first card can be the All-Star
+    // Game (custom sides, no such button), which made this data-dependent.
+    const real = GAMES.find((g) => g.seasonType !== 'allstar')
+    window.history.replaceState(null, '', `/?game=${real.id}`)
     await mount()
-    await userEvent.click(document.querySelector('.game'))
     const dialog = screen.getByRole('dialog', { name: 'Game detail' })
     // The two "<team> schedule" actions call onPickTeam then close.
     const schedBtn = within(dialog).getAllByRole('button', { name: /schedule/ })[0]
