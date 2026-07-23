@@ -136,6 +136,16 @@ describe('fetchLive', () => {
       expect((await one({ period: 6 })).ot).toBe(2)
     })
 
+    it('never carries team identity into the overlay payload', async () => {
+      // applyLive blindly copies non-null fields, so the matchup stays committed-only
+      // as long as the normalizer refuses to emit team fields.
+      fetch.mockResolvedValue(scoreboard([event({ id: '1' })]))
+      const g = (await fetchLive({ now: NOW })).get('1')
+      for (const key of ['home', 'away', 'homeName', 'awayName', 'competitors', 'name']) {
+        expect(g).not.toHaveProperty(key)
+      }
+    })
+
     it('accepts a bare numeric score as well as {value}', async () => {
       fetch.mockResolvedValue(
         scoreboard([
@@ -211,6 +221,19 @@ describe('applyLive', () => {
     const live = new Map([['1', { id: '1', live: true, score: [55, 51] }]])
     applyLive(committed, live)
     expect(committed[0]).not.toHaveProperty('score')
+  })
+
+  it('keeps the committed matchup even when a live game is in progress', () => {
+    // The exact scenario a viewer reported: an in-progress game must never show a
+    // different matchup than the committed schedule. The overlay paints score and
+    // status; home/away always come from the committed row.
+    const live = new Map([
+      ['1', { id: '1', live: true, score: [77, 74], period: 3, statusLabel: 'End of 3rd' }],
+    ])
+    const [merged] = applyLive(committed, live)
+    expect(merged.home).toBe('MIN')
+    expect(merged.away).toBe('SEA')
+    expect(merged.score).toEqual([77, 74])
   })
 })
 
