@@ -1,4 +1,5 @@
 import { liveState } from '../utils/time.js'
+import { LINEUPS } from '../data/lineups.js'
 import TeamLogo from './TeamLogo.jsx'
 
 // The summary-derived sections of the game detail, exported one per concern so the modal
@@ -18,7 +19,9 @@ export function PlayerBox({ summary, game, hideScores }) {
     )
   }
 
-  const box = summary.data?.box
+  // ESPN's live box score always wins; fall back to a committed lineup (e.g. the
+  // All-Star Game's announced rosters) only while ESPN hasn't posted one yet.
+  const box = summary.data?.box ?? LINEUPS[game.id]
   if (!box) {
     return (
       <section className="lineups">
