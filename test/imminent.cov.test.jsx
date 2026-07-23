@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
-import { isImminent, anyImminent, IMMINENT_MS } from '../src/utils/time.js'
+import { isImminent, anyImminent, IMMINENT_MS, liveState } from '../src/utils/time.js'
 import GameCard from '../src/components/GameCard.jsx'
 
 const TIP = '2026-07-23T02:00:00.000Z'
@@ -33,6 +33,32 @@ describe('isImminent', () => {
     expect(isImminent({ ...game, score: [10, 8] }, now)).toBe(false)
     expect(isImminent({ ...game, postponed: true }, now)).toBe(false)
     expect(isImminent({ ...game, canceled: true }, now)).toBe(false)
+  })
+})
+
+describe('liveState', () => {
+  // Pinned with an explicit `now` so both the 'likely-live' and 'past' arms are
+  // covered deterministically — otherwise coverage of this branch drifts with the
+  // wall-clock relative to committed game tips.
+  const GAME_MS = 2.25 * 60 * 60 * 1000
+
+  it('flags postponed/canceled games void', () => {
+    expect(liveState({ postponed: true }, at(TIP))).toBe('void')
+    expect(liveState({ canceled: true }, at(TIP))).toBe('void')
+  })
+
+  it('flags a live game live and a scored game final', () => {
+    expect(liveState({ live: true, tip: TIP }, at(TIP))).toBe('live')
+    expect(liveState({ score: [80, 70], tip: TIP }, at(TIP))).toBe('final')
+  })
+
+  it('is upcoming before tip', () => {
+    expect(liveState({ tip: TIP }, at(TIP) - 60_000)).toBe('upcoming')
+  })
+
+  it('is likely-live inside the game window and past once it closes', () => {
+    expect(liveState({ tip: TIP }, at(TIP) + 60_000)).toBe('likely-live')
+    expect(liveState({ tip: TIP }, at(TIP) + GAME_MS + 1)).toBe('past')
   })
 })
 
