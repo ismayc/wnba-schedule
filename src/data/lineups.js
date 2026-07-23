@@ -14,6 +14,12 @@
 //             4 guards + 6 frontcourt; the other 12 are the coach-voted reserves)
 // Sourced 2026-07-22. Team names (Team Coop / Team Spoon) honor GMs Cynthia Cooper
 // and Teresa Weatherspoon; on-court captains are Paige Bueckers and Caitlin Clark.
+//
+// Replacements (injured player → replacement), applied as announced:
+//   Kelsey Plum (LA) → Kahleah Copper (PHX), Team Coop reserve. 2026-07-22.
+//   https://www.wnba.com/news/kahleah-copper-named-2026-all-star-game-replacement
+// (A Sykes/Jones "replacement" article also surfaces in related links but is the 2025
+// game — do not apply it here.)
 
 export const LINEUPS = {
   // AT&T WNBA All-Star Game — United Center, Chicago, 2026-07-25
@@ -52,7 +58,7 @@ export const LINEUPS = {
           { id: '1642291', name: 'Angel Reese', jersey: '5', pos: 'F' },
           { id: '1629497', name: 'Marina Mabrey', jersey: '3', pos: 'G' },
           { id: '1642798', name: 'Dominique Malonga', jersey: '14', pos: 'C' },
-          { id: '1628276', name: 'Kelsey Plum', jersey: '10', pos: 'G' },
+          { id: '2998938', name: 'Kahleah Copper', jersey: '2', pos: 'G-F' },
           { id: '1629498', name: 'Jackie Young', jersey: '0', pos: 'G' },
           { id: '1642785', name: 'Sonia Citron', jersey: '22', pos: 'G' },
         ],

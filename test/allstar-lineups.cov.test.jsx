@@ -25,6 +25,10 @@ describe('committed All-Star lineup fallback', () => {
     const bench = screen.getAllByText(/^Bench \(6\)$/)
     expect(bench).toHaveLength(2)
     expect(screen.getByText('Nneka Ogwumike')).toBeInTheDocument() // a Team Spoon reserve
+
+    // Injury replacement applied: Kahleah Copper in for the injured Kelsey Plum.
+    expect(screen.getByText('Kahleah Copper')).toBeInTheDocument()
+    expect(screen.queryByText('Kelsey Plum')).not.toBeInTheDocument()
   })
 
   it('defers to ESPN once a real box score is posted', () => {
