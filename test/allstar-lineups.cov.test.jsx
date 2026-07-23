@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, screen, within, cleanup } from '@testing-library/react'
-import { PlayerBox } from '../src/components/GameSummary.jsx'
+import { PlayerBox, InjuryReport } from '../src/components/GameSummary.jsx'
 import { LINEUPS } from '../src/data/lineups.js'
 
 const ready = (data) => ({ status: 'ready', data })
@@ -43,6 +43,20 @@ describe('committed All-Star lineup fallback', () => {
     render(<PlayerBox summary={ready({ box: espnBox })} game={ALLSTAR} hideScores={false} />)
     expect(screen.getByText('ESPN Starter')).toBeInTheDocument()
     expect(screen.queryByText('Caitlin Clark')).not.toBeInTheDocument()
+  })
+
+  it('labels the injured, replaced player as Out when ESPN has no injuries', () => {
+    render(<InjuryReport summary={ready({ injuries: [] })} game={ALLSTAR} />)
+    expect(screen.getByRole('heading', { name: 'Injury report' })).toBeInTheDocument()
+    expect(screen.getByText('Kelsey Plum')).toBeInTheDocument()
+    expect(screen.getByText(/Out · Replaced by Kahleah Copper/)).toBeInTheDocument()
+  })
+
+  it('defers to ESPN injuries when present', () => {
+    const espn = [{ abbr: 'COOP', players: [{ name: 'Someone Else', pos: 'F', status: 'Day-To-Day', detail: 'Ankle' }] }]
+    render(<InjuryReport summary={ready({ injuries: espn })} game={ALLSTAR} />)
+    expect(screen.getByText('Someone Else')).toBeInTheDocument()
+    expect(screen.queryByText('Kelsey Plum')).not.toBeInTheDocument()
   })
 
   it('keeps the committed data internally consistent (10 starters = 4G + 6F per game)', () => {

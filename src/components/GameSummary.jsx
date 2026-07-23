@@ -1,5 +1,5 @@
 import { liveState } from '../utils/time.js'
-import { LINEUPS } from '../data/lineups.js'
+import { LINEUPS, INJURIES } from '../data/lineups.js'
 import TeamLogo from './TeamLogo.jsx'
 
 // The summary-derived sections of the game detail, exported one per concern so the modal
@@ -76,7 +76,9 @@ export function TeamStatsSection({ summary, game, hideScores }) {
 }
 
 export function InjuryReport({ summary, game }) {
-  const injuries = summary.data?.injuries
+  // ESPN's own injury list wins; fall back to a committed one (e.g. an All-Star player
+  // an announced replacement stood in for) only when ESPN reports none.
+  const injuries = summary.data?.injuries?.length ? summary.data.injuries : INJURIES[game.id]
   if (!injuries?.length) return null
 
   // Away team first, to match the header/box order.

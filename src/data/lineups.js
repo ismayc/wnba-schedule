@@ -66,3 +66,18 @@ export const LINEUPS = {
     ],
   },
 }
+
+// Committed injury reports, keyed by ESPN event id — same shape parseInjuries produces
+// ({ abbr, players: [{ name, pos, status, detail }] }). Shown by InjuryReport only while
+// ESPN reports no injuries of its own for the game. For the All-Star Game this surfaces
+// the player an announced replacement stood in for.
+export const INJURIES = {
+  '401857320': [
+    {
+      abbr: 'COOP',
+      players: [
+        { name: 'Kelsey Plum', pos: 'G', status: 'Out', detail: 'Replaced by Kahleah Copper' },
+      ],
+    },
+  ],
+}
