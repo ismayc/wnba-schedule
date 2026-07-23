@@ -100,3 +100,22 @@ export function countdown(iso, now = Date.now()) {
   if (h) return `${h}h ${m}m`
   return `${m}m`
 }
+
+// How long before a scheduled tip we start treating a game as imminent. ESPN only
+// flips a game to "in" at the actual jump ball, which trails the listed time by the
+// network's pre-game window — so we warm up here to catch that flip fast (see
+// anyImminent) and to show a pre-game hint on the card.
+export const IMMINENT_MS = 15 * 60 * 1000
+
+// A game we should be actively watching for tip-off: not yet live, final, or void,
+// and inside the window running from IMMINENT_MS before the scheduled tip until the
+// ~game-length fallback expires.
+export function isImminent(game, now = Date.now()) {
+  if (game.postponed || game.canceled || game.live || game.score) return false
+  const start = new Date(game.tip).getTime()
+  return now >= start - IMMINENT_MS && now < start + GAME_MS
+}
+
+// True when any game is imminent — the cue to poll at the live cadence even before
+// anything has actually tipped, so the flip to live lands within one live refresh.
+export const anyImminent = (games, now = Date.now()) => games.some((g) => isImminent(g, now))

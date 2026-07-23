@@ -1,5 +1,5 @@
 import { TEAM_BY_ABBR } from '../data/teams.js'
-import { formatTime, formatZoneAbbr, liveState, countdown } from '../utils/time.js'
+import { formatTime, formatZoneAbbr, liveState, countdown, isImminent } from '../utils/time.js'
 import { watchableServices, broadcastNotBadged } from '../utils/watch.js'
 import { useFollow } from '../context/follow.jsx'
 import { useServices } from '../context/services.jsx'
@@ -68,6 +68,14 @@ function Timing({ game, tz, state }) {
         <>
           <span className="time">{formatTime(game.tip, tz)}</span>
           <span className="zone">{formatZoneAbbr(game.tip, tz)}</span>
+          {isImminent(game) && (
+            // Near tip but the feed still says pre — make it clear the app is watching
+            // for the opening jump rather than sitting idle. ESPN flips to live only at
+            // the actual tip, which trails the listed time by the pre-game window.
+            <span className="pregame-badge" title="Scheduled tip — watching for the opening jump">
+              Pre-game
+            </span>
+          )}
         </>
       )}
     </div>

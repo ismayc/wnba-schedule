@@ -599,6 +599,17 @@ select:hover,
   color: var(--gold);
 }
 
+.pregame-badge {
+  display: inline-block;
+  margin-top: 3px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--live);
+  opacity: 0.85;
+}
+
 .game-teams {
   display: grid;
   grid-template-columns: 1fr auto 1fr;

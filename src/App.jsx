@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { GAMES } from './data/schedule.js'
 import { SEASON, TEAMS } from './data/teams.js'
-import { detectTimezone, timezoneOptions, dayKey, todayKey } from './utils/time.js'
+import { detectTimezone, timezoneOptions, dayKey, todayKey, anyImminent } from './utils/time.js'
 import { readState, writeState } from './utils/urlState.js'
 import { applyLive, fetchLive, liveCount } from './services/espn.js'
 import { watchableServices } from './utils/watch.js'
@@ -108,6 +108,11 @@ export default function App() {
     [games]
   )
 
+  // Warm cadence: any game live, OR a game about to tip. Re-evaluated each poll (keyed
+  // on updatedAt) so we're already refreshing every 30s by the time the ball goes up —
+  // otherwise the idle 2-min cycle could hide a fresh tip-off for that long.
+  const warm = useMemo(() => nLive > 0 || anyImminent(games), [games, nLive, updatedAt])
+
   const load = useCallback(async (signal) => {
     try {
       const next = await fetchLive({ signal })
@@ -124,12 +129,12 @@ export default function App() {
     if (seasonOver) return
     const ctrl = new AbortController()
     load(ctrl.signal)
-    const id = setInterval(() => load(ctrl.signal), nLive ? LIVE_REFRESH_MS : IDLE_REFRESH_MS)
+    const id = setInterval(() => load(ctrl.signal), warm ? LIVE_REFRESH_MS : IDLE_REFRESH_MS)
     return () => {
       ctrl.abort()
       clearInterval(id)
     }
-  }, [load, nLive, seasonOver])
+  }, [load, warm, seasonOver])
 
   // Notable-moment detection, diffed against the previous poll. Runs regardless of
   // whether alerts are on, so toggling it on mid-game doesn't replay old moments as
