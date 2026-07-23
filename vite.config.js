@@ -10,6 +10,10 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./test/setup.js'],
+    // Full-app userEvent tests under v8 instrumentation can brush the default 5s
+    // ceiling on a loaded CI runner (mount + several interaction clicks). Give them
+    // headroom so a busy runner doesn't flake a passing test.
+    testTimeout: 15000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary', 'json'],
