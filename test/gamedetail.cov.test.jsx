@@ -242,6 +242,15 @@ describe('GameDetail coverage', () => {
     )
   })
 
+  it('surfaces the All-Star injury report in the box tab, since it has no Matchup tab', async () => {
+    const allstar = GAMES.find((g) => g.seasonType === 'allstar')
+    open(allstar)
+    // Box is the default (and only) content tab for an unplayed All-Star game.
+    expect(screen.queryByRole('tab', { name: 'Matchup' })).toBeNull()
+    expect(await screen.findByRole('heading', { name: 'Injury report' })).toBeInTheDocument()
+    expect(screen.getByText('Kelsey Plum')).toBeInTheDocument()
+  })
+
   it('ignores a summary that resolves after the modal has closed', async () => {
     let resolve
     fetchGameSummary.mockReturnValue(new Promise((r) => { resolve = r }))

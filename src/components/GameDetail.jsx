@@ -310,6 +310,10 @@ export default function GameDetail({ game, games, tz, hideScores, onClose, onPic
           <div className="md-panel" role="tabpanel">
             <PlayerBox summary={summary} game={game} hideScores={hideScores} />
             <TeamStatsSection summary={summary} game={game} hideScores={hideScores} />
+            {/* The All-Star Game has no Matchup tab, so its injury report (the player a
+                replacement stood in for) would otherwise have nowhere to show — surface
+                it here, beside the lineups it relates to. */}
+            {isAllStar && <InjuryReport summary={summary} game={game} />}
           </div>
         )}
 
