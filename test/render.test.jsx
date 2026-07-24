@@ -271,7 +271,7 @@ describe('ScheduleView', () => {
     it('renders a jump chip per month and opens only the current month', () => {
       const { container } = view()
       // Four distinct months -> four chips and four sections.
-      expect(container.querySelectorAll('.month-jump .month-chip')).toHaveLength(4)
+      expect(container.querySelectorAll('.month-jump .month-chip:not(.month-today)')).toHaveLength(4)
       expect(container.querySelectorAll('.month')).toHaveLength(4)
       // Only the current month is open, so only its two days render.
       expect(container.querySelectorAll('.month-days')).toHaveLength(1)
@@ -302,6 +302,29 @@ describe('ScheduleView', () => {
       // The first chip is the earliest month, which starts collapsed.
       fireEvent.click(container.querySelector('.month-jump .month-chip'))
       expect(container.querySelectorAll('.month-days').length).toBeGreaterThan(openedBefore)
+      expect(spy.mock.calls.length).toBeGreaterThan(calledBefore)
+    })
+
+    it('has a Today jump that scrolls to today and keeps its month open', () => {
+      const spy = Element.prototype.scrollIntoView
+      const { container } = view() // includes a game dated today
+      const calledBefore = spy.mock.calls.length
+      fireEvent.click(container.querySelector('.month-today'))
+      expect(spy.mock.calls.length).toBeGreaterThan(calledBefore)
+      expect(container.querySelector('.month-head.open')).toBeTruthy()
+    })
+
+    it('Today jump falls back to the current month header when today has no game', () => {
+      const spy = Element.prototype.scrollIntoView
+      // A current-month game on a non-today day, plus a sibling month — no game dated today,
+      // so the today ref is null and the jump lands on the current month section instead.
+      const noToday = [
+        g('cur', inMonth(0, otherDay), 'PHX', 'LA', [90, 88]),
+        g('m1', inMonth(-1), 'LV', 'SEA', [80, 70]),
+      ]
+      const { container } = render(<ScheduleView games={noToday} tz={TZ} showPast />)
+      const calledBefore = spy.mock.calls.length
+      fireEvent.click(container.querySelector('.month-today'))
       expect(spy.mock.calls.length).toBeGreaterThan(calledBefore)
     })
   })
