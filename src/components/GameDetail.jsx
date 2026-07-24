@@ -160,9 +160,13 @@ export default function GameDetail({ game, games, tz, hideScores, onClose, onPic
   const played = !!game?.score
   const isAllStar = game?.seasonType === 'allstar'
   const [tab, setTab] = useState('box')
+  // A per-game score reveal for spoiler-free mode: shows THIS game's score inside the
+  // popout without turning spoiler-free off everywhere else. Re-masks when another opens.
+  const [revealed, setRevealed] = useState(false)
   useEffect(() => {
     // Open a completed game (and any All-Star game) on its box score, else the matchup.
     setTab(played || isAllStar ? 'box' : 'matchup')
+    setRevealed(false)
   }, [gameId, played, isAllStar])
 
   if (!game) return null
@@ -183,7 +187,9 @@ export default function GameDetail({ game, games, tz, hideScores, onClose, onPic
   const A = table[game.away]
   const H = table[game.home]
   const state = liveState(game)
-  const scored = game.score && !hideScores
+  // In spoiler-free mode `hide` stays true until the viewer reveals THIS game's score.
+  const hide = hideScores && !revealed
+  const scored = game.score && !hide
   const [hs, as] = game.score || []
 
   const topScorer = (abbr) => playersByTeam(abbr)[0]
@@ -221,6 +227,15 @@ export default function GameDetail({ game, games, tz, hideScores, onClose, onPic
                 <span className="md-state">{formatZoneAbbr(game.tip, tz)}</span>
                 {countdown(game.tip) && <span className="md-state">in {countdown(game.tip)}</span>}
               </>
+            )}
+            {game.score && hideScores && (
+              <button
+                className="md-reveal"
+                onClick={() => setRevealed((v) => !v)}
+                aria-pressed={revealed}
+              >
+                {revealed ? 'Hide score' : 'Reveal score'}
+              </button>
             )}
           </div>
           <div className="md-side">
@@ -308,8 +323,8 @@ export default function GameDetail({ game, games, tz, hideScores, onClose, onPic
 
         {activeTab === 'box' && (
           <div className="md-panel" role="tabpanel">
-            <PlayerBox summary={summary} game={game} hideScores={hideScores} />
-            <TeamStatsSection summary={summary} game={game} hideScores={hideScores} />
+            <PlayerBox summary={summary} game={game} hideScores={hide} />
+            <TeamStatsSection summary={summary} game={game} hideScores={hide} />
             {/* The All-Star Game has no Matchup tab, so its injury report (the player a
                 replacement stood in for) would otherwise have nowhere to show — surface
                 it here, beside the lineups it relates to. */}
@@ -319,9 +334,9 @@ export default function GameDetail({ game, games, tz, hideScores, onClose, onPic
 
         {activeTab === 'scoring' && (
           <div className="md-panel" role="tabpanel">
-            <LineScore game={game} hideScores={hideScores} />
+            <LineScore game={game} hideScores={hide} />
             <GameLeaders game={game} />
-            <WinProbSection summary={summary} game={game} hideScores={hideScores} />
+            <WinProbSection summary={summary} game={game} hideScores={hide} />
           </div>
         )}
 
@@ -372,7 +387,7 @@ export default function GameDetail({ game, games, tz, hideScores, onClose, onPic
                       <span className="drill-date">{formatDate(g.tip, tz)}</span>
                       <span className="dim">{g.away} @ {g.home}</span>
                       <span className="drill-score">
-                        {hideScores ? '—' : `${g.score[1]} – ${g.score[0]}`}
+                        {hide ? '—' : `${g.score[1]} – ${g.score[0]}`}
                       </span>
                     </li>
                   ))}
