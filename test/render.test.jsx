@@ -284,7 +284,9 @@ describe('ScheduleView', () => {
     it('renders a jump chip per month and opens only the current month', () => {
       const { container } = view()
       // Four distinct months -> four chips and four sections.
-      expect(container.querySelectorAll('.month-jump .month-chip:not(.month-today)')).toHaveLength(4)
+      expect(
+        container.querySelectorAll('.month-jump .month-chip:not(.month-today):not(.month-top)')
+      ).toHaveLength(4)
       expect(container.querySelectorAll('.month')).toHaveLength(4)
       // Only the current month is open, so only its two days render.
       expect(container.querySelectorAll('.month-days')).toHaveLength(1)
@@ -325,6 +327,14 @@ describe('ScheduleView', () => {
       const last = spy.mock.contexts[spy.mock.contexts.length - 1]
       expect(last).toHaveClass('day')
       expect(last).toHaveClass('is-today')
+    })
+
+    it('has a Top jump that scrolls the page to the top (to reach the settings)', () => {
+      const scrollSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+      const { container } = view()
+      fireEvent.click(container.querySelector('.month-top'))
+      expect(scrollSpy).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }))
+      scrollSpy.mockRestore()
     })
 
     it('Today jump goes to the next game-day when today has no game', () => {

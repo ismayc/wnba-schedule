@@ -573,12 +573,15 @@ select:hover,
   color: var(--accent);
 }
 
-/* "Today" jump sits at the far right of the bar. */
+/* "Top" + "Today" jumps sit as a pair at the far right of the bar. */
+.month-top,
 .month-today {
-  margin-left: auto;
   font-weight: 600;
   border-color: var(--accent);
   color: var(--accent);
+}
+.month-top {
+  margin-left: auto;
 }
 
 .month {

@@ -99,6 +99,9 @@ export default function ScheduleView({ games, tz, hideScores, showPast = false, 
     setExpanded((prev) => new Set(prev).add(nowMonth))
     setPendingScroll(nowKey)
   }
+  // "Top" jump: back to the very top of the page — where the settings toolbar lives, which
+  // the landing scroll otherwise leaves above the fold.
+  const jumpToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' })
 
   // Landing scroll: recent view sits at the yesterday/today boundary; full-season lands on
   // the "now" day (today / next game-day), which its open month renders.
@@ -164,6 +167,9 @@ export default function ScheduleView({ games, tz, hideScores, showPast = false, 
             {monthShort(mk)}
           </button>
         ))}
+        <button className="month-chip month-top" onClick={jumpToTop}>
+          ↑ Top
+        </button>
         <button className="month-chip month-today" onClick={jumpToToday}>
           Today
         </button>
