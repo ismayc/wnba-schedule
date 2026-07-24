@@ -39,10 +39,14 @@ export default function ScheduleView({ games, tz, hideScores, showPast = false, 
 
   // Default = the last week of results through every upcoming game; Full season shows
   // everything, grouped into collapsible months.
-  const days = useMemo(
-    () => (showPast ? allDays : allDays.filter(([key]) => key >= cutoff)),
-    [allDays, showPast, cutoff]
-  )
+  const days = useMemo(() => {
+    if (showPast) return allDays
+    const recent = allDays.filter(([key]) => key >= cutoff)
+    // Off-season: with the whole season in the past there's nothing in the last week and
+    // nothing upcoming, so the recent window is empty. Fall back to the last ~week of
+    // actual game-days rather than render a blank schedule on a finished season.
+    return recent.length ? recent : allDays.slice(-RECENT_LOOKBACK_DAYS)
+  }, [allDays, showPast, cutoff])
 
   // The results/upcoming boundary the view lands on: the most recent past day shown
   // (yesterday, usually) with today right below it. Falls back to today.
