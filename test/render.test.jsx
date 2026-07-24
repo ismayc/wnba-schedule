@@ -318,27 +318,28 @@ describe('ScheduleView', () => {
       expect(spy.mock.calls.length).toBeGreaterThan(calledBefore)
     })
 
-    it('has a Today jump that scrolls to today and keeps its month open', () => {
+    it('Today jump scrolls to today’s own day (a day row, not the month header)', () => {
       const spy = Element.prototype.scrollIntoView
       const { container } = view() // includes a game dated today
-      const calledBefore = spy.mock.calls.length
       fireEvent.click(container.querySelector('.month-today'))
-      expect(spy.mock.calls.length).toBeGreaterThan(calledBefore)
-      expect(container.querySelector('.month-head.open')).toBeTruthy()
+      const last = spy.mock.contexts[spy.mock.contexts.length - 1]
+      expect(last).toHaveClass('day')
+      expect(last).toHaveClass('is-today')
     })
 
-    it('Today jump falls back to the current month header when today has no game', () => {
+    it('Today jump goes to the next game-day when today has no game', () => {
       const spy = Element.prototype.scrollIntoView
-      // A current-month game on a non-today day, plus a sibling month — no game dated today,
-      // so the today ref is null and the jump lands on the current month section instead.
+      // No game dated today; a later-this-month game is the next game-day. The jump must
+      // land on THAT day row, not on a month header.
       const noToday = [
         g('cur', inMonth(0, otherDay), 'PHX', 'LA', [90, 88]),
         g('m1', inMonth(-1), 'LV', 'SEA', [80, 70]),
       ]
       const { container } = render(<ScheduleView games={noToday} tz={TZ} showPast />)
-      const calledBefore = spy.mock.calls.length
       fireEvent.click(container.querySelector('.month-today'))
-      expect(spy.mock.calls.length).toBeGreaterThan(calledBefore)
+      const last = spy.mock.contexts[spy.mock.contexts.length - 1]
+      expect(last).toHaveClass('day')
+      expect(last).not.toHaveClass('is-today') // today itself has no game
     })
   })
 })

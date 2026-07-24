@@ -67,10 +67,19 @@ export default function ScheduleView({ games, tz, hideScores, showPast = false, 
     return [...map.entries()]
   }, [allDays])
 
-  // Only the current month is open to start; the rest collapse the season to a few rows.
-  const [expanded, setExpanded] = useState(() => new Set([thisMonth]))
+  // Where a "Today" jump lands: today if it has games, else the NEXT game-day, else (the
+  // whole season already past) the most recent game-day.
+  const nowKey = useMemo(() => {
+    const upcoming = allDays.find(([key]) => key >= today)
+    return (upcoming || allDays[allDays.length - 1])?.[0] ?? null
+  }, [allDays, today])
+  const nowMonth = nowKey ? nowKey.slice(0, 7) : thisMonth
+
+  // The month holding that landing day is the one open to start; the rest collapse the
+  // season to a few rows.
+  const [expanded, setExpanded] = useState(() => new Set([nowMonth]))
   const monthRefs = useRef({})
-  const todayRef = useRef(null)
+  const dayRefs = useRef({})
   const [pendingScroll, setPendingScroll] = useState(null)
 
   const toggleMonth = (mk) =>
@@ -84,30 +93,26 @@ export default function ScheduleView({ games, tz, hideScores, showPast = false, 
     setExpanded((prev) => new Set(prev).add(mk))
     setPendingScroll(mk)
   }
-  // "Today" jump: open the current month and scroll to today itself (not the month head).
+  // "Today" jump: open the month holding the landing day and scroll to that day itself
+  // (today, or the next game-day when today is idle) — never just the month header.
   const jumpToToday = () => {
-    setExpanded((prev) => new Set(prev).add(thisMonth))
-    setPendingScroll('today')
+    setExpanded((prev) => new Set(prev).add(nowMonth))
+    setPendingScroll(nowKey)
   }
 
   // Landing scroll: recent view sits at the yesterday/today boundary; full-season lands on
-  // today within its (open) current month, falling back to the month header if today has
-  // no games.
+  // the "now" day (today / next game-day), which its open month renders.
   useEffect(() => {
-    const target = showPast
-      ? todayRef.current || monthRefs.current[thisMonth]
-      : anchorRef.current
+    const target = showPast ? dayRefs.current[nowKey] : anchorRef.current
     target?.scrollIntoView({ block: 'start' })
-  }, [showPast, anchorKey, thisMonth])
+  }, [showPast, anchorKey, nowKey])
 
-  // Jump-bar scroll: after a chip (or "Today") expands its month, scroll the target into
-  // view. Clearing pendingScroll re-runs this, but the guard makes the second pass a no-op.
+  // Jump-bar scroll: after a chip or "Today" expands its target, scroll it into view — a day
+  // key resolves via dayRefs, a month key via monthRefs. Clearing pendingScroll re-runs
+  // this, but the guard makes the second pass a no-op.
   useEffect(() => {
     if (pendingScroll == null) return
-    const el =
-      pendingScroll === 'today'
-        ? todayRef.current || monthRefs.current[thisMonth]
-        : monthRefs.current[pendingScroll]
+    const el = dayRefs.current[pendingScroll] || monthRefs.current[pendingScroll]
     el?.scrollIntoView({ block: 'start' })
     setPendingScroll(null)
   }, [pendingScroll])
@@ -117,8 +122,8 @@ export default function ScheduleView({ games, tz, hideScores, showPast = false, 
       className={`day ${key === today ? 'is-today' : ''}`}
       key={key}
       ref={(el) => {
+        dayRefs.current[key] = el
         if (key === anchorKey) anchorRef.current = el
-        if (key === today) todayRef.current = el
       }}
     >
       <h3 className="day-head">
