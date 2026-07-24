@@ -361,10 +361,13 @@ export default function App() {
               className={`chip ${showPast ? 'on' : ''}`}
               onClick={() => setShowPast((v) => !v)}
               aria-pressed={showPast}
-              title={showPast ? 'Hide previous days' : 'Show previous days'}
+              title={
+                showPast
+                  ? 'Show just the last week of games'
+                  : 'Show the full season back to the opener'
+              }
             >
-              <span aria-hidden="true">{showPast ? '▾' : '▸'}</span>{' '}
-              {showPast ? 'Hide' : 'Show'} past days
+              <span aria-hidden="true">{showPast ? '▾' : '▸'}</span> Full season
               <span className="chip-count">{pastDayCount}</span>
             </button>
           )}

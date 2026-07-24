@@ -147,7 +147,7 @@ describe('App', () => {
     it('hides them by default and reveals them on click', async () => {
       await mount()
       const before = document.querySelectorAll('.day').length
-      const btn = screen.getByRole('button', { name: /past days/ })
+      const btn = screen.getByRole('button', { name: /full season/i })
       expect(btn).toHaveAttribute('aria-pressed', 'false')
 
       await userEvent.click(btn)
@@ -157,28 +157,28 @@ describe('App', () => {
 
     it('reports how many days are hidden', async () => {
       await mount()
-      const btn = screen.getByRole('button', { name: /past days/ })
+      const btn = screen.getByRole('button', { name: /full season/i })
       const count = Number(within(btn).getByText(/^\d+$/).textContent)
       expect(count).toBeGreaterThan(0)
     })
 
     it('remembers the choice per-device in localStorage', async () => {
       await mount()
-      await userEvent.click(screen.getByRole('button', { name: /past days/ }))
+      await userEvent.click(screen.getByRole('button', { name: /full season/i }))
       await waitFor(() => expect(localStorage.getItem('wnba:showPast')).toBe('1'))
     })
 
     it('restores from localStorage when the link says nothing', async () => {
       localStorage.setItem('wnba:showPast', '1')
       await mount()
-      expect(screen.getByRole('button', { name: /past days/ })).toHaveAttribute('aria-pressed', 'true')
+      expect(screen.getByRole('button', { name: /full season/i })).toHaveAttribute('aria-pressed', 'true')
     })
 
     it('lets an explicit ?past= in a shared link override the saved preference', async () => {
       localStorage.setItem('wnba:showPast', '1')
       window.history.replaceState(null, '', '/?past=0')
       await mount()
-      expect(screen.getByRole('button', { name: /past days/ })).toHaveAttribute('aria-pressed', 'false')
+      expect(screen.getByRole('button', { name: /full season/i })).toHaveAttribute('aria-pressed', 'false')
     })
   })
 

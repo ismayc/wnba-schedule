@@ -178,55 +178,72 @@ describe('ScheduleView', () => {
 
   // Past days are dropped whole rather than by tip-off time, so a game earlier
   // today still counts as today.
-  describe('past days', () => {
+  describe('recent window and full season', () => {
+    // Synthetic games placed RELATIVE to the real "today" (not the committed schedule),
+    // so the window math is deterministic whatever day the suite runs — no wall-clock
+    // flake, and no dependence on where the committed season sits.
     const today = todayKey(TZ)
+    const shift = (key, delta) => {
+      const [y, m, d] = key.split('-').map(Number)
+      return new Date(Date.UTC(y, m - 1, d + delta)).toISOString().slice(0, 10)
+    }
+    const g = (id, date, home, away, score) => ({
+      id,
+      tip: `${date}T16:00:00.000Z`, // noon ET — safely the same calendar day in TZ
+      seasonType: 'regular',
+      home,
+      away,
+      ...(score ? { score } : {}),
+    })
+    const dOld = shift(today, -14) // older than a week -> hidden by default
+    const dRecent = shift(today, -3) // within the last week -> shown by default
+    const dFuture = shift(today, 5)
+    const games = [
+      g('old', dOld, 'MIN', 'NY', [80, 70]),
+      g('recent', dRecent, 'LV', 'SEA', [88, 84]),
+      g('today', today, 'CHI', 'ATL', [70, 66]),
+      g('future', dFuture, 'PHX', 'LA'),
+    ]
     const keysOf = (c) =>
       [...c.querySelectorAll('.day')].map((d) => d.querySelector('.day-head span').textContent)
 
-    it('hides previous days by default', () => {
-      const { container } = render(<ScheduleView games={GAMES} tz={TZ} />)
-      const shown = new Set(
-        GAMES.filter((g) => dayKey(g.tip, TZ) >= today).map((g) => dayKey(g.tip, TZ))
+    it('defaults to the last week of results plus upcoming, hiding older days', () => {
+      const { container } = render(<ScheduleView games={games} tz={TZ} />)
+      // recent (−3), today, future (+5) show; the 14-days-ago game does not.
+      expect(container.querySelectorAll('.day')).toHaveLength(3)
+      expect(keysOf(container)).toContain('Today')
+    })
+
+    it('shows the whole season when Full season (showPast) is on', () => {
+      const { container } = render(<ScheduleView games={games} tz={TZ} showPast />)
+      expect(container.querySelectorAll('.day')).toHaveLength(4) // the old day is back
+      expect(keysOf(container)).toContain('Today')
+    })
+
+    it('lands scrolled on the most recent past day (so yesterday is right there)', () => {
+      const spy = Element.prototype.scrollIntoView
+      render(<ScheduleView games={games} tz={TZ} />)
+      expect(spy).toHaveBeenCalled()
+    })
+
+    it('anchors on today when nothing is in the past', () => {
+      const spy = Element.prototype.scrollIntoView
+      render(
+        <ScheduleView games={[g('today', today, 'CHI', 'ATL', [70, 66]), g('future', dFuture, 'PHX', 'LA')]} tz={TZ} />
       )
-      expect(container.querySelectorAll('.day')).toHaveLength(shown.size)
+      expect(spy).toHaveBeenCalled()
     })
 
-    it('reveals them when asked', () => {
-      const { container: hidden } = render(<ScheduleView games={GAMES} tz={TZ} />)
-      const nHidden = hidden.querySelectorAll('.day').length
-
-      const { container: shown } = render(<ScheduleView games={GAMES} tz={TZ} showPast />)
-      const nShown = shown.querySelectorAll('.day').length
-
-      expect(nShown).toBeGreaterThan(nHidden)
-      // Every day in the season is accounted for.
-      const allKeys = new Set(GAMES.map((g) => dayKey(g.tip, TZ)))
-      expect(nShown).toBe(allKeys.size)
+    it('does not scroll when no rendered day matches the anchor', () => {
+      const spy = Element.prototype.scrollIntoView
+      // Only a future day: anchor falls back to today, which has no rendered day.
+      render(<ScheduleView games={[g('future', dFuture, 'PHX', 'LA')]} tz={TZ} />)
+      expect(spy).not.toHaveBeenCalled()
     })
 
-    it('keeps today visible in both states', () => {
-      // The committed snapshot doesn't always have a game today (off-days, the All-Star
-      // break), so inject one dated today rather than depending on the schedule to.
-      const todayGame = { id: 'today-1', tip: `${today}T16:00:00.000Z`, seasonType: 'regular', home: 'MIN', away: 'NY' }
-      const games = [...GAMES, todayGame]
-      for (const showPast of [false, true]) {
-        const { container, unmount } = render(
-          <ScheduleView games={games} tz={TZ} showPast={showPast} />
-        )
-        // "Today" is the label the day header uses for the current date.
-        expect(keysOf(container)).toContain('Today')
-        unmount()
-      }
-    })
-
-    it('renders only future-or-today days when hiding', () => {
-      const { container } = render(<ScheduleView games={GAMES} tz={TZ} />)
-      // The first rendered day must not precede today.
-      const firstGame = GAMES.filter((g) => dayKey(g.tip, TZ) >= today).sort((a, b) =>
-        a.tip.localeCompare(b.tip)
-      )[0]
-      expect(container.querySelectorAll('.day').length).toBeGreaterThan(0)
-      expect(dayKey(firstGame.tip, TZ) >= today).toBe(true)
+    it('shows an empty state when no games match', () => {
+      const { container } = render(<ScheduleView games={[]} tz={TZ} />)
+      expect(container.querySelector('.empty')).toBeTruthy()
     })
   })
 })
