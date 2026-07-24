@@ -3,6 +3,7 @@ import { GAMES } from './data/schedule.js'
 import { SEASON, TEAMS } from './data/teams.js'
 import { detectTimezone, timezoneOptions, dayKey, todayKey, anyImminent } from './utils/time.js'
 import { readState, writeState } from './utils/urlState.js'
+import { parseQuery, matchesSearch } from './utils/search.js'
 import { applyLive, fetchLive, liveCount } from './services/espn.js'
 import { watchableServices } from './utils/watch.js'
 import { useFollow } from './context/follow.jsx'
@@ -33,6 +34,9 @@ const VIEWS = [
 
 const LIVE_REFRESH_MS = 30_000
 const IDLE_REFRESH_MS = 120_000
+
+// One-click examples that demonstrate the scoped-search syntax.
+const SEARCH_EXAMPLES = ['team: Storm', 'city: Seattle', 'venue: Climate Pledge', 'tv: ION']
 
 export default function App() {
   // Read the shared link once, on mount.
@@ -76,6 +80,16 @@ export default function App() {
     }
   })
   const [showServices, setShowServices] = useState(false)
+  // Free-text / scoped search over the schedule. Deliberately component-local — it is
+  // never written to the URL or localStorage, so it can't add a persisted readState key
+  // (which would break the family's deep-equal link tests).
+  const [search, setSearch] = useState('')
+  // The filter panel is collapsed by default, but opens on load if a shared link already
+  // has a team or "my teams" applied, or the device remembers a watch-only filter — so an
+  // active filter is never hidden behind a closed panel. (Search always starts empty.)
+  const [filtersOpen, setFiltersOpen] = useState(
+    () => Boolean(initial.team) || Boolean(initial.mine) || watchOnly
+  )
   const [live, setLive] = useState(null)
   const [updatedAt, setUpdatedAt] = useState(null)
   // A ?game= deep link opens straight onto that game's detail (see urlState.js).
@@ -94,6 +108,7 @@ export default function App() {
   const [playerModal, setPlayerModal] = useState(null)
   const [showCalendar, setShowCalendar] = useState(false)
   const prevGames = useRef(null)
+  const filterBarRef = useRef(null)
 
   const { count: followedCount, followed } = useFollow()
   const { services, count: serviceCount } = useServices()
@@ -199,6 +214,9 @@ export default function App() {
     setTheme(next)
   }
 
+  // Parse the search box once per keystroke, not once per game.
+  const parsedSearch = useMemo(() => parseQuery(search), [search])
+
   // Filters apply to the schedule only; standings always reflect the whole season.
   const scheduleGames = useMemo(() => {
     return games.filter((g) => {
@@ -207,9 +225,34 @@ export default function App() {
       // A no-op unless services are chosen — clearing them all shouldn't hide everything.
       if (watchOnly && serviceCount && watchableServices(g.broadcast, services).length === 0)
         return false
+      if (!matchesSearch(g, parsedSearch)) return false
       return true
     })
-  }, [games, team, onlyFollowed, followed, followedCount, watchOnly, services, serviceCount])
+  }, [games, team, onlyFollowed, followed, followedCount, watchOnly, services, serviceCount, parsedSearch])
+
+  // How many filters are actively narrowing the schedule — drives the toggle badge and
+  // the auto-open. Mirrors exactly what scheduleGames applies (a followed/service toggle
+  // only counts once there are teams/services for it to act on).
+  const activeFilterCount = useMemo(() => {
+    let n = 0
+    if (search.trim()) n++
+    if (team) n++
+    if (onlyFollowed && followedCount) n++
+    if (watchOnly && serviceCount) n++
+    return n
+  }, [search, team, onlyFollowed, followedCount, watchOnly, serviceCount])
+
+  const clearAllFilters = () => {
+    setSearch('')
+    setTeam('')
+    setOnlyFollowed(false)
+    setWatchOnly(false)
+    try {
+      localStorage.setItem('wnba:watchOnly', '0')
+    } catch {
+      /* private mode — the preference just won't persist */
+    }
+  }
 
   const pastDayCount = useMemo(() => {
     const today = todayKey(tz)
@@ -220,6 +263,20 @@ export default function App() {
     }
     return keys.size
   }, [scheduleGames, tz])
+
+  // Publish the sticky filter bar's height as a CSS variable so ScheduleView's own
+  // sticky .month-jump can pin directly beneath it instead of behind it. Re-measured
+  // whenever the bar's height can change (panel open/close, view switch, the
+  // full-season chip appearing) and on window resize (the bar wraps on narrow screens).
+  useEffect(() => {
+    const el = filterBarRef.current
+    if (!el) return
+    const publish = () =>
+      document.documentElement.style.setProperty('--filter-bar-h', `${el.offsetHeight}px`)
+    publish()
+    window.addEventListener('resize', publish)
+    return () => window.removeEventListener('resize', publish)
+  }, [filtersOpen, activeFilterCount, view, pastDayCount, showPast, serviceCount, followedCount])
 
   return (
     <div className="app">
@@ -294,90 +351,137 @@ export default function App() {
       </nav>
 
       {(view === 'schedule' || view === 'week') && (
-        <div className="filters">
-          <label className="field">
-            <span className="sr-only">Team</span>
-            <select value={team} onChange={(e) => setTeam(e.target.value)}>
-              <option value="">All teams</option>
-              {TEAMS.map((t) => (
-                <option key={t.abbr} value={t.abbr}>
-                  {t.displayName}
-                </option>
-              ))}
-            </select>
-          </label>
-          {followedCount > 0 && (
+        <div className="filter-bar" ref={filterBarRef}>
+          <div className="filter-controls">
             <button
-              className={`chip ${onlyFollowed ? 'on' : ''}`}
-              onClick={() => setOnlyFollowed((v) => !v)}
-              aria-pressed={onlyFollowed}
+              className={`chip filter-toggle ${filtersOpen ? 'on' : ''}`}
+              onClick={() => setFiltersOpen((o) => !o)}
+              aria-expanded={filtersOpen}
+              aria-controls="filters-panel"
             >
-              ★ My teams ({followedCount})
+              ⚙ Filters
+              {activeFilterCount > 0 && (
+                <span className="filter-badge">{activeFilterCount}</span>
+              )}
+              <span className="chev" aria-hidden="true">
+                {filtersOpen ? '▲' : '▼'}
+              </span>
             </button>
-          )}
-          {serviceCount === 0 ? (
+            {activeFilterCount > 0 && (
+              <button className="chip filter-clear" onClick={clearAllFilters}>
+                Clear all
+              </button>
+            )}
+            {view === 'schedule' && pastDayCount > 0 && (
+              <button
+                className={`chip ${showPast ? 'on' : ''}`}
+                onClick={() => setShowPast((v) => !v)}
+                aria-pressed={showPast}
+                title={
+                  showPast
+                    ? 'Show just the last week of games'
+                    : 'Show the full season back to the opener'
+                }
+              >
+                <span aria-hidden="true">{showPast ? '▾' : '▸'}</span> Full season
+                <span className="chip-count">{pastDayCount}</span>
+              </button>
+            )}
             <button
               className="chip"
-              onClick={() => setShowServices(true)}
-              title="Pick the streaming services and TV packages you have"
+              onClick={() => setShowCalendar(true)}
+              title="Subscribe to or download a calendar of these games"
             >
-              📺 Choose my services
+              📅 Calendar
             </button>
-          ) : (
-            <span className="chip-group">
-              <button
-                className={`chip ${watchOnly ? 'on' : ''}`}
-                onClick={() => {
-                  const next = !watchOnly
-                  setWatchOnly(next)
-                  try {
-                    localStorage.setItem('wnba:watchOnly', next ? '1' : '0')
-                  } catch {
-                    /* private mode — the filter just won't be remembered */
-                  }
-                }}
-                aria-pressed={watchOnly}
-                title="Only show games on my services"
-              >
-                📺 On my services ({serviceCount})
-              </button>
-              <button
-                className="chip chip-icon"
-                onClick={() => setShowServices(true)}
-                aria-label="Edit my services"
-                title="Edit my services"
-              >
-                ⚙
-              </button>
-            </span>
+          </div>
+
+          {filtersOpen && (
+            <div className="filters-panel" id="filters-panel">
+              <div className="filters">
+                <label className="field search-field">
+                  <span className="sr-only">Search games</span>
+                  <input
+                    className="search"
+                    type="search"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder='Search — try "team: Storm" or "city: Seattle"'
+                  />
+                </label>
+                <label className="field">
+                  <span className="sr-only">Team</span>
+                  <select value={team} onChange={(e) => setTeam(e.target.value)}>
+                    <option value="">All teams</option>
+                    {TEAMS.map((t) => (
+                      <option key={t.abbr} value={t.abbr}>
+                        {t.displayName}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {followedCount > 0 && (
+                  <button
+                    className={`chip ${onlyFollowed ? 'on' : ''}`}
+                    onClick={() => setOnlyFollowed((v) => !v)}
+                    aria-pressed={onlyFollowed}
+                  >
+                    ★ My teams ({followedCount})
+                  </button>
+                )}
+                {serviceCount === 0 ? (
+                  <button
+                    className="chip"
+                    onClick={() => setShowServices(true)}
+                    title="Pick the streaming services and TV packages you have"
+                  >
+                    📺 Choose my services
+                  </button>
+                ) : (
+                  <span className="chip-group">
+                    <button
+                      className={`chip ${watchOnly ? 'on' : ''}`}
+                      onClick={() => {
+                        const next = !watchOnly
+                        setWatchOnly(next)
+                        try {
+                          localStorage.setItem('wnba:watchOnly', next ? '1' : '0')
+                        } catch {
+                          /* private mode — the filter just won't be remembered */
+                        }
+                      }}
+                      aria-pressed={watchOnly}
+                      title="Only show games on my services"
+                    >
+                      📺 On my services ({serviceCount})
+                    </button>
+                    <button
+                      className="chip chip-icon"
+                      onClick={() => setShowServices(true)}
+                      aria-label="Edit my services"
+                      title="Edit my services"
+                    >
+                      ⚙
+                    </button>
+                  </span>
+                )}
+                {team && (
+                  <button className="chip" onClick={() => setTeam('')}>
+                    <TeamLogo abbr={team} size={18} /> Clear
+                  </button>
+                )}
+              </div>
+              <div className="search-hints">
+                <span className="hint-label">Try:</span>
+                {SEARCH_EXAMPLES.map((ex) => (
+                  <button key={ex} className="hint-chip" onClick={() => setSearch(ex)}>
+                    {ex}
+                  </button>
+                ))}
+                <span className="hint-note">fields: team · city · venue</span>
+              </div>
+            </div>
           )}
-          {team && (
-            <button className="chip" onClick={() => setTeam('')}>
-              <TeamLogo abbr={team} size={18} /> Clear
-            </button>
-          )}
-          {view === 'schedule' && pastDayCount > 0 && (
-            <button
-              className={`chip ${showPast ? 'on' : ''}`}
-              onClick={() => setShowPast((v) => !v)}
-              aria-pressed={showPast}
-              title={
-                showPast
-                  ? 'Show just the last week of games'
-                  : 'Show the full season back to the opener'
-              }
-            >
-              <span aria-hidden="true">{showPast ? '▾' : '▸'}</span> Full season
-              <span className="chip-count">{pastDayCount}</span>
-            </button>
-          )}
-          <button
-            className="chip"
-            onClick={() => setShowCalendar(true)}
-            title="Subscribe to or download a calendar of these games"
-          >
-            📅 Calendar
-          </button>
         </div>
       )}
 

@@ -64,6 +64,10 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
+// The team / my-teams / services controls live in a panel that's collapsed unless a
+// filter is already active on load; open it before reaching for anything inside.
+const openFilters = () => userEvent.click(screen.getByRole('button', { name: /⚙ Filters/ }))
+
 describe('live overlay on a committed game', () => {
   it('surfaces the live-now count once a poll reports an in-progress game', async () => {
     fetch.mockResolvedValue(scoreboard([liveEvent()]))
@@ -127,6 +131,7 @@ describe('followed team filter', () => {
     localStorage.setItem('wnba:followed', JSON.stringify([HOME]))
     await mount()
     const before = document.querySelectorAll('.game').length
+    await openFilters()
     const chip = screen.getByRole('button', { name: /My teams \(1\)/ })
     await userEvent.click(chip)
     expect(chip).toHaveAttribute('aria-pressed', 'true')
@@ -155,6 +160,7 @@ describe('localStorage unavailable (private mode)', () => {
     })
     // Mount alone exercises the spoiler-free and show-past persistence effects' catches.
     await mount()
+    await openFilters()
 
     // Theme toggle write catch, both ternary directions.
     const themeBtn = screen.getByTitle('Toggle theme')
@@ -172,6 +178,18 @@ describe('localStorage unavailable (private mode)', () => {
 
     // Nothing threw out to the UI; the app is still on its feet.
     expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument()
+  })
+
+  it('swallows the write failure when Clear all resets the watch-only preference', async () => {
+    // A team applied on load auto-opens the panel and shows the "Clear all" action.
+    window.history.replaceState(null, '', '/?team=MIN')
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('denied')
+    })
+    await mount()
+    await userEvent.click(screen.getByRole('button', { name: 'Clear all' }))
+    // The team filter is gone and the app is unharmed by the failed persist.
+    expect(screen.getByDisplayValue('All teams')).toBeInTheDocument()
   })
 })
 
@@ -217,8 +235,10 @@ describe('clearing the team filter', () => {
   it('drops the team back to all teams', async () => {
     window.history.replaceState(null, '', '/?team=MIN')
     await mount()
+    // ?team= applied on load auto-opens the filter panel.
     expect(screen.getByDisplayValue('Minnesota Lynx')).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: /Clear/ }))
+    // The team-specific "Clear" chip, not the panel's "Clear all".
+    await userEvent.click(screen.getByRole('button', { name: 'Clear' }))
     await waitFor(() =>
       expect(new URLSearchParams(window.location.search).get('team')).toBeNull()
     )
@@ -241,6 +261,7 @@ describe('the services picker from an existing selection', () => {
   it('opens the editor from the gear button', async () => {
     localStorage.setItem('wnba:services', JSON.stringify(['peacock']))
     await mount()
+    await openFilters()
     await userEvent.click(screen.getByRole('button', { name: 'Edit my services' }))
     expect(screen.getByRole('dialog', { name: 'My services' })).toBeInTheDocument()
   })
