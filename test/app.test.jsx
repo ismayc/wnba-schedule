@@ -144,15 +144,19 @@ describe('App', () => {
   })
 
   describe('past days', () => {
-    it('hides them by default and reveals them on click', async () => {
+    it('switches to the month-grouped full season on click', async () => {
       await mount()
-      const before = document.querySelectorAll('.day').length
+      // Recent view: a flat list, no month navigation.
+      expect(document.querySelector('.month-jump')).toBeFalsy()
       const btn = screen.getByRole('button', { name: /full season/i })
       expect(btn).toHaveAttribute('aria-pressed', 'false')
 
       await userEvent.click(btn)
       await waitFor(() => expect(search().get('past')).toBe('1'))
-      expect(document.querySelectorAll('.day').length).toBeGreaterThan(before)
+      // Full season: the sticky month jump-bar and collapsible month sections appear.
+      expect(document.querySelector('.month-jump')).toBeTruthy()
+      expect(document.querySelectorAll('.month').length).toBeGreaterThan(0)
+      expect(btn).toHaveAttribute('aria-pressed', 'true')
     })
 
     it('reports how many days are hidden', async () => {

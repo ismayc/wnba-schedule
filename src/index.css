@@ -537,6 +537,83 @@ select:hover,
   gap: 10px;
 }
 
+/* Full-season navigation: a sticky month jump-bar over collapsible month sections. */
+.month-jump {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 0;
+  margin-bottom: 12px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.month-chip {
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.month-chip:hover {
+  background: var(--card-hover);
+}
+
+.month-chip.is-current {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.month {
+  margin-bottom: 14px;
+}
+
+.month-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.month-head:hover {
+  background: var(--card-hover);
+}
+
+.month-head.open {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.month-count {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-faint);
+}
+
+.month-days {
+  padding: 16px 2px 4px;
+}
+
 .game {
   display: grid;
   grid-template-columns: 92px 1fr;
