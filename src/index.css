@@ -349,6 +349,36 @@ select:hover,
   margin-left: 4px;
 }
 
+/* Season-phase chips: multi-select, empty = all phases shown. */
+.phase-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.phase-chip {
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.phase-chip:hover {
+  background: var(--card-hover);
+}
+.phase-chip.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
 .chip {
   display: inline-flex;
   align-items: center;
@@ -1874,6 +1904,15 @@ select:hover,
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 18px 20px 20px;
+}
+
+/* On a desktop-sized viewport, widen the game-detail modal (only) so a full box
+   score fits without horizontal scrolling. It stays full-width on phones, and
+   the calendar/services/player modals keep their own narrower widths. */
+@media (min-width: 760px) {
+  .modal.game-modal {
+    width: min(96vw, 900px);
+  }
 }
 
 .modal-x {

@@ -38,6 +38,18 @@ const IDLE_REFRESH_MS = 120_000
 // One-click examples that demonstrate the scoped-search syntax.
 const SEARCH_EXAMPLES = ['team: Storm', 'city: Seattle', 'venue: Climate Pledge', 'tv: ION']
 
+// Season phases (ESPN's seasonType), in play order, with chip labels. The schedule
+// mixes these together; the phase chips let you narrow to one or more. Only phases
+// that actually occur in the data get a chip, so a Playoffs chip appears on its own
+// once those games are added.
+const PHASE_ORDER = ['regular', 'playoffs', 'allstar', 'cup']
+const PHASE_LABELS = {
+  regular: 'Regular season',
+  playoffs: '🏆 Playoffs',
+  allstar: '⭐ All-Star',
+  cup: '🏅 Cup',
+}
+
 export default function App() {
   // Read the shared link once, on mount.
   const detectedTz = useMemo(detectTimezone, [])
@@ -84,6 +96,9 @@ export default function App() {
   // never written to the URL or localStorage, so it can't add a persisted readState key
   // (which would break the family's deep-equal link tests).
   const [search, setSearch] = useState('')
+  // Which season phases to show (empty = all). Component-local like search, for the same
+  // reason — it stays out of the URL/localStorage and adds no persisted readState key.
+  const [phases, setPhases] = useState([])
   // The filter panel is collapsed by default, but opens on load if a shared link already
   // has a team or "my teams" applied, or the device remembers a watch-only filter — so an
   // active filter is never hidden behind a closed panel. (Search always starts empty.)
@@ -217,6 +232,14 @@ export default function App() {
   // Parse the search box once per keystroke, not once per game.
   const parsedSearch = useMemo(() => parseQuery(search), [search])
 
+  // The phase chips to offer — only the seasonTypes that actually occur, in play order.
+  const availablePhases = useMemo(
+    () => PHASE_ORDER.filter((p) => games.some((g) => g.seasonType === p)),
+    [games]
+  )
+  const togglePhase = (p) =>
+    setPhases((cur) => (cur.includes(p) ? cur.filter((x) => x !== p) : [...cur, p]))
+
   // Filters apply to the schedule only; standings always reflect the whole season.
   const scheduleGames = useMemo(() => {
     return games.filter((g) => {
@@ -225,10 +248,12 @@ export default function App() {
       // A no-op unless services are chosen — clearing them all shouldn't hide everything.
       if (watchOnly && serviceCount && watchableServices(g.broadcast, services).length === 0)
         return false
+      // Empty = all phases; otherwise the game's phase must be one of the chosen chips.
+      if (phases.length && !phases.includes(g.seasonType)) return false
       if (!matchesSearch(g, parsedSearch)) return false
       return true
     })
-  }, [games, team, onlyFollowed, followed, followedCount, watchOnly, services, serviceCount, parsedSearch])
+  }, [games, team, onlyFollowed, followed, followedCount, watchOnly, services, serviceCount, phases, parsedSearch])
 
   // How many filters are actively narrowing the schedule — drives the toggle badge and
   // the auto-open. Mirrors exactly what scheduleGames applies (a followed/service toggle
@@ -239,14 +264,16 @@ export default function App() {
     if (team) n++
     if (onlyFollowed && followedCount) n++
     if (watchOnly && serviceCount) n++
+    if (phases.length) n++
     return n
-  }, [search, team, onlyFollowed, followedCount, watchOnly, serviceCount])
+  }, [search, team, onlyFollowed, followedCount, watchOnly, serviceCount, phases])
 
   const clearAllFilters = () => {
     setSearch('')
     setTeam('')
     setOnlyFollowed(false)
     setWatchOnly(false)
+    setPhases([])
     try {
       localStorage.setItem('wnba:watchOnly', '0')
     } catch {
@@ -380,10 +407,10 @@ export default function App() {
                 title={
                   showPast
                     ? 'Show just the last week of games'
-                    : 'Show the full season back to the opener'
+                    : 'Also show earlier games, back to the opener'
                 }
               >
-                <span aria-hidden="true">{showPast ? '▾' : '▸'}</span> Full season
+                <span aria-hidden="true">{showPast ? '▾' : '▸'}</span> Earlier games
                 <span className="chip-count">{pastDayCount}</span>
               </button>
             )}
@@ -479,6 +506,19 @@ export default function App() {
                   </button>
                 ))}
                 <span className="hint-note">fields: team · city · venue · broadcast</span>
+              </div>
+              <div className="phase-chips">
+                <span className="hint-label">Show:</span>
+                {availablePhases.map((p) => (
+                  <button
+                    key={p}
+                    className={`phase-chip${phases.includes(p) ? ' active' : ''}`}
+                    onClick={() => togglePhase(p)}
+                    aria-pressed={phases.includes(p)}
+                  >
+                    {PHASE_LABELS[p]}
+                  </button>
+                ))}
               </div>
             </div>
           )}
