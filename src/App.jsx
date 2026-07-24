@@ -478,7 +478,7 @@ export default function App() {
                     {ex}
                   </button>
                 ))}
-                <span className="hint-note">fields: team · city · venue</span>
+                <span className="hint-note">fields: team · city · venue · broadcast</span>
               </div>
             </div>
           )}

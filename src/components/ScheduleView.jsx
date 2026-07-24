@@ -79,6 +79,7 @@ export default function ScheduleView({ games, tz, hideScores, showPast = false, 
   // season to a few rows.
   const [expanded, setExpanded] = useState(() => new Set([nowMonth]))
   const monthRefs = useRef({})
+  const monthJumpRef = useRef(null)
   const dayRefs = useRef({})
   const [pendingScroll, setPendingScroll] = useState(null)
 
@@ -120,6 +121,21 @@ export default function ScheduleView({ games, tz, hideScores, showPast = false, 
     setPendingScroll(null)
   }, [pendingScroll])
 
+  // Publish the sticky month jump-bar's height as --month-jump-h so a day/month scrolled
+  // to `block: 'start'` clears BOTH sticky bars (filter bar + this one) instead of landing
+  // behind them. 0 in recent mode, where the bar isn't rendered. Re-measured when the mode
+  // or month set changes and on resize (the chips wrap on narrow screens).
+  useEffect(() => {
+    const publish = () =>
+      document.documentElement.style.setProperty(
+        '--month-jump-h',
+        `${monthJumpRef.current?.offsetHeight ?? 0}px`,
+      )
+    publish()
+    window.addEventListener('resize', publish)
+    return () => window.removeEventListener('resize', publish)
+  }, [showPast, months.length])
+
   const renderDay = ([key, dayGames]) => (
     <div
       className={`day ${key === today ? 'is-today' : ''}`}
@@ -157,7 +173,7 @@ export default function ScheduleView({ games, tz, hideScores, showPast = false, 
   // Full season: a sticky month jump-bar over collapsible month sections.
   return (
     <section className="view schedule">
-      <nav className="month-jump" aria-label="Jump to month">
+      <nav className="month-jump" aria-label="Jump to month" ref={monthJumpRef}>
         {months.map(([mk]) => (
           <button
             key={mk}

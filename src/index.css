@@ -629,7 +629,10 @@ select:hover,
 /* ── Schedule ───────────────────────────────────────────────────────── */
 .day {
   margin-bottom: 22px;
-  scroll-margin-top: 12px;
+  /* Land below BOTH sticky bars (filter bar + full-season month jump-bar) so a
+     "Today"/day jump doesn't scroll the day heading behind them. --month-jump-h is
+     0 in recent mode, where the jump-bar isn't rendered. */
+  scroll-margin-top: calc(var(--filter-bar-h, 0px) + var(--month-jump-h, 0px) + 12px);
 }
 
 .day-head {
@@ -711,6 +714,8 @@ select:hover,
 
 .month {
   margin-bottom: 14px;
+  /* A month-chip jump scrolls a .month to the top; clear both sticky bars too. */
+  scroll-margin-top: calc(var(--filter-bar-h, 0px) + var(--month-jump-h, 0px) + 12px);
 }
 
 .month-head {
