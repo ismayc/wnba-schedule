@@ -114,8 +114,8 @@ export default function TeamPanel({ abbr, games, tz, hideScores, onClose, onSche
                     <span className="lead-pos">{p.pos}</span>
                   </span>
                   <span className="tp-p-line">
-                    {p.avgPoints} <i>pts</i> · {p.avgRebounds} <i>reb</i> · {p.avgAssists}{' '}
-                    <i>ast</i>
+                    {one(p.avgPoints)} <i>pts</i> · {one(p.avgRebounds)} <i>reb</i> ·{' '}
+                    {one(p.avgAssists)} <i>ast</i>
                   </span>
                 </div>
               ))}

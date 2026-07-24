@@ -370,8 +370,8 @@ export default function GameDetail({ game, games, tz, hideScores, onClose, onPic
               {topScorer(game.away) && topScorer(game.home) && (
                 <TaleRow
                   label="Leading scorer"
-                  left={`${topScorer(game.away).short} ${topScorer(game.away).avgPoints}`}
-                  right={`${topScorer(game.home).short} ${topScorer(game.home).avgPoints}`}
+                  left={`${topScorer(game.away).short} ${one(topScorer(game.away).avgPoints)}`}
+                  right={`${topScorer(game.home).short} ${one(topScorer(game.home).avgPoints)}`}
                 />
               )}
             </div>

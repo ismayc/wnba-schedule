@@ -135,6 +135,8 @@ describe('PlayerModal (component)', () => {
     expect(screen.getByText('25.6')).toBeInTheDocument()
     expect(screen.getByText('2.0')).toBeInTheDocument()
     expect(screen.getByText(/FG 9.2-17.6/)).toBeInTheDocument()
+    // Whole-number split values are forced to one decimal too (made 1 → "1.0").
+    expect(screen.getByText(/3PT 1.0-2.3/)).toBeInTheDocument()
     // The fetched recent games fill in.
     expect(await screen.findByText('PHX')).toBeInTheDocument()
     expect(screen.getByText('SEA')).toBeInTheDocument()

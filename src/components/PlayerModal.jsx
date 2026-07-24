@@ -126,13 +126,13 @@ export default function PlayerModal({ player, tz, onClose }) {
         </div>
         <div className="pm-splits">
           <span>
-            FG {player.avgFgMade}-{player.avgFgAtt} · {one(player.fgPct)}%
+            FG {one(player.avgFgMade)}-{one(player.avgFgAtt)} · {one(player.fgPct)}%
           </span>
           <span>
-            3PT {player.avgThreeMade}-{player.avgThreeAtt} · {one(player.threePct)}%
+            3PT {one(player.avgThreeMade)}-{one(player.avgThreeAtt)} · {one(player.threePct)}%
           </span>
           <span>
-            FT {player.avgFtMade}-{player.avgFtAtt} · {one(player.ftPct)}%
+            FT {one(player.avgFtMade)}-{one(player.avgFtAtt)} · {one(player.ftPct)}%
           </span>
         </div>
 
