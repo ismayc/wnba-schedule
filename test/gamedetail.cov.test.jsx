@@ -251,6 +251,45 @@ describe('GameDetail coverage', () => {
     expect(screen.getByText('Kelsey Plum')).toBeInTheDocument()
   })
 
+  it('surfaces the matchup injury report only for the next upcoming game', async () => {
+    fetchGameSummary.mockResolvedValue({
+      box: null,
+      teamStats: null,
+      injuries: [{ abbr: 'MIN', players: [{ name: 'Napheesa Collier', pos: 'F', status: 'Out', detail: 'Ankle' }] }],
+      info: null,
+      winprob: null,
+    })
+    // An unplayed game that is the next one for both teams.
+    const next = { id: 'inj1', seasonType: 'regular', tip: '2026-09-01T00:00:00.000Z', home: 'MIN', away: 'SEA' }
+    render(<GameDetail game={next} games={[next]} tz={TZ} onClose={() => {}} />)
+    await userEvent.click(screen.getByRole('tab', { name: 'Matchup' }))
+    expect(await screen.findByRole('heading', { name: 'Injury report' })).toBeInTheDocument()
+    expect(screen.getByText('Napheesa Collier')).toBeInTheDocument()
+  })
+
+  it('withholds the matchup injury report for a game that has been played', async () => {
+    fetchGameSummary.mockResolvedValue({
+      box: null,
+      teamStats: null,
+      injuries: [{ abbr: 'MIN', players: [{ name: 'Napheesa Collier', pos: 'F', status: 'Out' }] }],
+      info: { attendance: 18000, officials: ['Ref One'] },
+      winprob: null,
+    })
+    const played = {
+      id: 'inj2',
+      seasonType: 'regular',
+      tip: '2026-06-05T17:00:00.000Z',
+      home: 'MIN',
+      away: 'SEA',
+      score: [80, 70],
+      line: { home: [20, 20, 20, 20], away: [18, 18, 17, 17] },
+    }
+    render(<GameDetail game={played} games={[played]} tz={TZ} onClose={() => {}} />)
+    await userEvent.click(screen.getByRole('tab', { name: 'Matchup' }))
+    expect(await screen.findByText(/18,?000/)).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Injury report' })).not.toBeInTheDocument()
+  })
+
   it('ignores a summary that resolves after the modal has closed', async () => {
     let resolve
     fetchGameSummary.mockReturnValue(new Promise((r) => { resolve = r }))

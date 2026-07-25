@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { TEAM_BY_ABBR } from '../data/teams.js'
-import { formatDate, formatTime, formatZoneAbbr, liveState, countdown } from '../utils/time.js'
+import { formatDate, formatTime, formatZoneAbbr, liveState, countdown, isUpNext } from '../utils/time.js'
 import { computeStandings, countsForStandings } from '../utils/standings.js'
 import { playersByTeam } from '../utils/stats.js'
 import { watchableServices, broadcastNotBadged } from '../utils/watch.js'
@@ -395,7 +395,7 @@ export default function GameDetail({ game, games, tz, hideScores, onClose, onPic
               </>
             )}
 
-            <InjuryReport summary={summary} game={game} />
+            {isUpNext(game, games) && <InjuryReport summary={summary} game={game} />}
           </div>
         )}
 

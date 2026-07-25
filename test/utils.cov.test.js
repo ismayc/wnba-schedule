@@ -14,6 +14,7 @@ import {
   formatZoneAbbr,
   dayLabel,
   countdown,
+  isUpNext,
   TIMEZONES,
 } from '../src/utils/time.js'
 import { buildIcs } from '../src/utils/ics.js'
@@ -222,6 +223,40 @@ describe('time zone detection and formatting edge cases', () => {
     expect(countdown('2026-07-20T00:30:00Z', now)).toBe('30m')
     expect(countdown('2026-07-20T02:30:00Z', now)).toBe('2h 30m')
     expect(countdown('2026-07-22T02:00:00Z', now)).toBe('2d 2h')
+  })
+})
+
+describe('isUpNext — the next unplayed game for either team', () => {
+  const g = (id, tip, home, away, extra = {}) => ({ id, tip, home, away, seasonType: 'regular', ...extra })
+
+  it('is false with no game, a played game, or a void game', () => {
+    expect(isUpNext(null, [])).toBe(false)
+    expect(isUpNext(g('a', '2026-09-01T00:00:00Z', 'MIN', 'SEA', { score: [1, 2] }), [])).toBe(false)
+    expect(isUpNext(g('a', '2026-09-01T00:00:00Z', 'MIN', 'SEA', { postponed: true }), [])).toBe(false)
+    expect(isUpNext(g('a', '2026-09-01T00:00:00Z', 'MIN', 'SEA', { canceled: true }), [])).toBe(false)
+  })
+
+  it('is true for a team’s earliest unplayed game and false once an earlier one exists', () => {
+    const early = g('e', '2026-09-01T00:00:00Z', 'MIN', 'SEA')
+    const late = g('l', '2026-09-08T00:00:00Z', 'SEA', 'MIN')
+    const games = [early, late]
+    expect(isUpNext(early, games)).toBe(true) // next for both teams (away SEA short-circuits)
+    expect(isUpNext(late, games)).toBe(false) // both teams have the earlier game
+  })
+
+  it('qualifies via the home team when the away team plays sooner elsewhere', () => {
+    const seaEarlier = g('s', '2026-09-01T00:00:00Z', 'SEA', 'LV') // SEA plays before this game
+    const target = g('t', '2026-09-03T00:00:00Z', 'MIN', 'SEA') // still MIN's next
+    // away (SEA) is not next → falls through to home (MIN), which is.
+    expect(isUpNext(target, [seaEarlier, target])).toBe(true)
+  })
+
+  it('skips played, void, and unrelated games when finding a team’s next', () => {
+    const target = g('t', '2026-09-05T00:00:00Z', 'MIN', 'SEA')
+    const playedEarlier = g('p', '2026-09-01T00:00:00Z', 'MIN', 'SEA', { score: [1, 2] })
+    const voidEarlier = g('v', '2026-09-02T00:00:00Z', 'SEA', 'MIN', { canceled: true })
+    const otherTeams = g('o', '2026-09-03T00:00:00Z', 'LV', 'NY')
+    expect(isUpNext(target, [playedEarlier, voidEarlier, otherTeams, target])).toBe(true)
   })
 })
 
