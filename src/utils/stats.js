@@ -74,12 +74,34 @@ export const LEADER_CATEGORIES = [
   { key: 'fgPct', label: 'Field goal %', short: 'FG%' },
   { key: 'threePct', label: '3-point %', short: '3P%' },
   { key: 'doubleDouble', label: 'Double-doubles', short: 'DD' },
+  { key: 'tripleDouble', label: 'Triple-doubles', short: 'TD' },
 ]
+
+// Rate categories need a volume floor, or a low-attempt fluke (a center going 1-for-1 from
+// three) tops the percentage list. Require a per-game attempts minimum AND a share of the
+// games the leader has played, so it scales from mid-season to a full slate.
+const QUALIFIERS = {
+  fgPct: { att: 'avgFgAtt', perGame: 5 },
+  threePct: { att: 'avgThreeAtt', perGame: 2 },
+}
+const QUALIFIED_GAMES_SHARE = 0.4
+
+// Counting stats (not per-game averages): only players who actually recorded one belong on
+// the board — otherwise the tie logic pads it with everyone stuck on zero.
+const COUNT_STATS = new Set(['doubleDouble', 'tripleDouble'])
 
 // Ties share a rank and consume the slots below them (1, 2, 2, 4) — the standard
 // leaderboard convention, and the reason this isn't just index + 1.
 export function leaderboard(key, { limit = 10, players = PLAYERS } = {}) {
-  const eligible = players.filter((p) => p[key] != null)
+  let eligible = players.filter((p) => p[key] != null)
+  if (COUNT_STATS.has(key)) eligible = eligible.filter((p) => p[key] > 0)
+  const q = QUALIFIERS[key]
+  if (q) {
+    // A rotation share of the leader's games, so a small-sample hot streak doesn't rank.
+    const maxGP = eligible.reduce((m, p) => Math.max(m, p.gamesPlayed ?? 0), 0)
+    const minGP = QUALIFIED_GAMES_SHARE * maxGP
+    eligible = eligible.filter((p) => (p[q.att] ?? 0) >= q.perGame && (p.gamesPlayed ?? 0) >= minGP)
+  }
   const sorted = [...eligible].sort((a, b) => b[key] - a[key] || a.name.localeCompare(b.name))
 
   const ranked = []

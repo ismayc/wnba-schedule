@@ -94,9 +94,9 @@ function Leaders({ onPickTeam, onPickPlayer }) {
   /* v8 ignore next */
   const max = rows[0]?.value || 1
   const isPct = cat.key.endsWith('Pct')
-  // Double-doubles are a whole-number count; every other category is a per-game average
-  // that reads as ".0" when whole, so the column stays decimal-aligned (21.0 under 21.1).
-  const isCount = cat.key === 'doubleDouble'
+  // Double- and triple-doubles are whole-number counts; every other category is a per-game
+  // average that reads as ".0" when whole, so the column stays decimal-aligned (21.0 under 21.1).
+  const isCount = cat.key === 'doubleDouble' || cat.key === 'tripleDouble'
 
   return (
     <div className="card">
@@ -143,7 +143,8 @@ function Leaders({ onPickTeam, onPickPlayer }) {
         </tbody>
       </table>
       <p className="fine">
-        Qualified players only, per ESPN&apos;s minimums. Ties share a rank.
+        Percentage leaders need enough volume to qualify (FG% ≥ 5 FGA, 3P% ≥ 2 3PA per game,
+        and a rotation share of games). Ties share a rank.
       </p>
     </div>
   )

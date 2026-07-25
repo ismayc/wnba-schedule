@@ -100,11 +100,38 @@ describe('leaderboard', () => {
 
   it('drops players missing the stat instead of ranking them zero', () => {
     const rows = leaderboard('threePct', {
-      players: [...players, { id: '5', name: 'E', threePct: 50 }],
+      players: [...players, { id: '5', name: 'E', threePct: 50, avgThreeAtt: 3, gamesPlayed: 60 }],
       limit: 10,
     })
     expect(rows).toHaveLength(1)
     expect(rows[0].name).toBe('E')
+  })
+
+  it('drops percentage leaders who lack the volume to qualify', () => {
+    const rows = leaderboard('threePct', {
+      players: [
+        { id: '1', name: 'Sharpshooter', threePct: 40, avgThreeAtt: 6, gamesPlayed: 70 },
+        { id: '2', name: 'Fluke Center', threePct: 100, avgThreeAtt: 0.5, gamesPlayed: 70 }, // too few attempts
+        { id: '3', name: 'Small Sample', threePct: 55, avgThreeAtt: 5, gamesPlayed: 10 }, // too few games (< 0.4·70)
+        { id: '4', name: 'No Volume Data', threePct: 99 }, // no attempts/games fields at all
+        { id: '5', name: 'Attempts No Games', threePct: 60, avgThreeAtt: 5 }, // clears attempts, no games field
+      ],
+      limit: 10,
+    })
+    expect(rows.map((r) => r.name)).toEqual(['Sharpshooter'])
+  })
+
+  it('lists only players who recorded a counting stat, not everyone on zero', () => {
+    const rows = leaderboard('tripleDouble', {
+      players: [
+        { id: '1', name: 'Triple Threat', tripleDouble: 5 },
+        { id: '2', name: 'One Timer', tripleDouble: 1 },
+        { id: '3', name: 'Never', tripleDouble: 0 },
+        { id: '4', name: 'Also Never', tripleDouble: 0 },
+      ],
+      limit: 10,
+    })
+    expect(rows.map((r) => r.name)).toEqual(['Triple Threat', 'One Timer'])
   })
 })
 
