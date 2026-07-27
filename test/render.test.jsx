@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, within, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import StandingsView from '../src/components/StandingsView.jsx'
@@ -15,6 +15,11 @@ beforeEach(() => {
   // jsdom has no layout, so scrollIntoView is absent.
   Element.prototype.scrollIntoView = vi.fn()
   localStorage.clear()
+})
+
+// One test pins the clock; make sure a failure there can't leak fake timers into the rest.
+afterEach(() => {
+  vi.useRealTimers()
 })
 
 describe('StandingsView', () => {
@@ -122,6 +127,11 @@ describe('GameCard', () => {
   })
 
   it('renders the All-Star game as a distinct event card, no franchise sides', () => {
+    // Pin the clock a day before tip. The card's countdown is an upcoming-only branch,
+    // so against the real clock this stopped covering it the moment the hard-coded date
+    // passed — a silent coverage drop, not a test failure.
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-25T00:30:00.000Z'))
     const allStar = {
       id: 'as1',
       tip: '2026-07-26T00:30:00.000Z',
@@ -142,6 +152,8 @@ describe('GameCard', () => {
     expect(screen.getByText(/All-Star Game/)).toBeInTheDocument()
     // The drafted sides aren't franchises — no logo'd .side, no follow star.
     expect(container.querySelector('.side')).toBeNull()
+    // Asserted, not incidental, so the countdown branch can't quietly stop being covered.
+    expect(container.querySelector('.countdown')).toHaveTextContent('in 1d 0h')
   })
 })
 
