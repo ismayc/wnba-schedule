@@ -147,8 +147,8 @@ describe('localStorage unavailable (private mode)', () => {
       throw new Error('denied')
     })
     await mount()
-    // Spoiler-free defaults off, alerts default off — the read catches all returned false.
-    expect(screen.getByTitle('Spoiler-free mode')).toHaveAttribute('aria-pressed', 'false')
+    // Spoiler-free defaults on, alerts default off — every read catch falls back to its default.
+    expect(screen.getByTitle('Spoiler-free mode')).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByTitle('Live alerts off')).toHaveAttribute('aria-pressed', 'false')
   })
 
@@ -314,7 +314,8 @@ describe('team panel wiring', () => {
   })
 
   it('opens a past game from the form strip', async () => {
-    window.history.replaceState(null, '', '/?view=standings')
+    // hide=0 opts out of the default spoiler-free mode, which suppresses the form strip.
+    window.history.replaceState(null, '', '/?view=standings&hide=0')
     await mount()
     await userEvent.click(document.querySelector('.team-btn'))
     const panel = screen.getByRole('dialog')

@@ -194,32 +194,38 @@ describe('App', () => {
   })
 
   describe('spoiler-free mode', () => {
-    it('toggles and persists to the URL', async () => {
+    it('is on for a first-time visitor, and stays out of the URL', async () => {
+      await mount()
+      expect(screen.getByTitle('Spoiler-free mode')).toHaveAttribute('aria-pressed', 'true')
+      expect(search().get('hide')).toBeNull()
+    })
+
+    it('toggles off and persists the opt-out to the URL', async () => {
       window.history.replaceState(null, '', '/?past=1')
       await mount()
       const btn = screen.getByTitle('Spoiler-free mode')
       await userEvent.click(btn)
-      await waitFor(() => expect(search().get('hide')).toBe('1'))
-      expect(btn).toHaveAttribute('aria-pressed', 'true')
+      await waitFor(() => expect(search().get('hide')).toBe('0'))
+      expect(btn).toHaveAttribute('aria-pressed', 'false')
     })
 
     it('also remembers the choice per-device in localStorage', async () => {
       await mount()
       await userEvent.click(screen.getByTitle('Spoiler-free mode'))
-      await waitFor(() => expect(localStorage.getItem('wnba:spoilerFree')).toBe('1'))
+      await waitFor(() => expect(localStorage.getItem('wnba:spoilerFree')).toBe('0'))
     })
 
-    it('restores from localStorage when the link says nothing', async () => {
-      localStorage.setItem('wnba:spoilerFree', '1')
+    it('restores a saved opt-out from localStorage when the link says nothing', async () => {
+      localStorage.setItem('wnba:spoilerFree', '0')
       await mount()
-      expect(screen.getByTitle('Spoiler-free mode')).toHaveAttribute('aria-pressed', 'true')
+      expect(screen.getByTitle('Spoiler-free mode')).toHaveAttribute('aria-pressed', 'false')
     })
 
     it('lets an explicit ?hide= in a shared link override the saved preference', async () => {
-      localStorage.setItem('wnba:spoilerFree', '1')
-      window.history.replaceState(null, '', '/?hide=0')
+      localStorage.setItem('wnba:spoilerFree', '0')
+      window.history.replaceState(null, '', '/?hide=1')
       await mount()
-      expect(screen.getByTitle('Spoiler-free mode')).toHaveAttribute('aria-pressed', 'false')
+      expect(screen.getByTitle('Spoiler-free mode')).toHaveAttribute('aria-pressed', 'true')
     })
   })
 

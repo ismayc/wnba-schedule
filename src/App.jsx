@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { GAMES } from './data/schedule.js'
 import { SEASON, TEAMS } from './data/teams.js'
 import { detectTimezone, timezoneOptions, dayKey, todayKey, anyImminent } from './utils/time.js'
-import { readState, writeState } from './utils/urlState.js'
+import { DEFAULTS, readState, writeState } from './utils/urlState.js'
 import { parseQuery, matchesSearch } from './utils/search.js'
 import { applyLive, fetchLive, liveCount } from './services/espn.js'
 import { watchableServices } from './utils/watch.js'
@@ -58,14 +58,16 @@ export default function App() {
   const [theme, setTheme] = useState(() => document.documentElement.dataset.theme || 'dark')
   const [view, setView] = useState(initial.view)
   const [tz, setTz] = useState(initial.tz || detectedTz)
-  // Spoiler-free mode is remembered per-device like a followed team, but a shared
-  // link's explicit ?hide= still wins on load so the sender's choice carries over.
+  // Spoiler-free mode is on by default and remembered per-device like a followed team,
+  // but a shared link's explicit ?hide= still wins on load so the sender's choice
+  // carries over. Only a stored '0' turns it off — an absent key means "never chose",
+  // which takes the default.
   const [hideScores, setHideScores] = useState(() => {
     if (initial.hideExplicit) return initial.hide
     try {
-      return localStorage.getItem('wnba:spoilerFree') === '1'
+      return localStorage.getItem('wnba:spoilerFree') !== '0'
     } catch {
-      return false
+      return DEFAULTS.hide
     }
   })
   const [team, setTeam] = useState(initial.team)

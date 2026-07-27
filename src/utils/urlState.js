@@ -3,7 +3,7 @@
 // There's no router — `view` is a useState string — so the URL is kept in sync by
 // hand. Only non-default values are written, which keeps a shared link readable:
 //
-//   ?view=stats&tz=America/Chicago&team=MIN&hide=1
+//   ?view=stats&tz=America/Chicago&team=MIN&hide=0
 //
 // Writes use history.replaceState so changing a filter doesn't stack up back-button
 // entries.
@@ -12,7 +12,9 @@ export const DEFAULTS = {
   view: 'schedule',
   tz: null, // no default — falls back to the detected zone
   team: '',
-  hide: false,
+  // Spoiler-free is on by default: this schedule is mostly played games, so the
+  // default landing state shouldn't spoil a result you haven't watched yet.
+  hide: true,
   mine: false,
   past: false,
 }
@@ -35,7 +37,7 @@ export function readState(search = window.location.search) {
     // game's detail. Read-only — writeState never emits it, so the first state
     // write returns the URL to plain shareable filter state.
     game: p.get('game') || '',
-    hide: p.get('hide') === '1',
+    hide: p.has('hide') ? p.get('hide') === '1' : DEFAULTS.hide,
     // Whether the link explicitly carried a spoiler-free choice — lets the app tell a
     // shared "hide=0" from an absent param, so a saved preference only applies when the
     // link says nothing.
@@ -65,7 +67,9 @@ export function toSearch(state, detectedTz) {
   // so a link shared between two people in the same zone stays clean.
   if (state.tz && state.tz !== detectedTz) p.set('tz', state.tz)
   if (state.team) p.set('team', state.team)
-  if (state.hide) p.set('hide', '1')
+  // Spoiler-free defaults to on, so it's *turning it off* that has to travel in the
+  // link — otherwise a sender who chose to see scores would share a hidden board.
+  if (state.hide === false) p.set('hide', '0')
   if (state.mine) p.set('mine', '1')
   if (state.past) p.set('past', '1')
   const s = p.toString()

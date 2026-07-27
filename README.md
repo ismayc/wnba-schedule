@@ -32,7 +32,8 @@ across every view, filter the schedule to "My teams", and scope live alerts to i
 Clicking any team opens a **team panel** — splits, form, leading scorers, and what's
 next. Each game card also flags **where to watch** — a 📺 badge naming the streaming
 services that carry it (YouTube TV, Prime Video, Peacock). Plus: light/dark themes,
-spoiler-free mode, shareable URLs, live alerts for notable moments, a game-detail modal
+spoiler-free mode (**on by default** — one 🙈 toggle reveals scores, and the choice is
+remembered per-device), shareable URLs, live alerts for notable moments, a game-detail modal
 with a quarter line score and season series, `.ics` calendar export (whole season or one
 team's), and installable-PWA support.
 

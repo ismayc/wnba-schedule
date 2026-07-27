@@ -8,7 +8,8 @@ describe('readState', () => {
       tz: null,
       team: '',
       game: '',
-      hide: false,
+      // Spoiler-free is the default, so an empty query hides scores.
+      hide: true,
       hideExplicit: false,
       mine: false,
       past: false,
@@ -28,6 +29,12 @@ describe('readState', () => {
       past: true,
       pastExplicit: true,
     })
+  })
+
+  it('honours an explicit hide=0 from a sender who wanted scores shown', () => {
+    const s = readState('?hide=0')
+    expect(s.hide).toBe(false)
+    expect(s.hideExplicit).toBe(true)
   })
 
   it('ignores an unknown view rather than rendering a blank page', () => {
@@ -56,16 +63,23 @@ describe('toSearch', () => {
   const detected = 'America/New_York'
 
   it('writes nothing when everything is default', () => {
-    expect(toSearch({ view: 'schedule', tz: detected, team: '', hide: false }, detected)).toBe('')
+    expect(toSearch({ view: 'schedule', tz: detected, team: '', hide: true }, detected)).toBe('')
   })
 
   it('omits the timezone when it matches the viewer’s own zone', () => {
     // Keeps a link shared between two people in the same zone clean.
-    expect(toSearch({ view: 'stats', tz: detected }, detected)).toBe('?view=stats')
+    expect(toSearch({ view: 'stats', tz: detected, hide: true }, detected)).toBe('?view=stats')
   })
 
   it('pins the timezone when it differs', () => {
-    expect(toSearch({ view: 'schedule', tz: 'Europe/London' }, detected)).toBe('?tz=Europe%2FLondon')
+    expect(toSearch({ view: 'schedule', tz: 'Europe/London', hide: true }, detected)).toBe(
+      '?tz=Europe%2FLondon',
+    )
+  })
+
+  it('writes hide=0 when the sender chose to see scores', () => {
+    // Spoiler-free is the default, so it's the opt-out that has to travel in the link.
+    expect(toSearch({ view: 'schedule', tz: detected, hide: false }, detected)).toBe('?hide=0')
   })
 
   it('round-trips through readState', () => {
@@ -73,7 +87,7 @@ describe('toSearch', () => {
       view: 'playoffs',
       tz: 'Europe/London',
       team: 'LV',
-      hide: true,
+      hide: false,
       mine: true,
       past: true,
     }
