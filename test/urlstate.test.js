@@ -14,11 +14,16 @@ describe('readState', () => {
       mine: false,
       past: false,
       pastExplicit: false,
+      season: null,
     })
   })
 
   it('reads every supported key', () => {
-    expect(readState('?view=stats&tz=America/Chicago&team=MIN&game=401857072&hide=1&mine=1&past=1')).toEqual({
+    expect(
+      readState(
+        '?view=stats&tz=America/Chicago&team=MIN&game=401857072&hide=1&mine=1&past=1&season=2023'
+      )
+    ).toEqual({
       view: 'stats',
       tz: 'America/Chicago',
       team: 'MIN',
@@ -28,6 +33,7 @@ describe('readState', () => {
       mine: true,
       past: true,
       pastExplicit: true,
+      season: 2023,
     })
   })
 
@@ -59,6 +65,17 @@ describe('isValidZone', () => {
   })
 })
 
+describe('the history view and its season', () => {
+  it('accepts the history view', () => {
+    expect(readState('?view=history').view).toBe('history')
+  })
+
+  it('ignores a season that is not a four-digit year', () => {
+    expect(readState('?season=nope').season).toBeNull()
+    expect(readState('?season=23').season).toBeNull()
+  })
+})
+
 describe('toSearch', () => {
   const detected = 'America/New_York'
 
@@ -84,12 +101,13 @@ describe('toSearch', () => {
 
   it('round-trips through readState', () => {
     const state = {
-      view: 'playoffs',
+      view: 'history',
       tz: 'Europe/London',
       team: 'LV',
       hide: false,
       mine: true,
       past: true,
+      season: 2022,
     }
     // readState also reports whether hide/past were explicit; toSearch wrote them, so both are.
     expect(readState(toSearch(state, detected))).toEqual({

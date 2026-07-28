@@ -17,9 +17,10 @@ export const DEFAULTS = {
   hide: true,
   mine: false,
   past: false,
+  season: null, // History view's chosen season; null = the newest archived one
 }
 
-const VALID_VIEWS = ['schedule', 'week', 'standings', 'playoffs', 'radial', 'stats']
+const VALID_VIEWS = ['schedule', 'week', 'standings', 'playoffs', 'radial', 'stats', 'history']
 
 export function readState(search = window.location.search) {
   const p = new URLSearchParams(search)
@@ -47,6 +48,10 @@ export function readState(search = window.location.search) {
     // Like hideExplicit: whether the link carried a past-days choice, so a saved
     // preference only applies when the link says nothing.
     pastExplicit: p.has('past'),
+    // Which archived season the History view opens on. Validated as a 4-digit year only
+    // — HistoryView falls back to its newest season for anything it doesn't hold, so a
+    // stale link can't render an empty page.
+    season: /^\d{4}$/.test(p.get('season') || '') ? Number(p.get('season')) : DEFAULTS.season,
   }
 }
 
@@ -72,6 +77,7 @@ export function toSearch(state, detectedTz) {
   if (state.hide === false) p.set('hide', '0')
   if (state.mine) p.set('mine', '1')
   if (state.past) p.set('past', '1')
+  if (state.season) p.set('season', String(state.season))
   const s = p.toString()
   return s ? `?${s}` : ''
 }

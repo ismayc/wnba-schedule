@@ -10,6 +10,39 @@ const TZ = 'America/New_York'
 
 // The 2026 postseason doesn't exist yet, so the finished-bracket path can only be
 // exercised through the 2025 fixture.
+// The dots are the bracket's only per-game handle, so they have to reach the box score.
+describe('the series dots', () => {
+  it('opens the right game, and labels each dot with it', async () => {
+    const onOpen = vi.fn()
+    const { container } = render(<Bracket games={PLAYOFFS_2025} tz={TZ} onOpen={onOpen} />)
+
+    const dots = container.querySelectorAll('.dots .dot')
+    expect(dots.length).toBeGreaterThan(0)
+    expect(dots[0]).toHaveAccessibleName(/Game 1: .+ \d+, .+ \d+/)
+
+    await userEvent.click(dots[1])
+    expect(onOpen).toHaveBeenCalledWith(
+      expect.objectContaining({ seasonType: 'playoffs', game: 2 })
+    )
+  })
+
+  it('numbers a dot by its position when the feed gave the game no number', () => {
+    // ESPN's series headline is prose ("WNBA Semifinals - Game 1"); a season where it
+    // doesn't parse must still label the dot rather than say "Game undefined".
+    const unnumbered = PLAYOFFS_2025.map((g) => ({ ...g, game: undefined }))
+    const { container } = render(<Bracket games={unnumbered} tz={TZ} />)
+    expect(container.querySelector('.dots .dot')).toHaveAccessibleName(/^Game 1: /)
+  })
+
+  it('leaves an unplayed dot inert and survives a click with no handler', async () => {
+    const { container } = render(<Bracket games={PLAYOFFS_2025} tz={TZ} />)
+    // A sweep leaves hollow dots, and they are not buttons.
+    expect(container.querySelectorAll('.dot-empty button')).toHaveLength(0)
+    await userEvent.click(container.querySelector('.dots .dot'))
+    expect(container.querySelector('.dots .dot')).toBeInTheDocument()
+  })
+})
+
 describe('Bracket with a completed postseason', () => {
   it('announces the champion', () => {
     render(<Bracket games={PLAYOFFS_2025} tz={TZ} />)

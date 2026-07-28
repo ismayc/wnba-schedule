@@ -11,6 +11,7 @@ import { useServices } from './context/services.jsx'
 import ScheduleView from './components/ScheduleView.jsx'
 import StandingsView from './components/StandingsView.jsx'
 import StatsView from './components/StatsView.jsx'
+import HistoryView from './components/HistoryView.jsx'
 import Bracket from './components/Bracket.jsx'
 import RadialBracket from './components/RadialBracket.jsx'
 import GameDetail from './components/GameDetail.jsx'
@@ -30,6 +31,7 @@ const VIEWS = [
   { id: 'playoffs', label: '🏆 Playoffs' },
   { id: 'radial', label: '🎯 Radial' },
   { id: 'stats', label: '📈 Stats' },
+  { id: 'history', label: '📜 History' },
 ]
 
 const LIVE_REFRESH_MS = 30_000
@@ -71,6 +73,9 @@ export default function App() {
     }
   })
   const [team, setTeam] = useState(initial.team)
+  // Which archived season the History view is showing — in the URL so a link to a past
+  // season is shareable, like the NBA and Premier League siblings.
+  const [season, setSeason] = useState(initial.season)
   const [onlyFollowed, setOnlyFollowed] = useState(initial.mine)
   // Off by default (194 of this season's 332 games are already played, so opening on the
   // season opener in May would bury today under months of finals), but remembered
@@ -198,8 +203,11 @@ export default function App() {
 
   // Keep the URL in step with the view so any state is shareable.
   useEffect(() => {
-    writeState({ view, tz, team, hide: hideScores, mine: onlyFollowed, past: showPast }, detectedTz)
-  }, [view, tz, team, hideScores, onlyFollowed, showPast, detectedTz])
+    writeState(
+      { view, tz, team, hide: hideScores, mine: onlyFollowed, past: showPast, season },
+      detectedTz
+    )
+  }, [view, tz, team, hideScores, onlyFollowed, showPast, season, detectedTz])
 
   // Remember spoiler-free mode per-device, like a followed team (theme and alerts persist
   // the same way). A shared ?hide= link still overrides this on load.
@@ -542,13 +550,29 @@ export default function App() {
         )}
         {view === 'standings' && <StandingsView games={games} onPick={setTeamPanel} />}
         {view === 'playoffs' && (
-          <Bracket games={games} tz={tz} onPick={setTeamPanel} />
+          <Bracket games={games} tz={tz} onPick={setTeamPanel} onOpen={setDetail} />
         )}
         {view === 'radial' && (
           <RadialBracket games={games} onPick={setTeamPanel} />
         )}
         {view === 'stats' && (
-          <StatsView games={games} tz={tz} onPickTeam={setTeamPanel} onPickPlayer={setPlayerModal} />
+          <StatsView
+            games={games}
+            tz={tz}
+            onPickTeam={setTeamPanel}
+            onPickPlayer={setPlayerModal}
+            onOpen={setDetail}
+          />
+        )}
+        {view === 'history' && (
+          <HistoryView
+            season={season}
+            onSeason={setSeason}
+            tz={tz}
+            onPick={setTeamPanel}
+            onPickPlayer={setPlayerModal}
+            onOpen={setDetail}
+          />
         )}
       </main>
 

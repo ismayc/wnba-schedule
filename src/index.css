@@ -1141,10 +1141,30 @@ select:hover,
 }
 
 .drill li {
+  padding: 0;
+}
+
+/* The row is a button when the caller wires one, a plain span otherwise. */
+.drill-row {
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
   padding: 5px 2px;
+  background: none;
+  border: 0;
+  border-radius: 8px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+button.drill-row {
+  cursor: pointer;
+}
+
+button.drill-row:hover {
+  background: var(--card-hover);
 }
 
 .drill-date {
@@ -1724,10 +1744,34 @@ select:hover,
   margin-left: auto;
 }
 
-.dots i {
+.dots i,
+.dots .dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
+}
+
+/* A played dot is a button onto that game's box score. Visually identical to the old
+   inert dot — only the cursor and a focus ring say it's live — but with a real touch
+   target so it's tappable on a phone. */
+.dots .dot {
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  position: relative;
+  appearance: none;
+}
+
+.dots .dot::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+}
+
+.dots .dot:hover,
+.dots .dot:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .dot-w {
@@ -3132,4 +3176,54 @@ select:hover,
   .brand h1 {
     font-size: 21px;
   }
+}
+
+/* ── History ────────────────────────────────────────────────────────── */
+/* Archived seasons. The bracket, stats cards and tables are the live components, so
+   this only styles what's new: the mode switch, the season picker, and the tables. */
+.view-tools {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.hy-pick {
+  margin-bottom: 12px;
+}
+
+.hy-note {
+  margin-bottom: 12px;
+  max-width: none;
+}
+
+.hy-team {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.hy-team:hover {
+  color: var(--accent);
+}
+
+.hy-year {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.hy-table td,
+.hy-table th {
+  font-size: 13px;
 }

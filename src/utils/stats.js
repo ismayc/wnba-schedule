@@ -40,18 +40,43 @@ export function seasonTotals(games) {
 // feeds don't expose possession counts, so anything labelled that way would be wrong.
 export function teamScoring(games) {
   const table = computeStandings(games)
-  const rows = Object.values(table)
-    .filter((r) => r.gp > 0)
-    .map((r) => ({
-      abbr: r.abbr,
-      team: r.team,
-      gp: r.gp,
-      ppg: r.ppg,
-      oppPpg: r.oppPpg,
-      netPpg: r.netPpg,
-      pct: r.pct,
-    }))
+  return rankScoring(
+    Object.values(table)
+      .filter((r) => r.gp > 0)
+      .map((r) => ({
+        abbr: r.abbr,
+        team: r.team,
+        gp: r.gp,
+        ppg: r.ppg,
+        oppPpg: r.oppPpg,
+        netPpg: r.netPpg,
+        pct: r.pct,
+      }))
+  )
+}
 
+// Season scoring for an ARCHIVED season, whose regular-season games aren't committed —
+// the standings rows carry points for and against, which is all this needs. Sharing
+// rankScoring with the live path means an archived margin chart ranks by the same rule.
+export function seasonScoring(standings, teamByAbbr) {
+  return rankScoring(
+    standings.map((r) => {
+      const gp = r.w + r.l
+      return {
+        abbr: r.abbr,
+        team: teamByAbbr[r.abbr],
+        gp,
+        ppg: r.pf / gp,
+        oppPpg: r.pa / gp,
+        netPpg: (r.pf - r.pa) / gp,
+        pct: r.pct,
+      }
+    })
+  )
+}
+
+// Offence, defence and net rank, added to rows that already carry the per-game numbers.
+export function rankScoring(rows) {
   const rank = (key, dir = -1) => {
     const sorted = [...rows].sort((a, b) => (a[key] - b[key]) * dir)
     return Object.fromEntries(sorted.map((r, i) => [r.abbr, i + 1]))

@@ -10,7 +10,7 @@ const one = (n) => n.toFixed(1)
 // Single headline numbers, so these are stat tiles rather than a chart. The two
 // tiles with a story behind them expand into the actual games.
 
-function Tile({ label, value, sub, onClick, open }) {
+export function Tile({ label, value, sub, onClick, open }) {
   const Cmp = onClick ? 'button' : 'div'
   return (
     <Cmp className={`tile ${onClick ? 'tile-btn' : ''} ${open ? 'open' : ''}`} onClick={onClick}>
@@ -22,25 +22,30 @@ function Tile({ label, value, sub, onClick, open }) {
   )
 }
 
-function GameList({ games, tz, note }) {
+// Each row opens that game's box score when the caller wants it — a drill-down that
+// names games and then can't show you any of them is a dead end.
+export function GameList({ games, tz, note, onOpen }) {
+  const Row = onOpen ? 'button' : 'span'
   return (
     <ul className="drill">
       {games.map((g) => (
         <li key={g.id}>
-          <span className="drill-date">{formatDate(g.tip, tz)}</span>
-          <TeamLogo abbr={g.away} size={18} />
-          <span className="drill-score">
-            {g.score[1]} – {g.score[0]}
-          </span>
-          <TeamLogo abbr={g.home} size={18} />
-          <span className="drill-note">{note(g)}</span>
+          <Row className="drill-row" onClick={onOpen ? () => onOpen(g) : undefined}>
+            <span className="drill-date">{formatDate(g.tip, tz)}</span>
+            <TeamLogo abbr={g.away} size={18} />
+            <span className="drill-score">
+              {g.score[1]} – {g.score[0]}
+            </span>
+            <TeamLogo abbr={g.home} size={18} />
+            <span className="drill-note">{note(g)}</span>
+          </Row>
         </li>
       ))}
     </ul>
   )
 }
 
-function TotalsStrip({ games, tz }) {
+function TotalsStrip({ games, tz, onOpen }) {
   const t = useMemo(() => seasonTotals(games), [games])
   const [open, setOpen] = useState(null)
   const toggle = (k) => setOpen((v) => (v === k ? null : k))
@@ -69,12 +74,13 @@ function TotalsStrip({ games, tz }) {
       </div>
 
       {open === 'ot' && (
-        <GameList games={t.otGames} tz={tz} note={(g) => (g.ot > 1 ? `${g.ot}OT` : 'OT')} />
+        <GameList games={t.otGames} tz={tz} onOpen={onOpen} note={(g) => (g.ot > 1 ? `${g.ot}OT` : 'OT')} />
       )}
       {open === 'close' && (
         <GameList
           games={[...t.nailbiters].sort((a, b) => a.margin - b.margin)}
           tz={tz}
+          onOpen={onOpen}
           note={(g) => `by ${g.margin}`}
         />
       )}
@@ -86,11 +92,19 @@ function TotalsStrip({ games, tz }) {
 // One category at a time = a single series, so no legend is needed; the heading
 // names it. Bars are a sequential blue, with the value direct-labelled.
 
-function Leaders({ onPickTeam, onPickPlayer }) {
+// `getRows(cat)` supplies the board for the chosen category: the live view computes it
+// from the committed PLAYERS table, the History tab reads the season's stored board (which
+// fetch-history built with this same leaderboard(), ties and qualifiers included).
+// `showTeam` is off for archived seasons. ESPN's per-athlete stats carry the player's
+// CURRENT team even when the season is asked for, and only for players who later moved —
+// so a historical board would silently mix correct and anachronistic badges (2023's
+// scoring leader Jewell Loyd reads as an Ace, not a Storm). The name, rank and value are
+// season-accurate; the team is not, so it isn't shown.
+export function Leaders({ getRows, onPickTeam, onPickPlayer, showTeam = true }) {
   const [cat, setCat] = useState(LEADER_CATEGORIES[0])
-  const rows = useMemo(() => leaderboard(cat.key, { limit: 10 }), [cat])
-  // rows is always non-empty with a positive top value for every committed category
-  // (leaderboard reads the PLAYERS table, not a prop), so this empty/zero guard can't fire.
+  const rows = useMemo(() => getRows(cat), [getRows, cat])
+  // rows is always non-empty with a positive top value for every committed category, so
+  // this empty/zero guard can't fire.
   /* v8 ignore next */
   const max = rows[0]?.value || 1
   const isPct = cat.key.endsWith('Pct')
@@ -121,11 +135,13 @@ function Leaders({ onPickTeam, onPickPlayer }) {
           {rows.map((p) => (
             <tr key={p.id}>
               <td className="lead-rank">{p.rank}</td>
-              <td className="lead-team">
-                <button onClick={() => onPickTeam?.(p.team)} title={p.team}>
-                  <TeamLogo abbr={p.team} size={20} />
-                </button>
-              </td>
+              {showTeam && (
+                <td className="lead-team">
+                  <button onClick={() => onPickTeam?.(p.team)} title={p.team}>
+                    <TeamLogo abbr={p.team} size={20} />
+                  </button>
+                </td>
+              )}
               <td className="lead-name">
                 <button className="lead-player" onClick={() => onPickPlayer?.(p)}>
                   {p.name}
@@ -158,8 +174,7 @@ function Leaders({ onPickTeam, onPickPlayer }) {
 // those are per-100-possessions measures, and the public feeds don't expose
 // possession counts.
 
-function MarginChart({ games, onPickTeam }) {
-  const rows = useMemo(() => teamScoring(games), [games])
+export function MarginChart({ rows, onPickTeam }) {
   const span = Math.max(...rows.map((r) => Math.abs(r.netPpg)), 1)
 
   return (
@@ -280,16 +295,19 @@ function PlayoffRace({ games, onPickTeam }) {
   )
 }
 
-export default function StatsView({ games, tz, onPickTeam, onPickPlayer }) {
+// Stable identity so the Leaders memo doesn't recompute on every parent render.
+const liveLeaders = (cat) => leaderboard(cat.key, { limit: 10 })
+
+export default function StatsView({ games, tz, onPickTeam, onPickPlayer, onOpen }) {
   return (
     <section className="view">
       <div className="view-head">
         <h2>Stats</h2>
       </div>
-      <TotalsStrip games={games} tz={tz} />
-      <Leaders onPickTeam={onPickTeam} onPickPlayer={onPickPlayer} />
+      <TotalsStrip games={games} tz={tz} onOpen={onOpen} />
+      <Leaders getRows={liveLeaders} onPickTeam={onPickTeam} onPickPlayer={onPickPlayer} />
       <div className="grid-2">
-        <MarginChart games={games} onPickTeam={onPickTeam} />
+        <MarginChart rows={teamScoring(games)} onPickTeam={onPickTeam} />
         <PlayoffRace games={games} onPickTeam={onPickTeam} />
       </div>
     </section>

@@ -24,13 +24,20 @@ export const R1_PAIRS = [
   [3, 6],
 ]
 
-const winsNeeded = (round) => Math.ceil((SERIES_LENGTH[round] ?? 3) / 2)
+// Series lengths are per SEASON, not fixed: the Finals ran best-of-5 through 2024 and
+// best-of-7 from 2025. The live season uses the committed SERIES_LENGTH; an archived one
+// passes its own (see data/history.js), so a 2023 bracket isn't rendered against 2025's
+// rules — which would show a 3-1 Finals win as an unfinished series.
+const winsNeeded = (round, lengths) => Math.ceil(bestOfFor(round, lengths) / 2)
+
+/* v8 ignore next -- the `?? 3` arm is unreachable: every caller passes a round present in the length table */
+const bestOfFor = (round, lengths = SERIES_LENGTH) => lengths[round] ?? 3
 
 const pairKey = (a, b) => [a, b].sort().join('|')
 
 // Group playoff games into series. A series is keyed by round + opponent pair, so it
 // survives home/away alternating between games.
-export function buildSeries(games) {
+export function buildSeries(games, lengths = SERIES_LENGTH) {
   const byKey = new Map()
 
   for (const g of games) {
@@ -52,7 +59,7 @@ export function buildSeries(games) {
       if (winner in wins) wins[winner]++
     }
 
-    const need = winsNeeded(s.round)
+    const need = winsNeeded(s.round, lengths)
     const winner = s.teams.find((t) => wins[t] >= need) || null
     // Higher seed hosts game 1, so game 1's home team identifies the favoured side.
     /* v8 ignore next -- `?? s.teams[0]` is unreachable: a series always has ≥1 game and every game carries a home team */
@@ -62,7 +69,7 @@ export function buildSeries(games) {
       ...s,
       wins,
       need,
-      bestOf: SERIES_LENGTH[s.round] ?? 3,
+      bestOf: bestOfFor(s.round, lengths),
       winner,
       loser: winner ? s.teams.find((t) => t !== winner) : null,
       // Ordered [higher seed, lower seed] for display.
@@ -79,9 +86,13 @@ const findSeries = (list, round, a, b) =>
 // Build the seven bracket slots. Where real playoff games exist they drive the slot;
 // where they don't, the slot is PROJECTED from current regular-season seeding — which
 // is what makes this view useful in July rather than only in September.
-export function buildBracket(games) {
-  const series = buildSeries(games)
-  const seeded = seedings(games)
+// `seeds` and `lengths` let a caller supply the seeded table and the season's series
+// lengths instead of deriving/assuming them. A historical season commits its final
+// standings, only its playoff games, and its own series lengths — passing them in means
+// an archived bracket renders through this same function rather than a parallel one.
+export function buildBracket(games, { seeds, lengths = SERIES_LENGTH } = {}) {
+  const series = buildSeries(games, lengths)
+  const seeded = seeds ?? seedings(games)
   const bySeed = Object.fromEntries(seeded.map((r) => [r.seed, r]))
 
   const projected = series.length === 0
@@ -98,9 +109,8 @@ export function buildBracket(games) {
       order: [a, b],
       games: [],
       wins: Object.fromEntries([a, b].filter(Boolean).map((t) => [t, 0])),
-      need: winsNeeded(round),
-      /* v8 ignore next -- `?? 3` is unreachable here: slot() is only called with rounds R1/SF/Final, all present in SERIES_LENGTH */
-      bestOf: SERIES_LENGTH[round] ?? 3,
+      need: winsNeeded(round, lengths),
+      bestOf: bestOfFor(round, lengths),
       winner: null,
       loser: null,
       complete: false,

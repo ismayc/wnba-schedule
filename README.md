@@ -26,6 +26,7 @@ snapshot of the season.
 | 🏆 **Playoffs** | The bracket, where each slot is a best-of series. Projected from current standings until the real field is set. |
 | 🎯 **Radial** | The same bracket as concentric rings — seeds outside, the title in the middle. |
 | 📈 **Stats** | Season totals, league leaders across 8 categories, scoring margin, and the playoff race with magic numbers. |
+| 📜 **History** | Every completed season back to **2022**, in three modes: one season in full (bracket + final table), that season's **stats** (totals, all leaderboards, scoring margin), and every **champion** with its seed and the Finals format it won under. |
 
 **Star a team** from any game card, standings row, or team panel to highlight it
 across every view, filter the schedule to "My teams", and scope live alerts to it.
@@ -108,6 +109,42 @@ The WNBA is not a group-stage tournament, and two details drive most of the app'
 - **Seeding is league-wide 1–8, not by conference.** Conference is presentational.
 - **A playoff slot is a series, not a game** — best-of-3, then best-of-5, then
   best-of-7 — and the bracket is *fixed*: semifinal pairings don't re-seed.
+
+### The archive
+
+`src/data/history.js` holds every completed season back to **2022** — the year the
+playoffs became series in every round (best-of-3 first round, best-of-5 semifinals and
+Finals). Through 2021 the first two rounds were single-elimination games with double byes
+for the top two seeds, a bracket shape this app doesn't draw.
+
+**Series lengths are per season, and inferred rather than assumed.** The Finals grew from
+best-of-5 to best-of-7 in 2025, so each archived season carries its own lengths and the
+bracket is drawn against them — rendering 2023's 3-1 Finals against 2025's rules would
+show it as unfinished. The lengths are derived from each season's own results: the winner
+of a best-of-N takes exactly ceil(N/2) games, so N = 2 × wins − 1. A 4-0 sweep can only be
+a best-of-7. Nothing is hardcoded, so the next format change is picked up automatically.
+
+Each season commits its **final standings**, its **playoff games**, its **season totals**
+and its **leader boards**; the ~200 regular-season games are summarised into the standings
+rather than committed. The bracket is rebuilt at runtime by the same `buildBracket()` the
+live season uses, and box scores are fetched from ESPN by event id, so every archived game
+opens one.
+
+```bash
+npm run fetch:history        # rebuilds the archive (a season in progress is skipped)
+```
+
+Two data caveats the archive handles explicitly:
+
+- **The league grows.** `seedings()` tables today's franchises, so a season before an
+  expansion team existed would carry phantom 0-0 rows for it (Golden State joined in 2025;
+  Portland and Toronto in 2026). Those rows are filtered out — 2022-24 show twelve teams,
+  2025 shows thirteen.
+- **Archived leader boards show no team badge.** ESPN reports a player's *current* club
+  even when an older season is requested, and only for players who later moved — so 2023's
+  scoring leader Jewell Loyd reads as an Ace rather than a Storm, while Breanna Stewart's
+  Liberty badge is correct. A board mixing the two silently is worse than one showing
+  neither; the names, ranks and values are that season's.
 
 ## Develop
 

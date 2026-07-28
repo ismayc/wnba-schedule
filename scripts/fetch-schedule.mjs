@@ -9,7 +9,7 @@
 
 import { writeFile, mkdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { parseLeaders } from './leaders.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -41,7 +41,7 @@ async function getJson(url, tries = 3) {
   }
 }
 
-async function fetchTeams() {
+export async function fetchTeams() {
   const d = await getJson(`${SITE}/teams`)
   return d.sports[0].leagues[0].teams
     .map(({ team: t }) => ({
@@ -132,7 +132,7 @@ function normalizeEvent(ev) {
   }
 }
 
-async function fetchSchedule(teams) {
+export async function fetchSchedule(teams, season = SEASON) {
   const byId = new Map()
   // 15 team-schedule calls cover the whole season; each game appears twice (once per
   // team), so dedupe by event id.
@@ -141,7 +141,7 @@ async function fetchSchedule(teams) {
       const seen = []
       for (const type of [2, 3]) {
         const d = await getJson(
-          `${SITE}/teams/${t.abbr}/schedule?season=${SEASON}&seasontype=${type}`
+          `${SITE}/teams/${t.abbr}/schedule?season=${season}&seasontype=${type}`
         )
         seen.push(...(d.events || []))
       }
@@ -260,9 +260,9 @@ async function enrichWithBoxScores(games) {
 // names); this one inlines name, team, and position, so the app ships leaderboards
 // with zero runtime requests. Parsing (mapping each value by the feed's published
 // column name rather than by array position) lives in ./leaders.mjs so it can be tested.
-async function fetchLeaders() {
+export async function fetchLeaders(season = SEASON) {
   const d = await getJson(
-    `${WEB}/statistics/byathlete?region=us&lang=en&season=${SEASON}&seasontype=2&limit=300`
+    `${WEB}/statistics/byathlete?region=us&lang=en&season=${season}&seasontype=2&limit=300`
   )
   return parseLeaders(d)
 }
@@ -373,7 +373,10 @@ async function main() {
   console.log('Done.')
 }
 
-main().catch((err) => {
-  console.error(`\nfetch-schedule failed:\n${err.message}`)
-  process.exit(1)
-})
+// Only run the generator when invoked directly — fetch-history.mjs imports its fetchers.
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((err) => {
+    console.error(`\nfetch-schedule failed:\n${err.message}`)
+    process.exit(1)
+  })
+}

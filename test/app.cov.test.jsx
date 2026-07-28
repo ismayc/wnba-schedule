@@ -210,6 +210,31 @@ describe('the other views render', () => {
     )
   })
 
+  it('renders the History view, and keeps the chosen season in the URL', async () => {
+    window.history.replaceState(null, '', '/?view=history&season=2022')
+    await mount()
+    expect(screen.getByRole('button', { name: /📜 History/ })).toHaveAttribute(
+      'aria-current',
+      'page'
+    )
+    // 2022: Las Vegas over Connecticut.
+    expect(screen.getByText(/win the title/)).toHaveTextContent(/Las Vegas Aces/)
+
+    await userEvent.selectOptions(document.querySelector('.season-pick select'), '2024')
+    await waitFor(() =>
+      expect(new URLSearchParams(window.location.search).get('season')).toBe('2024')
+    )
+    // 2024: New York's first title.
+    expect(screen.getByText(/win the title/)).toHaveTextContent(/New York Liberty/)
+  })
+
+  it('opens a historical game’s box score from the archived bracket', async () => {
+    window.history.replaceState(null, '', '/?view=history&season=2023')
+    await mount()
+    await userEvent.click(document.querySelector('.dots .dot'))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
   it('renders the Radial bracket', async () => {
     window.history.replaceState(null, '', '/?view=radial')
     await mount()
