@@ -7,7 +7,7 @@
 //
 //   node scripts/fetch-schedule.mjs [--season 2026] [--no-logos]
 
-import { writeFile, mkdir } from 'node:fs/promises'
+import { writeFile, mkdir, readFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { parseLeaders } from './leaders.mjs'
@@ -28,17 +28,120 @@ const SEASON_TYPE = { 2: 'regular', 3: 'playoffs', 4: 'allstar' }
 // that happen to also count for the Cup, so only the final is reclassified.
 const CUP_FINAL = /commissioner'?s cup championship/i
 
-async function getJson(url, tries = 3) {
-  for (let i = 0; i < tries; i++) {
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+// Cap how many requests are in flight. The old code fired every team at once — a burst
+// big enough to provoke the very 500s the retries then had to absorb. Six at a time is
+// still fast and markedly gentler on the feed.
+const CONCURRENCY = 6
+
+async function mapLimit(items, limit, fn) {
+  const out = new Array(items.length)
+  let next = 0
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const i = next++
+      out[i] = await fn(items[i], i)
+    }
+  })
+  await Promise.all(workers)
+  return out
+}
+
+// A refresh commits straight to main and redeploys the site, with no human in the loop.
+// So the one failure this pipeline must never have is a QUIET one: ESPN answering 200
+// with half a season, which no retry can detect and which would publish a gutted
+// schedule. Compare against what's already committed and refuse to shrink.
+//
+// Legitimate shrinkage exists — a postponed game disappears, or `--season` moves to a
+// different year — so this is a floor, not an equality check, and `--allow-shrink`
+// overrides it.
+const SHRINK_FLOOR = 0.9
+
+async function guardAgainstShrink(games, file, label) {
+  if (args.includes('--allow-shrink')) return
+  let previous
+  try {
+    previous = (await readFile(join(ROOT, file), 'utf8')).match(/^ {2}\{"id"/gm)?.length ?? 0
+  } catch {
+    return // first run — nothing to compare against
+  }
+  if (!previous) return
+  const floor = Math.floor(previous * SHRINK_FLOOR)
+  if (games.length < floor) {
+    throw new Error(
+      `${label} shrank from ${previous} to ${games.length} (floor ${floor}).\n` +
+        `  A partial fetch would publish a gutted snapshot, so nothing was written.\n` +
+        `  Re-run; pass --allow-shrink if the drop is real (a season change, say).`
+    )
+  }
+}
+
+// ESPN intermittently drops `broadcast` from games that have already been played, then
+// restores it a few hours later. Left alone, the twice-daily refresh commits that flap
+// back and forth forever — two of main's auto-commits on 2026-07-27 differed only by
+// these two rows, in opposite directions.
+//
+// A finished game cannot legitimately lose its listings, so treat committed broadcast
+// data as sticky: if the feed has stopped reporting it, keep what we already have.
+async function keepKnownBroadcasts(games, file) {
+  let committed
+  try {
+    committed = await readFile(join(ROOT, file), 'utf8')
+  } catch {
+    return 0
+  }
+  const known = new Map()
+  for (const line of committed.split('\n')) {
+    const m = line.match(/^ {2}(\{"id".*\}),?$/)
+    if (!m) continue
     try {
-      const res = await fetch(url)
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      return await res.json()
-    } catch (err) {
-      if (i === tries - 1) throw new Error(`${url}\n  ${err.message}`)
-      await new Promise((r) => setTimeout(r, 500 * (i + 1)))
+      const g = JSON.parse(m[1])
+      if (g.broadcast?.length) known.set(g.id, g.broadcast)
+    } catch {
+      /* a line we can't parse simply isn't a source of truth */
     }
   }
+  let restored = 0
+  for (const g of games) {
+    if (g.broadcast?.length || !known.has(g.id)) continue
+    // Only for games in the past: an upcoming game losing its listing is real news.
+    if (new Date(g.tip) > new Date()) continue
+    g.broadcast = known.get(g.id)
+    restored++
+  }
+  return restored
+}
+
+
+// 1s, 2s, 4s, 8s, plus up to 500ms of jitter so parallel callers don't all retry in
+// lockstep and re-create the burst that caused the failure.
+const backoffMs = (attempt) => 2 ** attempt * 1000 + Math.random() * 500
+
+// ESPN 500s at random under load. A refresh makes ~90 calls, so with the old
+// 3-try/1.5s policy a single blip failed the whole run — which it did about once a week
+// (nba 2026-07-28, wnba 2026-07-25, both a lone `HTTP 500` on one team's schedule).
+//
+// Retry only what's worth retrying: a 5xx, a 429, or a network-level error. A 404 or a
+// 400 is a real answer and fails immediately rather than sleeping 15 seconds first.
+async function getJson(url, tries = 5) {
+  let lastErr
+  for (let attempt = 0; attempt < tries; attempt++) {
+    if (attempt) await sleep(backoffMs(attempt - 1))
+
+    let res
+    try {
+      res = await fetch(url)
+    } catch (err) {
+      lastErr = err // DNS, connection reset, timeout — always worth another go
+      continue
+    }
+
+    if (res.ok) return await res.json()
+    if (res.status < 500 && res.status !== 429) throw new Error(`${url}\n  HTTP ${res.status}`)
+    lastErr = new Error(`HTTP ${res.status}`)
+  }
+  throw new Error(`${url}\n  ${lastErr.message} — still failing after ${tries} attempts`)
 }
 
 export async function fetchTeams() {
@@ -136,18 +239,16 @@ export async function fetchSchedule(teams, season = SEASON) {
   const byId = new Map()
   // 15 team-schedule calls cover the whole season; each game appears twice (once per
   // team), so dedupe by event id.
-  const results = await Promise.all(
-    teams.map(async (t) => {
-      const seen = []
-      for (const type of [2, 3]) {
-        const d = await getJson(
-          `${SITE}/teams/${t.abbr}/schedule?season=${season}&seasontype=${type}`
-        )
-        seen.push(...(d.events || []))
-      }
-      return seen
-    })
-  )
+  const results = await mapLimit(teams, CONCURRENCY, async (t) => {
+    const seen = []
+    for (const type of [2, 3]) {
+      const d = await getJson(
+        `${SITE}/teams/${t.abbr}/schedule?season=${season}&seasontype=${type}`
+      )
+      seen.push(...(d.events || []))
+    }
+    return seen
+  })
   for (const ev of results.flat()) {
     const game = normalizeEvent(ev)
     if (game) byId.set(game.id, game)
@@ -322,6 +423,9 @@ async function main() {
   console.log(`  ${games.length} games`, counts)
 
   // Must run before the schedule is written — it enriches `games` in place.
+  const restored = await keepKnownBroadcasts(games, 'src/data/schedule.js')
+  if (restored) console.log(`  kept ${restored} broadcast listing(s) the feed dropped`)
+
   console.log('Fetching line scores…')
   console.log(`  ${await enrichWithBoxScores(games)} games with quarter breakdowns`)
 
@@ -337,6 +441,8 @@ async function main() {
       `export const TEAM_BY_ABBR = Object.fromEntries(TEAMS.map((t) => [t.abbr, t]))\n\n` +
       `export const ALL_ABBRS = TEAMS.map((t) => t.abbr)\n`
   )
+
+  await guardAgainstShrink(games, 'src/data/schedule.js', 'the schedule')
 
   await writeFile(
     join(ROOT, 'src/data/schedule.js'),

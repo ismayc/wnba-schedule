@@ -21,17 +21,32 @@ const args = process.argv.slice(2)
 const SEASON = Number(args[args.indexOf('--season') + 1]) || 2026
 const QUIET = args.includes('--quiet')
 
-async function getJson(url, tries = 3) {
-  for (let i = 0; i < tries; i++) {
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+// 1s, 2s, 4s, 8s, plus jitter so parallel callers don't retry in lockstep.
+const backoffMs = (attempt) => 2 ** attempt * 1000 + Math.random() * 500
+
+// ESPN 500s at random under load, and this check makes ~90 calls. Retry a 5xx, a 429 or
+// a network error; a 404 is a real answer and fails immediately. (See the matching note
+// in fetch-schedule.mjs — a lone transient 500 used to fail the whole run.)
+async function getJson(url, tries = 5) {
+  let lastErr
+  for (let attempt = 0; attempt < tries; attempt++) {
+    if (attempt) await sleep(backoffMs(attempt - 1))
+
+    let res
     try {
-      const res = await fetch(url)
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      return await res.json()
+      res = await fetch(url)
     } catch (err) {
-      if (i === tries - 1) throw err
-      await new Promise((r) => setTimeout(r, 500 * (i + 1)))
+      lastErr = err
+      continue
     }
+
+    if (res.ok) return await res.json()
+    if (res.status < 500 && res.status !== 429) throw new Error(`${url}\n  HTTP ${res.status}`)
+    lastErr = new Error(`HTTP ${res.status}`)
   }
+  throw new Error(`${url}\n  ${lastErr.message} — still failing after ${tries} attempts`)
 }
 
 // Read the committed data without a bundler. The generated file is ES module source
