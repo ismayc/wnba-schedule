@@ -124,7 +124,7 @@ const backoffMs = (attempt) => 2 ** attempt * 1000 + Math.random() * 500
 //
 // Retry only what's worth retrying: a 5xx, a 429, or a network-level error. A 404 or a
 // 400 is a real answer and fails immediately rather than sleeping 15 seconds first.
-async function getJson(url, tries = 5) {
+async function fetchRetry(url, tries = 5) {
   let lastErr
   for (let attempt = 0; attempt < tries; attempt++) {
     if (attempt) await sleep(backoffMs(attempt - 1))
@@ -137,11 +137,15 @@ async function getJson(url, tries = 5) {
       continue
     }
 
-    if (res.ok) return await res.json()
+    if (res.ok) return res
     if (res.status < 500 && res.status !== 429) throw new Error(`${url}\n  HTTP ${res.status}`)
     lastErr = new Error(`HTTP ${res.status}`)
   }
   throw new Error(`${url}\n  ${lastErr.message} — still failing after ${tries} attempts`)
+}
+
+async function getJson(url, tries = 5) {
+  return (await fetchRetry(url, tries)).json()
 }
 
 export async function fetchTeams() {
@@ -378,28 +382,27 @@ async function mirrorLogos(teams) {
   await mkdir(join(ROOT, 'public/logos'), { recursive: true })
   let n = 0
   let bytes = 0
-  const grab = async (url, file) => {
-    const res = await fetch(resized(url))
-    if (!res.ok) throw new Error(`logo ${file}: HTTP ${res.status}`)
-    return Buffer.from(await res.arrayBuffer())
-  }
+  // Same retry/backoff as every JSON call: logo mirroring is the last step of a
+  // no-human-in-the-loop refresh, and a lone transient `fetch failed` here used to sink
+  // the whole run (2026-07-31) after all the data had already been fetched cleanly.
+  const grab = async (url) => Buffer.from(await (await fetchRetry(resized(url))).arrayBuffer())
   const put = async (file, buf) => {
     await writeFile(join(ROOT, 'public/logos', file), buf)
     n++
     bytes += buf.length
   }
-  await Promise.all(
-    teams.map(async (t) => {
-      if (!t.logo) return
-      const light = await grab(t.logo, `${t.slug}.png`)
-      await put(`${t.slug}.png`, light)
-      // Fall back to the light logo when a team has no ESPN "dark" variant (e.g. an
-      // expansion or relocated team): the dark theme renders `${slug}-dark.png`, so a
-      // missing file shows an invisible logo. A full-colour ball reads fine on dark.
-      const dark = t.logoDark ? await grab(t.logoDark, `${t.slug}-dark.png`) : light
-      await put(`${t.slug}-dark.png`, dark)
-    })
-  )
+  // Cap concurrency like the schedule fetches — firing every team's logos at once is the
+  // burst the CONCURRENCY note above warns against.
+  await mapLimit(teams, CONCURRENCY, async (t) => {
+    if (!t.logo) return
+    const light = await grab(t.logo)
+    await put(`${t.slug}.png`, light)
+    // Fall back to the light logo when a team has no ESPN "dark" variant (e.g. an
+    // expansion or relocated team): the dark theme renders `${slug}-dark.png`, so a
+    // missing file shows an invisible logo. A full-colour ball reads fine on dark.
+    const dark = t.logoDark ? await grab(t.logoDark) : light
+    await put(`${t.slug}-dark.png`, dark)
+  })
   return { n, kb: Math.round(bytes / 1024) }
 }
 
