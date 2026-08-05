@@ -143,12 +143,14 @@ describe('live alerts fire toasts', () => {
     })
 
     await mount()
-    const stack = await screen.findByRole('status')
+    // The default 1s findBy window is tight for a full mount plus a three-day poll
+    // on a loaded CI runner; the file already allows far longer overall.
+    const stack = await screen.findByRole('status', {}, { timeout: 10_000 })
     expect(stack).toHaveTextContent('Tipoff')
     release()
     // The final lands on top of the tipoff still showing — the only time the
     // already-seen key set is built from a non-empty stack.
-    await waitFor(() => expect(stack).toHaveTextContent('Final'))
+    await waitFor(() => expect(stack).toHaveTextContent('Final'), { timeout: 10_000 })
     expect(stack).toHaveTextContent('Tipoff')
   })
 
