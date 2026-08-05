@@ -203,9 +203,11 @@ describe('time zone detection and formatting edge cases', () => {
   })
 
   it('returns an empty abbreviation when no timeZoneName part is present (line 46)', () => {
-    vi.spyOn(Intl, 'DateTimeFormat').mockImplementation(() => ({
-      formatToParts: () => [{ type: 'literal', value: 'x' }],
-    }))
+    // `fmt` calls this with `new`, so the mock implementation must be a real
+    // function (not an arrow) — Vitest 4 refuses to construct arrow mocks.
+    vi.spyOn(Intl, 'DateTimeFormat').mockImplementation(function () {
+      return { formatToParts: () => [{ type: 'literal', value: 'x' }] }
+    })
     expect(formatZoneAbbr('2026-01-01T00:00:00Z', 'UTC')).toBe('')
   })
 

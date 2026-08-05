@@ -77,6 +77,21 @@ describe('live overlay on a committed game', () => {
   })
 })
 
+describe('live overlay ignores a poll that lands after teardown', () => {
+  it('drops the response when the abort signal already fired (line 156)', async () => {
+    // Hold the poll open, unmount (which aborts), then let the fetch settle. The
+    // guard must swallow the result rather than set state on a dead tree.
+    let settle
+    fetch.mockReturnValue(new Promise((res) => { settle = () => res(scoreboard([liveEvent()])) }))
+    const { unmount } = await mount()
+    unmount()
+    await act(async () => {
+      settle()
+    })
+    expect(screen.queryByText(/live now/)).not.toBeInTheDocument()
+  })
+})
+
 describe('live alerts fire toasts', () => {
   it('raises a tipoff toast for a followed team when a game goes live', async () => {
     localStorage.setItem('wnba:alerts', '1')
@@ -90,6 +105,51 @@ describe('live alerts fire toasts', () => {
     // Clicking the toast body opens that game's detail (Toasts onOpen).
     await userEvent.click(within(toast).getByRole('button', { name: /Tipoff/ }))
     expect(screen.getByRole('dialog', { name: 'Game detail' })).toBeInTheDocument()
+  })
+
+  it('keeps an existing toast and stacks the next moment on top (line 190)', async () => {
+    localStorage.setItem('wnba:alerts', '1')
+    // Poll 1 tips the game off; poll 2 finals it. The second pass has to diff the
+    // new moment against the toast already on screen, which is the only time the
+    // existing-key set is built from a non-empty list.
+    const finalEvent = () => ({
+      id: LIVE_ID,
+      competitions: [
+        {
+          status: { period: 4, displayClock: '0:00', type: { state: 'post', completed: true, shortDetail: 'Final' } },
+          competitors: [
+            { homeAway: 'home', score: { value: 82 } },
+            { homeAway: 'away', score: { value: 79 } },
+          ],
+        },
+      ],
+    })
+    // Pin the clock to the off-season so nothing is imminent and the cycle starts
+    // cold. The first live game then flips it warm, which re-runs the poll effect
+    // immediately — the only gap narrower than the 9s toast TTL.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-01-15T12:00:00Z'))
+
+    // Each poll fans out over three days, so gate by round: round 1 tips the game
+    // off, round 2 is held until the tipoff toast is provably on screen.
+    let release
+    const gate = new Promise((r) => { release = r })
+    let calls = 0
+    fetch.mockImplementation(async () => {
+      calls += 1
+      if (calls <= 3) return scoreboard([liveEvent()])
+      await gate
+      return scoreboard([finalEvent()])
+    })
+
+    await mount()
+    const stack = await screen.findByRole('status')
+    expect(stack).toHaveTextContent('Tipoff')
+    release()
+    // The final lands on top of the tipoff still showing — the only time the
+    // already-seen key set is built from a non-empty stack.
+    await waitFor(() => expect(stack).toHaveTextContent('Final'))
+    expect(stack).toHaveTextContent('Tipoff')
   })
 
   it('lets a toast be dismissed', async () => {

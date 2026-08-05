@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, cleanup, fireEvent } from '@testing-library/react'
+import { act, render, screen, cleanup, fireEvent } from '@testing-library/react'
 
 vi.mock('../src/services/player.js', () => ({
   fetchPlayer: vi.fn(),
@@ -81,6 +81,20 @@ describe('PlayerModal coverage', () => {
     fetchPlayer.mockResolvedValue({ bio: { college: 'Late Field U' }, games: [] })
     render(<PlayerModal player={fullPlayer} tz="America/New_York" onClose={() => {}} />)
     expect(await screen.findByText('Late Field U')).toBeInTheDocument()
+  })
+
+  it('ignores a player fetch that resolves after the modal closed (line 43)', async () => {
+    // Close the modal while the bio request is still open; the late response must
+    // be dropped rather than pushed into a state that no longer has a tree.
+    let settle
+    fetchPlayer.mockReturnValue(new Promise((res) => { settle = res }))
+    const { unmount } = render(<PlayerModal player={fullPlayer} tz="America/New_York" onClose={() => {}} />)
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    unmount()
+    await act(async () => {
+      settle({ bio: { college: 'Somewhere' }, games: [] })
+    })
+    expect(screen.queryByText('Somewhere')).not.toBeInTheDocument()
   })
 
   it('closes when the backdrop is pressed', () => {

@@ -243,6 +243,21 @@ describe('fetchGameSummary parsing edge cases', () => {
     expect(byLabel['TO'].better).toBe('home') // away 20 > home 15, fewer is better → home
   })
 
+  it('skips a side-less team entry and bolds neither side on a tied stat (lines 93, 106)', async () => {
+    stub({
+      boxscore: {
+        teams: [
+          { statistics: [{ name: 'assists', displayValue: '99' }] }, // no homeAway → ignored
+          { homeAway: 'away', statistics: [{ name: 'assists', displayValue: '20' }] },
+          { homeAway: 'home', statistics: [{ name: 'assists', displayValue: '20' }] },
+        ],
+      },
+    })
+    const { teamStats } = await fetchGameSummary('g1')
+    // The homeAway-less entry never reaches byHA, so its 99 is nowhere in the rows.
+    expect(teamStats).toEqual([{ label: 'AST', away: '20', home: '20', better: null }])
+  })
+
   it('parses injuries with missing team/athlete/detail fields (lines 121-126)', async () => {
     stub(edge())
     const { injuries } = await fetchGameSummary('g1')
