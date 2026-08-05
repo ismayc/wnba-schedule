@@ -13,6 +13,9 @@ import App from '../src/App.jsx'
 import { FollowProvider } from '../src/context/follow.jsx'
 import { ServicesProvider } from '../src/context/services.jsx'
 import { GAMES } from '../src/data/schedule.js'
+import { HISTORY } from '../src/data/history.js'
+import { TEAM_BY_ABBR } from '../src/data/teams.js'
+const teamNameOf = (a) => TEAM_BY_ABBR[a]?.name ?? a
 
 // A committed game to hang a live overlay on. NY vs CON, already final in the snapshot.
 const LIVE_ID = GAMES[0].id
@@ -288,6 +291,49 @@ describe('the other views render', () => {
     )
     // 2024: New York's first title.
     expect(screen.getByText(/win the title/)).toHaveTextContent(/New York Liberty/)
+  })
+
+  it('opens a team panel describing the archived season, not the live one', async () => {
+    // Regression: the panel was built from the live board wherever it was opened
+    // from, so a team clicked in the History view showed this season's record and
+    // this season's leading scorers. The season has to travel with the click.
+    const season = HISTORY[0]
+    const rows = Array.isArray(season.standings)
+      ? season.standings
+      : Object.values(season.standings).flat()
+    window.history.replaceState(null, '', `/?view=history&season=${season.year}`)
+    await mount()
+
+    const chip = document.querySelector('.standings .hy-team')
+    const abbr = rows.find((r) => chip.textContent.includes(teamNameOf(r.abbr)))
+    await userEvent.click(chip)
+
+    const panel = await screen.findByRole('dialog')
+    const target = abbr || rows[0]
+    expect(panel.querySelector('.tp-sub')).toHaveTextContent(`${target.w}–${target.l}`)
+    expect(panel.querySelector('.tp-sub')).toHaveTextContent(`seed ${target.seed}`)
+  })
+
+  it('opens the archived season’s panel from the bracket too, not just the table', async () => {
+    // The bracket reports a team by abbreviation alone, so it needs the season
+    // stamped on separately from the standings table above it.
+    const season = HISTORY[0]
+    window.history.replaceState(null, '', `/?view=history&season=${season.year}`)
+    await mount()
+
+    const btn = document.querySelector('.bx-team')
+    expect(btn).toBeTruthy()
+    const rows = Array.isArray(season.standings)
+      ? season.standings
+      : Object.values(season.standings).flat()
+    const target = rows.find((r) => btn.textContent.includes(teamNameOf(r.abbr)))
+    await userEvent.click(btn)
+
+    const panel = await screen.findByRole('dialog')
+    if (target) {
+      expect(panel.querySelector('.tp-sub')).toHaveTextContent(`${target.w}–${target.l}`)
+      expect(panel.querySelector('.tp-sub')).toHaveTextContent(`seed ${target.seed}`)
+    }
   })
 
   it('opens a historical game’s box score from the archived bracket', async () => {

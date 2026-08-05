@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { TEAM_BY_ABBR } from '../data/teams.js'
 import { playoffRace, CONFERENCE_BY_ABBR, CONFERENCES } from '../utils/standings.js'
 import { playersByTeam } from '../utils/stats.js'
+import { seasonTeamRow, seasonPlayers } from '../utils/history.js'
 import { formatDate, formatTime, liveState } from '../utils/time.js'
 import { useModalA11y } from '../hooks/useModalA11y.js'
 import { useFollow } from '../context/follow.jsx'
@@ -31,21 +32,28 @@ function Form({ results, onOpen, gamesById }) {
   )
 }
 
-export default function TeamPanel({ abbr, games, tz, hideScores, onClose, onSchedule, onOpenGame }) {
+// `season` is an archived season when the panel was opened from the History view.
+// Everything the panel shows then has to come from THAT season — its final table,
+// its player table, its games — rather than from the live board.
+export default function TeamPanel({ abbr, season, games, tz, hideScores, onClose, onSchedule, onOpenGame }) {
   const ref = useModalA11y(onClose, !!abbr)
   const { isFollowed, toggle } = useFollow()
 
+  const board = season ? season.games : games
   const race = useMemo(() => playoffRace(games), [games])
-  const gamesById = useMemo(() => new Map(games.map((g) => [g.id, g])), [games])
-  const row = race.find((r) => r.abbr === abbr)
-  const roster = useMemo(() => (abbr ? playersByTeam(abbr).slice(0, 6) : []), [abbr])
+  const gamesById = useMemo(() => new Map(board.map((g) => [g.id, g])), [board])
+  const row = season ? seasonTeamRow(season, abbr) : race.find((r) => r.abbr === abbr)
+  const roster = useMemo(
+    () => (abbr ? playersByTeam(abbr, season ? seasonPlayers(season) : undefined).slice(0, 6) : []),
+    [abbr, season],
+  )
 
   const upcoming = useMemo(() => {
     if (!abbr) return []
-    return games
+    return board
       .filter((g) => (g.home === abbr || g.away === abbr) && !g.score && !g.postponed)
       .slice(0, 5)
-  }, [games, abbr])
+  }, [board, abbr])
 
   if (!abbr || !row) return null
   const team = TEAM_BY_ABBR[abbr]

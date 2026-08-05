@@ -40,9 +40,9 @@ const gbText = (n) => (n === 0 ? '—' : String(n))
 const signed = (n) => (n > 0 ? `+${n.toFixed(1)}` : n.toFixed(1))
 const record = ([w, l]) => `${w}-${l}`
 
-function TeamChip({ abbr, size = 22, onPick }) {
+function TeamChip({ abbr, size = 22, onPick, year }) {
   return (
-    <button className="hy-team" onClick={() => onPick?.(abbr)}>
+    <button className="hy-team" onClick={() => onPick?.(abbr, year)}>
       <TeamLogo abbr={abbr} size={size} />
       <span>{teamName(abbr)}</span>
     </button>
@@ -54,7 +54,7 @@ function TeamChip({ abbr, size = 22, onPick }) {
 // The WNBA seeds league-wide rather than by conference, so a season is ONE table — and
 // the row count changes with the league: 12 teams through 2024, 13 once Golden State
 // joined in 2025.
-function StandingsTable({ season, onPick }) {
+function StandingsTable({ season, onPick, year }) {
   return (
     <div className="card">
       <h3 className="card-title">
@@ -83,7 +83,7 @@ function StandingsTable({ season, onPick }) {
                   <span className="rank">{r.seed}</span>
                 </td>
                 <td className="col-team">
-                  <TeamChip abbr={r.abbr} size={26} onPick={onPick} />
+                  <TeamChip abbr={r.abbr} size={26} onPick={onPick} year={year} />
                 </td>
                 <td className="num">{r.w}</td>
                 <td className="num">{r.l}</td>
@@ -108,6 +108,9 @@ function StandingsTable({ season, onPick }) {
 // One archived season: the bracket (which carries its own champion banner) and the final
 // table it was seeded from.
 function Season({ season, tz, onPick, onOpen }) {
+  // The bracket reports a team by abbreviation alone; stamp this season onto it
+  // so the panel it opens describes the right year.
+  const pick = (abbr) => onPick?.(abbr, season.year)
   const finals = useMemo(() => finalsSummary(season), [season])
 
   return (
@@ -123,11 +126,11 @@ function Season({ season, tz, onPick, onOpen }) {
         seeds={season.standings}
         lengths={season.lengths}
         tz={tz}
-        onPick={onPick}
+        onPick={pick}
         onOpen={onOpen}
       />
 
-      <StandingsTable season={season} onPick={onPick} />
+      <StandingsTable season={season} onPick={onPick} year={season.year} />
     </>
   )
 }
@@ -142,6 +145,9 @@ function Season({ season, tz, onPick, onOpen }) {
 // The live view's playoff-race card has no historical meaning — magic numbers for a
 // season that ended years ago — so a finished season shows its notable games instead.
 function SeasonStats({ season, tz, onPickTeam, onPickPlayer, onOpen }) {
+  // Leaderboards and the margin chart report a team by abbreviation alone; stamp
+  // this season onto it so the panel they open describes the right year.
+  const pickTeam = (abbr) => onPickTeam?.(abbr, season.year)
   const t = season.totals
   const [open, setOpen] = useState(null)
   const toggle = (k) => setOpen((v) => (v === k ? null : k))
@@ -205,7 +211,7 @@ function SeasonStats({ season, tz, onPickTeam, onPickPlayer, onOpen }) {
 
       <Leaders
         getRows={getRows}
-        onPickTeam={onPickTeam}
+        onPickTeam={pickTeam}
         onPickPlayer={onPickPlayer}
         showTeam={false}
       />
@@ -216,7 +222,7 @@ function SeasonStats({ season, tz, onPickTeam, onPickPlayer, onOpen }) {
         season&apos;s.
       </p>
 
-      <MarginChart rows={rows} onPickTeam={onPickTeam} />
+      <MarginChart rows={rows} onPickTeam={pickTeam} />
     </>
   )
 }
@@ -260,18 +266,18 @@ function Champions({ seasons, onPick, onSeason }) {
                   </button>
                 </td>
                 <td className="col-team">
-                  <TeamChip abbr={finals.winner} onPick={onPick} />
+                  <TeamChip abbr={finals.winner} onPick={onPick} year={season.year} />
                 </td>
                 <td className="num">{champSeed}</td>
                 <td className="col-team">
-                  <TeamChip abbr={finals.loser} onPick={onPick} />
+                  <TeamChip abbr={finals.loser} onPick={onPick} year={season.year} />
                 </td>
                 <td className="num">
                   {finals.wins[0]}–{finals.wins[1]}
                 </td>
                 <td className="num dim hide-sm">{season.lengths.Final}</td>
                 <td className="col-team hide-sm">
-                  <TeamChip abbr={best.abbr} onPick={onPick} />
+                  <TeamChip abbr={best.abbr} onPick={onPick} year={season.year} />
                   <span className="dim">
                     {' '}
                     {best.w}-{best.l}
