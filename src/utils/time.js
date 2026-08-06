@@ -89,6 +89,17 @@ export function liveState(game, now = Date.now()) {
   return now < start + GAME_MS ? 'likely-live' : 'past'
 }
 
+// Which bucket the "When" quick-filter puts a game in. A game that has tipped but has
+// no feed yet still reads as live, since that's what the viewer sees on the card. 'void'
+// is its own bucket so a postponed game never masquerades as a finished one.
+export function whenBucket(game, now = Date.now()) {
+  const state = liveState(game, now)
+  if (state === 'live' || state === 'likely-live') return 'live'
+  if (state === 'upcoming') return 'upcoming'
+  if (state === 'void') return 'void'
+  return 'final'
+}
+
 // Is this the next unplayed game for either of its two teams? The injury report is a
 // snapshot of CURRENT league injuries, so it only makes sense for a team's next matchup —
 // not a finished game (whose "injuries" would be today's, not that day's) and not one

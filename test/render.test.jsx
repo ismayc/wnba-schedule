@@ -217,7 +217,7 @@ describe('ScheduleView', () => {
       g('future', dFuture, 'PHX', 'LA'),
     ]
     const keysOf = (c) =>
-      [...c.querySelectorAll('.day')].map((d) => d.querySelector('.day-head span').textContent)
+      [...c.querySelectorAll('.day')].map((d) => d.querySelector('.day-name').textContent)
 
     it('defaults to the last week of results plus upcoming, hiding older days', () => {
       const { container } = render(<ScheduleView games={games} tz={TZ} />)
