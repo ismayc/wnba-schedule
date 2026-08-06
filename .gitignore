@@ -2,7 +2,9 @@ node_modules
 dist
 .DS_Store
 coverage
-public/coverage.json
+# public/coverage.json is COMMITTED. `npm run build` does not regenerate it, and the
+# twice-daily refresh workflow deploys Pages with a plain build — so leaving it
+# generated stripped the README badge from the site on every refresh.
 
 # Local Netlify folder
 .netlify
