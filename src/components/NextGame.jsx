@@ -40,10 +40,16 @@ function Countdown({ ms }) {
   )
 }
 
-// Only the non-regular phases are worth naming — "Regular Season" on every card all
-// summer is noise, while All-Star and the playoffs genuinely change what you're looking at.
-const phaseLabel = (g) =>
-  g.seasonType === 'allstar' ? 'All-Star' : g.seasonType === 'playoffs' ? 'Playoffs' : ''
+// Only the non-regular phases are worth naming — "Regular season" on every card all
+// summer is noise, while the playoffs, All-Star and the Cup genuinely change what
+// you're looking at. A lookup, not a ternary, so a phase added to PHASE_ORDER later
+// can't silently fall through to no label.
+const PHASE_NAMES = {
+  playoffs: 'Playoffs',
+  allstar: 'All-Star',
+  cup: 'Cup',
+}
+const phaseLabel = (g) => PHASE_NAMES[g.seasonType] || ''
 
 // The All-Star sides are ad-hoc rosters (Team Coop / Team Spoon) with no franchise
 // behind the abbreviation, so fall back to the name the feed ships.

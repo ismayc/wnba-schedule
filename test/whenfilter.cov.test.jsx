@@ -76,18 +76,28 @@ describe('the When filter in the app', () => {
     await userEvent.click(finished)
     expect(finished).toHaveAttribute('aria-pressed', 'true')
 
-    // Every card left is a played game — prove the filter bit rather than trusting a
-    // count that would also pass if nothing were filtered. The card's own state- class
-    // is what liveState decided, so this can't agree with the filter by construction.
-    const cards = document.querySelectorAll('article.game')
-    expect(cards.length).toBeGreaterThan(0)
-    for (const c of cards) {
+    // Mid-season this has teeth on its own, because upcoming games are on screen to be
+    // filtered out. Come the offseason every committed game is played and the property
+    // would hold with the filter disabled — so assert the CONTRAST, which bites in
+    // either half of the year.
+    const cardCount = () => document.querySelectorAll('article.game').length
+    expect(cardCount()).toBeGreaterThan(0)
+    for (const c of document.querySelectorAll('article.game')) {
       expect(c.className).toMatch(/state-(final|past)\b/)
     }
 
     expect(screen.getByRole('button', { name: /⚙ Filters/ })).toHaveTextContent('1')
 
+    const beforeUpcoming = cardCount()
+    await userEvent.click(screen.getByRole('button', { name: '⏱ Upcoming' }))
+    // Every card on screen is now unplayed — a strictly different set from the one above.
+    for (const c of document.querySelectorAll('article.game')) {
+      expect(c.className).not.toMatch(/state-(final|past)\b/)
+    }
+    expect(cardCount()).not.toBe(beforeUpcoming)
+
     await userEvent.click(screen.getByRole('button', { name: /Clear all/ }))
+    expect(cardCount()).toBeGreaterThan(beforeUpcoming)
     expect(screen.getByRole('button', { name: '✓ Finished' })).toHaveAttribute(
       'aria-pressed',
       'false'
