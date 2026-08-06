@@ -12,8 +12,10 @@ export default defineConfig({
     setupFiles: ['./test/setup.js'],
     // Full-app userEvent tests under v8 instrumentation can brush the default 5s
     // ceiling on a loaded CI runner (mount + several interaction clicks). Give them
-    // headroom so a busy runner doesn't flake a passing test.
-    testTimeout: 15000,
+    // headroom so a busy runner doesn't flake a passing test. 30s matches the NFL and
+    // both March Madness viewers; 15s was this repo's own outlier, and it started
+    // timing out once a second full-app suite joined the run to compete for workers.
+    testTimeout: 30000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary', 'json'],
