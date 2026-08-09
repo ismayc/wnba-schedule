@@ -29,7 +29,19 @@ function LastTen({ results }) {
   )
 }
 
-function Row({ row, rank, onPick }) {
+// "3–7" while outcomes remain open; collapses to the bare seed once locked.
+function FinishRange({ row }) {
+  if (row.bestRank === row.worstRank) {
+    return <span className="finish finish-locked">{row.bestRank}</span>
+  }
+  return (
+    <span className="finish">
+      {row.bestRank}–{row.worstRank}
+    </span>
+  )
+}
+
+function Row({ row, rank, onPick, showFinish }) {
   const { isFollowed, toggle } = useFollow()
   const followed = isFollowed(row.abbr)
 
@@ -78,11 +90,16 @@ function Row({ row, rank, onPick }) {
         <StreakPill streak={row.streak} />
       </td>
       <td className={`num hide-sm ${row.netPpg > 0 ? 'pos' : 'neg'}`}>{signed(row.netPpg)}</td>
+      {showFinish && (
+        <td className="num">
+          <FinishRange row={row} />
+        </td>
+      )}
     </tr>
   )
 }
 
-function Table({ caption, rows, rankKey, onPick, cutAfter }) {
+function Table({ caption, rows, rankKey, onPick, cutAfter, showFinish }) {
   return (
     <div className="card">
       <h3 className="card-title">{caption}</h3>
@@ -103,15 +120,25 @@ function Table({ caption, rows, rankKey, onPick, cutAfter }) {
               <th className="num hide-sm" title="Point differential per game">
                 Net
               </th>
+              {showFinish && (
+                <th
+                  className="num"
+                  title="Final seeds still arithmetically possible (win-loss bounds; a secured tiebreaker can only narrow this sooner)"
+                >
+                  Finish
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
             {rows.map((row, i) => (
               <Fragment key={row.abbr}>
-                <Row row={row} rank={row[rankKey]} onPick={onPick} />
+                <Row row={row} rank={row[rankKey]} onPick={onPick} showFinish={showFinish} />
                 {cutAfter === i + 1 && (
                   <tr className="cutline">
-                    <td colSpan={11}>
+                    {/* Only the league table draws the cut, and it always shows Finish —
+                        so the span is always the full 12 columns. */}
+                    <td colSpan={12}>
                       <span>Playoff cut — top {PLAYOFF_SPOTS} make the postseason</span>
                     </td>
                   </tr>
@@ -157,6 +184,7 @@ export default function StandingsView({ games, onPick }) {
           rankKey="seed"
           onPick={onPick}
           cutAfter={PLAYOFF_SPOTS}
+          showFinish
         />
       ) : (
         <div className="grid-2">
@@ -177,6 +205,10 @@ export default function StandingsView({ games, onPick }) {
         </span>
         <span className="legend-item">
           <span className="legend-star">★</span> a team you follow
+        </span>
+        <span className="legend-item">
+          <span className="finish">Finish 3–7</span> — the final seeds still arithmetically
+          possible; a single number means the seed is locked
         </span>
       </p>
     </section>

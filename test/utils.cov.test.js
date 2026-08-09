@@ -108,15 +108,17 @@ describe('standings edge cases', () => {
     expect(compareTeams(table.MIN, table.LV, games, table)).toBeLessThan(0)
   })
 
-  it('treats an opponent outside the league table as a sub-.500 team (line 111)', () => {
+  it('treats an opponent outside the league table as a sub-.500 team', () => {
     // Both teams' only win is over a non-league opponent (no table row), so the
-    // "vs winning teams" tiebreaker reads that opponent's pct as 0 and the two stay tied.
+    // "vs winning teams" step reads that opponent's pct as 0 and stays silent. The
+    // whole published chain is silent here, and the comparator no longer reports a
+    // dead 0 — the deterministic stand-in orders the pair alphabetically (LV first).
     const games = [
       game({ home: 'MIN', away: 'ZZZ', score: [90, 80] }),
       game({ home: 'LV', away: 'ZZZ', score: [90, 80] }),
     ]
     const table = computeStandings(games)
-    expect(compareTeams(table.MIN, table.LV, games, table)).toBe(0)
+    expect(compareTeams(table.MIN, table.LV, games, table)).toBeGreaterThan(0)
   })
 
   it('computes a magic number and returns null once catching up is impossible (lines 168, 170)', () => {

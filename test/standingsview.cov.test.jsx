@@ -81,6 +81,20 @@ describe('StandingsView — clinch, elimination, and streak edge cases', () => {
     expect(screen.getByText('Playoff seeding')).toBeInTheDocument()
   })
 
+  it('shows the Finish seed-range column in league mode only', async () => {
+    const { container } = render(<StandingsView games={games} />)
+    // Round-robin fixture: every playing team's schedule is exhausted, so ranks with no
+    // unresolved tie collapse to a locked single seed (gold), and the column renders.
+    expect(screen.getByText('Finish')).toBeInTheDocument()
+    expect(container.querySelectorAll('.finish-locked').length).toBeGreaterThan(0)
+    // MIN swept the round-robin: locked at seed 1.
+    const lockedOne = [...container.querySelectorAll('.finish-locked')].map((n) => n.textContent)
+    expect(lockedOne).toContain('1')
+    // Conference tables don't carry the league-wide range.
+    await userEvent.click(screen.getByRole('button', { name: 'Conference' }))
+    expect(screen.queryByText('Finish')).not.toBeInTheDocument()
+  })
+
   it('explains the clinch badges in a visible legend (tooltips are hover-only)', async () => {
     const { container } = render(<StandingsView games={games} />)
     const legend = container.querySelector('.legend')
