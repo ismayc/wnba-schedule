@@ -18,11 +18,12 @@
 //   (budget gate) — exactly the late-season window where it is useful. Over budget it
 //   returns null and the caller keeps the arithmetic verdict.
 
+// A live score is provisional, so an in-progress game is still "remaining" here.
 const isRemaining = (g) =>
-  g.seasonType === 'regular' && !g.postponed && !g.canceled && !g.score
+  g.seasonType === 'regular' && !g.postponed && !g.canceled && (!g.score || !!g.live)
 
 const isPlayed = (g) =>
-  g.seasonType === 'regular' && !g.postponed && !g.canceled && !!g.score
+  g.seasonType === 'regular' && !g.postponed && !g.canceled && !!g.score && !g.live
 
 // 2^18 coupled-game outcomes ≈ a quarter-million leaf evaluations — unnoticeable in
 // the browser, and wide enough to cover roughly the last two weeks of chasers' games.

@@ -36,6 +36,10 @@ describe('countsForStandings', () => {
     expect(countsForStandings(game({ postponed: true }))).toBe(false)
     expect(countsForStandings(game({ score: undefined }))).toBe(false)
   })
+
+  it('treats a live score as provisional — an in-progress game does not count', () => {
+    expect(countsForStandings(game({ live: true }))).toBe(false)
+  })
 })
 
 describe('computeStandings', () => {
@@ -224,6 +228,18 @@ describe('seedRanges', () => {
     // SEA 0-2 finishes TIED at zero wins with the 13 idle teams — tiebreakers decide
     // the order, so the range spans the whole tied block rather than pretending 15th.
     expect(ranges.SEA).toEqual({ bestRank: 2, worstRank: 15 })
+  })
+
+  it('does not bank a head-to-head series while its last game is still live', () => {
+    const liveFinale = [
+      game({ id: 'l1', home: 'MIN', away: 'SEA', score: [90, 80] }),
+      game({ id: 'l2', home: 'SEA', away: 'MIN', score: [70, 90], live: true, tip: '2026-05-20T00:00:00.000Z' }),
+    ]
+    const rows = seedings(liveFinale)
+    const ranges = seedRanges(rows, scheduledGames(liveFinale), liveFinale)
+    // MIN leads the live rematch, but a live score is provisional: the series is not
+    // banked, SEA can still tie MIN's floor, so the top seed must stay open.
+    expect(ranges.MIN).toEqual({ bestRank: 1, worstRank: 2 })
   })
 
   it('derives clinched from the range even when the current 9th seed could still pass', () => {

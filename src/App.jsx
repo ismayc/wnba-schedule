@@ -173,7 +173,7 @@ export default function App() {
 
   // Poll faster while games are in progress, and not at all once the season is over.
   const seasonOver = useMemo(
-    () => games.every((g) => g.score || g.postponed || g.canceled),
+    () => games.every((g) => (g.score && !g.live) || g.postponed || g.canceled),
     [games]
   )
 

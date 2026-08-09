@@ -88,6 +88,17 @@ describe('an in-progress series', () => {
     expect(s.wins.LV).toBe(2)
     expect(s.games).toHaveLength(3)
   })
+
+  it('does not count a live game’s provisional score as a series win', () => {
+    const withLive = [
+      ...partial,
+      { ...partial[0], id: 'y', game: 3, score: [80, 70], live: true },
+    ]
+    const [s] = buildSeries(withLive)
+    expect(s.wins).toEqual({ LV: 2, PHX: 0 })
+    expect(s.winner).toBeNull()
+    expect(s.live).toBe(true)
+  })
 })
 
 describe('projection before the postseason exists', () => {

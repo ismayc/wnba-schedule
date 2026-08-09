@@ -48,6 +48,21 @@ describe('scenarioClinched', () => {
     expect(MAX_COUPLED_GAMES).toBeGreaterThan(0)
   })
 
+  it('treats a live score as provisional — no clinch off a game still in progress', () => {
+    // MIN leads GS in a LIVE head-to-head. Banking that provisional score would
+    // put MIN out of reach for the top spot; the game must stay open, and open it
+    // hands GS the win — GS draws level and owns the head-to-head, so no clinch.
+    const g = [
+      game({ id: 'b1', home: 'MIN', away: 'SEA', score: [90, 80] }),
+      game({ id: 'b2', home: 'MIN', away: 'POR', score: [90, 80] }),
+      game({ id: 'b3', home: 'GS', away: 'PHX', score: [90, 80] }),
+      game({ id: 'b4', home: 'MIN', away: 'GS', score: [60, 50], live: true, tip: '2026-05-20T00:00:00.000Z' }),
+    ]
+    const liveRows = seedings(g)
+    const liveTotals = scheduledGames(g)
+    expect(scenarioClinched('MIN', liveRows, liveTotals, g, 1)).toBe(false)
+  })
+
   it('resolves a three-way floor tie using the enumerated games themselves', () => {
     // GS and LV still play a home-and-home. If they SPLIT it, both land on MIN's
     // floor of 2 — and both enumerated results are part of the tied group's

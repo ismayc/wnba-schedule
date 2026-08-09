@@ -54,7 +54,7 @@ export function buildSeries(games, lengths = SERIES_LENGTH) {
 
     const wins = Object.fromEntries(s.teams.map((t) => [t, 0]))
     for (const g of s.games) {
-      if (!g.score || g.postponed || g.canceled) continue
+      if (!g.score || g.live || g.postponed || g.canceled) continue
       const winner = g.score[0] > g.score[1] ? g.home : g.away
       if (winner in wins) wins[winner]++
     }
