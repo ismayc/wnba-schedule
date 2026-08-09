@@ -4,6 +4,17 @@ A dated changelog for The WNBA Schedule. Each heading is a calendar
 day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-08-09
+
+- **Sharper clinch math: banked ties + a late-season scenario engine.** The ✓
+  no longer vanishes when a chaser can merely TIE a team's lose-out floor: a
+  finished, won season series settles that tie (head-to-head is step 1), so it
+  stops counting — the Lynx case that surfaced today. And once the remaining
+  coupled schedule is small enough to enumerate, a scenario engine checks every
+  outcome, seeing what independent bounds can't: chasers who still play each
+  other can't all win out. Elimination stays purely arithmetic — a ✕ never
+  rests on an assumption.
+
 ## 2026-08-08
 
 - **Official tiebreakers + Finish column.** Seeding now applies the league's

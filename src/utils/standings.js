@@ -2,6 +2,7 @@
 // game list, so they can be unit-tested with synthetic arrays and no DOM.
 
 import { TEAMS, TEAM_BY_ABBR } from '../data/teams.js'
+import { scenarioClinched } from './raceScenarios.js'
 
 export const CONFERENCES = { E: 'Eastern Conference', W: 'Western Conference' }
 
@@ -246,13 +247,42 @@ export function magicNumber(row, chaser, totals) {
   return n <= 0 ? null : n
 }
 
-// The window of final seeds still arithmetically open to each team, from win bounds
-// alone: a rival can still finish ahead of you only if its ceiling (win out) reaches
-// your floor (lose out). Ties are charged AGAINST the team for the worst bound and FOR
-// it for the best bound, so the range is sound regardless of how tiebreakers fall —
-// it may be conservative (a tiebreaker already secured could narrow it sooner), never
-// wrong. bestRank === worstRank therefore means the seed is truly locked.
-export function seedRanges(rows, totals) {
+// Season series ledger for every pair that has met or will meet: wins each way plus
+// how many of their scheduled meetings are still unplayed. Keyed "A|B" with the abbrs
+// sorted, so either team can look the pair up.
+function seriesLedger(games) {
+  const ledger = new Map()
+  const at = (a, b) => {
+    const key = [a, b].sort().join('|')
+    let e = ledger.get(key)
+    if (!e) ledger.set(key, (e = { wins: {}, remaining: 0 }))
+    return e
+  }
+  for (const g of games) {
+    if (g.seasonType !== 'regular' || g.postponed || g.canceled) continue
+    const e = at(g.home, g.away)
+    if (!g.score) e.remaining++
+    else {
+      const winner = g.score[0] > g.score[1] ? g.home : g.away
+      e.wins[winner] = (e.wins[winner] ?? 0) + 1
+    }
+  }
+  return ledger
+}
+
+// The window of final seeds still arithmetically open to each team, from win bounds:
+// a rival can still finish ahead of you only if its ceiling (win out) reaches your
+// floor (lose out). Ties are charged AGAINST the team for the worst bound and FOR it
+// for the best bound — with ONE refinement: a rival who can only TIE the floor (never
+// strictly pass it) stops counting once the season series between the pair is complete
+// and won, because head-to-head is step 1 of the official chain and a banked series
+// settles a two-team tie immutably. (A multi-way tie at the same win count could in
+// principle reorder a group by ITS head-to-heads — the exotic case this refinement
+// accepts; closing it would take a full scenario engine.) bestRank stays purely
+// arithmetic, so elimination is never declared off a tiebreaker assumption.
+// bestRank === worstRank therefore means the seed is truly locked.
+export function seedRanges(rows, totals, games) {
+  const ledger = seriesLedger(games)
   const bounds = rows.map((row) => ({
     abbr: row.abbr,
     floor: row.w,
@@ -265,7 +295,13 @@ export function seedRanges(rows, totals) {
     for (const r of bounds) {
       if (r.abbr === b.abbr) continue
       if (r.floor > b.ceiling) ahead++
-      if (r.ceiling >= b.floor) couldPass++
+      if (r.ceiling > b.floor) couldPass++
+      else if (r.ceiling === b.floor) {
+        // Tie-only threat: discounted when the pair's series is finished and ours.
+        const e = ledger.get([b.abbr, r.abbr].sort().join('|'))
+        const banked = e && e.remaining === 0 && (e.wins[b.abbr] ?? 0) > (e.wins[r.abbr] ?? 0)
+        if (!banked) couldPass++
+      }
     }
     out[b.abbr] = { bestRank: 1 + ahead, worstRank: 1 + couldPass }
   }
@@ -277,17 +313,21 @@ export function playoffRace(games) {
   const totals = scheduledGames(games)
   const cut = seeded[PLAYOFF_SPOTS - 1]
   const firstOut = seeded[PLAYOFF_SPOTS]
-  const ranges = seedRanges(seeded, totals)
+  const ranges = seedRanges(seeded, totals, games)
 
   return seeded.map((row) => {
     const remaining = (totals[row.abbr] ?? 0) - row.gp
     const { bestRank, worstRank } = ranges[row.abbr]
-    // Clinched when no arithmetic outcome leaves the team below the cut; eliminated
-    // when none gets it above. Range-derived, which is strictly stronger than the old
-    // compare-against-the-current-9th check: it also catches the case where the 9th
-    // seed could pass you but only by displacing someone else out of the top 8.
-    const clinched = worstRank <= PLAYOFF_SPOTS
+    // Clinched when no outcome leaves the team below the cut: first the win-bound
+    // ranges (with banked head-to-head ties discounted), then — once the coupled
+    // late-season schedule is small enough to enumerate — the exact scenario check,
+    // which also sees that two chasers who still play each other can't both win out.
+    // Elimination stays purely arithmetic; see raceScenarios.js for the contract.
     const eliminated = bestRank > PLAYOFF_SPOTS
+    const clinched =
+      worstRank <= PLAYOFF_SPOTS ||
+      (!eliminated &&
+        scenarioClinched(row.abbr, seeded, totals, games, PLAYOFF_SPOTS) === true)
     return {
       ...row,
       remaining,

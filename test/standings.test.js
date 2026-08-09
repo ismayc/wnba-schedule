@@ -204,7 +204,7 @@ describe('seedRanges', () => {
 
   it('keeps a rank open while a rival can still tie the floor (tie charged against)', () => {
     const rows = seedings(twoTeamGames)
-    const ranges = seedRanges(rows, scheduledGames(twoTeamGames))
+    const ranges = seedRanges(rows, scheduledGames(twoTeamGames), twoTeamGames)
     // MIN can finish 1st (wins out) but SEA tying at 1-1 is charged against MIN.
     expect(ranges.MIN).toEqual({ bestRank: 1, worstRank: 2 })
     // SEA can no better than tie MIN's ceiling… a tie is charged FOR the best bound,
@@ -218,7 +218,7 @@ describe('seedRanges', () => {
       game({ id: 'd2', home: 'SEA', away: 'MIN', score: [70, 90], tip: '2026-05-20T00:00:00.000Z' }),
     ]
     const rows = seedings(done)
-    const ranges = seedRanges(rows, scheduledGames(done))
+    const ranges = seedRanges(rows, scheduledGames(done), done)
     // MIN 2-0 with its schedule exhausted and nobody able to reach 2 wins: locked at 1.
     expect(ranges.MIN).toEqual({ bestRank: 1, worstRank: 1 })
     // SEA 0-2 finishes TIED at zero wins with the 13 idle teams — tiebreakers decide
@@ -326,5 +326,47 @@ describe('official tiebreak chain', () => {
     // wait, they ARE .500; both are 1-1 vs .500 teams). Equal at every step.
     const ordered = resolveTiedGroup([table.TOR, table.NY], g5, table)
     expect(ordered.map((r) => r.abbr)).toEqual(['NY', 'TOR'])
+  })
+})
+
+// ── Banked head-to-head ties ─────────────────────────────────────────────────
+// A rival who can only TIE the floor stops counting once the season series is
+// complete and won — head-to-head is step 1, so a banked series settles a two-team
+// tie immutably (the Lynx/Sparks case of 2026-08-08).
+describe('seedRanges — banked series ties', () => {
+  it('discounts an exact-tie threat once the season series is complete and won', () => {
+    const g6 = [
+      game({ id: 'b1', home: 'MIN', away: 'LA', score: [90, 80] }),
+      game({ id: 'b2', home: 'LA', away: 'MIN', score: [90, 80] }),
+      game({ id: 'b3', home: 'MIN', away: 'LA', score: [85, 80] }), // series 2-1 MIN, done
+      game({ id: 'b4', home: 'LA', away: 'SEA', score: null }), // LA ceiling 2 = MIN floor
+    ]
+    const rows = seedings(g6)
+    const ranges = seedRanges(rows, scheduledGames(g6), g6)
+    expect(ranges.MIN.worstRank).toBe(1) // LA's tie is settled — no threat
+  })
+
+  it('still counts the tie while a game between the pair remains', () => {
+    const g7 = [
+      game({ id: 'c1', home: 'MIN', away: 'LA', score: [90, 80] }),
+      game({ id: 'c2', home: 'LA', away: 'MIN', score: [90, 80] }),
+      game({ id: 'c3', home: 'MIN', away: 'LA', score: [85, 80] }),
+      game({ id: 'c4', home: 'LA', away: 'MIN', score: null }), // rematch pending
+    ]
+    const rows = seedings(g7)
+    const ranges = seedRanges(rows, scheduledGames(g7), g7)
+    expect(ranges.MIN.worstRank).toBe(2)
+  })
+
+  it('still counts the tie when the finished series is not strictly won', () => {
+    const g8 = [
+      game({ id: 'd1', home: 'MIN', away: 'LA', score: [90, 80] }),
+      game({ id: 'd2', home: 'LA', away: 'MIN', score: [90, 80] }), // split, done
+      game({ id: 'd3', home: 'MIN', away: 'SEA', score: [90, 80] }), // MIN floor 2
+      game({ id: 'd4', home: 'LA', away: 'SEA', score: null }), // LA ceiling 2
+    ]
+    const rows = seedings(g8)
+    const ranges = seedRanges(rows, scheduledGames(g8), g8)
+    expect(ranges.MIN.worstRank).toBe(2)
   })
 })
