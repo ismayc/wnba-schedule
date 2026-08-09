@@ -165,6 +165,20 @@ export default function StandingsView({ games, onPick }) {
           ))}
         </div>
       )}
+
+      <p className="legend">
+        <span className="legend-item">
+          <span className="badge badge-in">✓</span> clinched a playoff spot — a top-8 finish is
+          guaranteed
+        </span>
+        <span className="legend-item">
+          <span className="badge badge-out">✕</span> eliminated — can no longer catch the 8th
+          seed (row dims)
+        </span>
+        <span className="legend-item">
+          <span className="legend-star">★</span> a team you follow
+        </span>
+      </p>
     </section>
   )
 }

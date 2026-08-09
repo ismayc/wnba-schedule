@@ -80,4 +80,15 @@ describe('StandingsView — clinch, elimination, and streak edge cases', () => {
     await userEvent.click(screen.getByRole('button', { name: 'League' }))
     expect(screen.getByText('Playoff seeding')).toBeInTheDocument()
   })
+
+  it('explains the clinch badges in a visible legend (tooltips are hover-only)', async () => {
+    const { container } = render(<StandingsView games={games} />)
+    const legend = container.querySelector('.legend')
+    expect(legend).toHaveTextContent(/✓ clinched a playoff spot/)
+    expect(legend).toHaveTextContent(/✕ eliminated/)
+    expect(legend).toHaveTextContent(/★ a team you follow/)
+    // The legend survives the conference mode too.
+    await userEvent.click(screen.getByRole('button', { name: 'Conference' }))
+    expect(container.querySelector('.legend')).toBeTruthy()
+  })
 })
