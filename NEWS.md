@@ -6,6 +6,11 @@ data/source updates, deployment). Newest day on top.
 
 ## 2026-08-09
 
+- **Live window anchors on the Eastern day.** The scoreboard poll's three-day
+  window was computed in UTC, but ESPN buckets `dates=` by the US-Eastern day —
+  every US evening the window slid to {today, +1, +2} and dropped yesterday's
+  finals from the overlay. The window now converts each offset to its Eastern
+  day.
 - **Refresh no longer attaches mid-game line scores.** Today's refresh run
   failed its test gate when the scoreboard's month query served a mid-game
   snapshot: a partial line (and provisional star leaders) attached to a game

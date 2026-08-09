@@ -6,8 +6,18 @@
 
 const SCOREBOARD = 'https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/scoreboard'
 
-const yyyymmdd = (d) =>
-  `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, '0')}${String(d.getUTCDate()).padStart(2, '0')}`
+// ESPN buckets a `dates=YYYYMMDD` query by the US-EASTERN day, not UTC (verified:
+// dates=20260728 returns instants up to 07-29T02:00Z). Anchoring the window on the
+// UTC day meant an evening viewer in the US was already on "tomorrow" in UTC, so the
+// three-day window slid to {today, +1, +2} in Eastern terms and dropped yesterday's
+// finals from the overlay.
+const EASTERN_DAY = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/New_York',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
+const espnDay = (d) => EASTERN_DAY.format(d).replace(/-/g, '')
 
 function normalizeEvent(ev) {
   const c = ev.competitions?.[0]
@@ -38,13 +48,9 @@ function normalizeEvent(ev) {
 }
 
 // The scoreboard is a rolling window; ask for an explicit date range so a refresh
-// after midnight UTC still picks up last night's finals.
+// after midnight still picks up last night's finals.
 export async function fetchLive({ signal, now = new Date() } = {}) {
-  const days = [-1, 0, 1].map((d) => {
-    const x = new Date(now)
-    x.setUTCDate(x.getUTCDate() + d)
-    return yyyymmdd(x)
-  })
+  const days = [-1, 0, 1].map((d) => espnDay(new Date(now.getTime() + d * 86_400_000)))
 
   const results = await Promise.allSettled(
     days.map(async (d) => {
