@@ -6,6 +6,11 @@ data/source updates, deployment). Newest day on top.
 
 ## 2026-08-09
 
+- **Refresh no longer attaches mid-game line scores.** Today's refresh run
+  failed its test gate when the scoreboard's month query served a mid-game
+  snapshot: a partial line (and provisional star leaders) attached to a game
+  whose final score came from the fresher team-schedule feed. The box-score
+  enrichment now skips events the scoreboard doesn't mark completed.
 - **Live scores no longer count as final.** The live overlay's provisional
   score was being banked everywhere a result matters: standings absorbed
   halftime leads, the bracket could crown a series winner mid-game, the race

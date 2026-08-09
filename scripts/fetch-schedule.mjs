@@ -314,6 +314,10 @@ async function enrichWithBoxScores(games) {
     for (const ev of d.events || []) {
       const c = ev.competitions?.[0]
       if (!c) continue
+      // A live (or stale-cached mid-game) scoreboard snapshot carries a PARTIAL line
+      // and provisional leaders; attaching those to a final score fails the
+      // line-sums-to-score gate. Only completed events contribute.
+      if (!c.status?.type?.completed) continue
       const side = (ha) => c.competitors.find((t) => t.homeAway === ha)
       const home = side('home')
       const away = side('away')
