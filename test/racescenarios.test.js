@@ -66,12 +66,14 @@ describe('scenarioClinched', () => {
   it('resolves a three-way floor tie using the enumerated games themselves', () => {
     // GS and LV still play a home-and-home. If they SPLIT it, both land on MIN's
     // floor of 2 — and both enumerated results are part of the tied group's
-    // head-to-head. MIN went 2-0 against the pair, so step 1 ranks MIN above both in
-    // the split scenarios; a sweep sends exactly one rival ahead. Every outcome
-    // leaves at most one rival above MIN → top-2 is safe.
+    // head-to-head. MIN went 2-0 against the pair (once at home, once on the
+    // road — the ledger must credit an away winner, not just the home side), so
+    // step 1 ranks MIN above both in the split scenarios; a sweep sends exactly
+    // one rival ahead. Every outcome leaves at most one rival above MIN → top-2
+    // is safe.
     const g = [
       game({ id: 't1', home: 'MIN', away: 'GS', score: [90, 80] }),
-      game({ id: 't2', home: 'MIN', away: 'LV', score: [90, 80] }),
+      game({ id: 't2', home: 'LV', away: 'MIN', score: [80, 90] }),
       game({ id: 't3', home: 'LV', away: 'PHX', score: [90, 80] }),
       game({ id: 't5', home: 'GS', away: 'SEA', score: [90, 80] }),
       game({ id: 't6', home: 'LV', away: 'GS', score: null, tip: '2026-05-22T00:00:00.000Z' }),

@@ -4,6 +4,16 @@ A dated changelog for The WNBA Schedule. Each heading is a calendar
 day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-08-10
+
+- **The ESPN fetch layer is now vendored, not copy-pasted.** The hardened
+  transport (5 retries with exponential backoff + jitter, retry only on
+  5xx/429/network errors, a 6-request concurrency cap) previously lived as an
+  inline copy in each data script; it now lives in `scripts/lib/fetch.mjs`,
+  vendored byte-for-byte from the canonical copy in `sports-viewer-meta`
+  (which diffs every repo's copy via `check-fetch-sync`). No behavior change
+  to the refresh pipeline.
+
 ## 2026-08-09
 
 - **Live window anchors on the Eastern day.** The scoreboard poll's three-day
