@@ -1464,6 +1464,19 @@ button.drill-row:hover {
   font-variant-numeric: tabular-nums;
 }
 
+/* A traded player carries one badge per club, so this cell is a row, not a single logo. */
+.lead-teams {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.lead-arrow {
+  color: var(--text-faint);
+  font-size: 10px;
+  font-style: normal;
+}
+
 .lead-team button {
   background: none;
   border: 0;
@@ -2823,6 +2836,13 @@ button.drill-row:hover {
   gap: 5px;
   font-size: 12.5px;
   color: var(--text-dim);
+  /* A traded player names both clubs, which can outrun a narrow pop-out. */
+  flex-wrap: wrap;
+}
+
+.pm-arrow {
+  color: var(--text-faint);
+  font-style: normal;
 }
 
 .pm-bio {

@@ -153,19 +153,18 @@ describe('HistoryView — stats for one season', () => {
     const { container } = await stats(2023, { onPickPlayer })
     await userEvent.click(container.querySelector('.lead-player'))
     expect(onPickPlayer).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'Jewell Loyd', avgPoints: 24.7 })
+      expect.objectContaining({ name: 'Jewell Loyd', avgPoints: 24.7105 })
     )
   })
 
-  it('shows no team badge on an archived board, and says why', async () => {
-    // ESPN reports a player's CURRENT club even for an old season, and only for players
-    // who later moved: 2023's scoring leader Jewell Loyd was a Storm that year but reads
-    // as an Ace in the feed, while Breanna Stewart's Liberty badge is correct. A board
-    // that mixes the two silently is worse than one that shows neither.
+  it('badges an archived board with the club she actually played for', async () => {
+    // The reason this was blank before: ESPN reports a player's CURRENT club even for an
+    // old season, so 2023's scoring leader Jewell Loyd — a Storm that year — read as an
+    // Ace. Season teams now come from the per-team splits, so the badge is hers.
     const { container } = await stats(2023)
-    expect(container.querySelectorAll('.leaders .lead-team')).toHaveLength(0)
-    expect(container.querySelector('.leaders')).toBeTruthy()
-    expect(screen.getByText(/no team badge/)).toBeInTheDocument()
+    const first = container.querySelector('.leaders .lead-team')
+    expect(first).toBeTruthy()
+    expect(first.querySelector('button')).toHaveAttribute('title', expect.stringContaining('SEA'))
   })
 
   it('ranks the scoring margin from points for and against', async () => {

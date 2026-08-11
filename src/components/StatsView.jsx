@@ -1,10 +1,20 @@
-import { useMemo, useState } from 'react'
-import { seasonTotals, teamScoring, leaderboard, LEADER_CATEGORIES } from '../utils/stats.js'
+import { Fragment, useMemo, useState } from 'react'
+import {
+  seasonTotals,
+  teamScoring,
+  leaderboard,
+  teamLabel,
+  LEADER_CATEGORIES,
+} from '../utils/stats.js'
 import { playoffRace, PLAYOFF_SPOTS } from '../utils/standings.js'
 import { formatDate } from '../utils/time.js'
 import TeamLogo from './TeamLogo.jsx'
 
 const one = (n) => n.toFixed(1)
+// Player rate stats carry two decimals. ESPN publishes them at full precision and the
+// boards sort on the stored value, so a one-decimal display hid real separation and
+// manufactured ties that then broke alphabetically.
+const two = (n) => n.toFixed(2)
 
 // ── 1. Season totals ─────────────────────────────────────────────────────────
 // Single headline numbers, so these are stat tiles rather than a chart. The two
@@ -92,15 +102,37 @@ function TotalsStrip({ games, tz, onOpen }) {
 // One category at a time = a single series, so no legend is needed; the heading
 // names it. Bars are a sequential blue, with the value direct-labelled.
 
+// Every team a player suited up for that season, oldest first — one badge each, so a
+// midseason trade reads as the two clubs it was rather than as whoever holds her rights
+// today. `gp` is null only when ESPN's per-team splits couldn't be resolved at fetch time.
+function SeasonTeams({ teams, onPickTeam }) {
+  return (
+    <span className="lead-teams">
+      {teams.map((t, i) => (
+        <Fragment key={t.abbr}>
+          {i > 0 && (
+            <i className="lead-arrow" aria-hidden="true">
+              →
+            </i>
+          )}
+          <button onClick={() => onPickTeam?.(t.abbr)} title={teamLabel(t)}>
+            <TeamLogo abbr={t.abbr} size={20} />
+          </button>
+        </Fragment>
+      ))}
+    </span>
+  )
+}
+
 // `getRows(cat)` supplies the board for the chosen category: the live view computes it
 // from the committed PLAYERS table, the History tab reads the season's stored board (which
 // fetch-history built with this same leaderboard(), ties and qualifiers included).
-// `showTeam` is off for archived seasons. ESPN's per-athlete stats carry the player's
-// CURRENT team even when the season is asked for, and only for players who later moved —
-// so a historical board would silently mix correct and anachronistic badges (2023's
-// scoring leader Jewell Loyd reads as an Ace, not a Storm). The name, rank and value are
-// season-accurate; the team is not, so it isn't shown.
-export function Leaders({ getRows, onPickTeam, onPickPlayer, showTeam = true }) {
+// Both carry season-accurate `teams`, so archived boards badge their rows too — they did
+// not before, because ESPN's per-athlete stats answer with the player's CURRENT club even
+// when an older season is asked for, and only for players who later moved, which left a
+// historical board mixing correct and anachronistic badges (2023's scoring leader Jewell
+// Loyd read as an Ace, not a Storm).
+export function Leaders({ getRows, onPickTeam, onPickPlayer }) {
   const [cat, setCat] = useState(LEADER_CATEGORIES[0])
   const rows = useMemo(() => getRows(cat), [getRows, cat])
   // rows is always non-empty with a positive top value for every committed category, so
@@ -135,13 +167,9 @@ export function Leaders({ getRows, onPickTeam, onPickPlayer, showTeam = true }) 
           {rows.map((p) => (
             <tr key={p.id}>
               <td className="lead-rank">{p.rank}</td>
-              {showTeam && (
-                <td className="lead-team">
-                  <button onClick={() => onPickTeam?.(p.team)} title={p.team}>
-                    <TeamLogo abbr={p.team} size={20} />
-                  </button>
-                </td>
-              )}
+              <td className="lead-team">
+                <SeasonTeams teams={p.teams} onPickTeam={onPickTeam} />
+              </td>
               <td className="lead-name">
                 <button className="lead-player" onClick={() => onPickPlayer?.(p)}>
                   {p.name}
@@ -152,15 +180,18 @@ export function Leaders({ getRows, onPickTeam, onPickPlayer, showTeam = true }) 
                 <span className="bar" style={{ '--w': `${(p.value / max) * 100}%` }} />
               </td>
               <td className="lead-value">
-                {isPct ? `${one(p.value)}%` : isCount ? p.value : one(p.value)}
+                {isPct ? `${two(p.value)}%` : isCount ? p.value : two(p.value)}
               </td>
             </tr>
           ))}
         </tbody>
       </table>
       <p className="fine">
-        Percentage leaders need enough volume to qualify (FG% ≥ 5 FGA, 3P% ≥ 2 3PA per game,
-        and a rotation share of games). Ties share a rank.
+        Qualification follows the WNBA&apos;s published minimums for a full season — 20 games
+        or the season total for a per-game average, 85 made field goals for FG%, 20 made
+        threes for 3P% — each scaled to how much of the season has been played, so a board
+        in June ranks who has actually been available rather than sitting empty. Ties share a
+        rank; a traded player shows every team she played for, oldest first.
       </p>
     </div>
   )

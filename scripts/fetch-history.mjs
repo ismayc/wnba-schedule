@@ -50,7 +50,13 @@ const ROUNDS = Object.keys(PLAYOFF_ROUNDS) // R1, SF, Final
 const LEADERS_PER_CAT = 10
 const NOTABLE = 5
 
-const PLAYER_FIELDS = ['id', 'name', 'team', 'pos', ...new Set(LEADER_CATEGORIES.map((c) => c.key))]
+// `teams` is the season membership (chronological, with games each) that fetchLeaders now
+// resolves from the per-team splits — what lets an archived board badge its rows at all,
+// since `team` alone was ESPN's CURRENT club and so anachronistic.
+const PLAYER_FIELDS = [
+  'id', 'name', 'team', 'teams', 'pos',
+  ...new Set(LEADER_CATEGORIES.map((c) => c.key)),
+]
 const pick = (p) => Object.fromEntries(PLAYER_FIELDS.map((f) => [f, p[f]]))
 
 const round1 = (v) => (typeof v === 'number' ? Number(v.toFixed(1)) : null)

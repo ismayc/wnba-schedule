@@ -1,7 +1,13 @@
 import { describe, it, expect } from 'vitest'
 import { GAMES } from '../src/data/schedule.js'
 import { PLAYERS } from '../src/data/leaders.js'
-import { seasonTotals, teamScoring, leaderboard, playersByTeam } from '../src/utils/stats.js'
+import {
+  seasonTotals,
+  teamScoring,
+  leaderboard,
+  playersByTeam,
+  teamLabel,
+} from '../src/utils/stats.js'
 
 const game = (over) => ({
   id: String(Math.random()),
@@ -100,25 +106,81 @@ describe('leaderboard', () => {
 
   it('drops players missing the stat instead of ranking them zero', () => {
     const rows = leaderboard('threePct', {
-      players: [...players, { id: '5', name: 'E', threePct: 50, avgThreeAtt: 3, gamesPlayed: 60 }],
+      players: [...players, { id: '5', name: 'E', threePct: 50, avgThreeMade: 1, gamesPlayed: 44 }],
       limit: 10,
     })
     expect(rows).toHaveLength(1)
     expect(rows[0].name).toBe('E')
   })
 
-  it('drops percentage leaders who lack the volume to qualify', () => {
+  // The WNBA qualifies a 3P% leader on threes MADE — 20 of them — not on attempts.
+  it('drops percentage leaders who lack the made shots to qualify', () => {
     const rows = leaderboard('threePct', {
       players: [
-        { id: '1', name: 'Sharpshooter', threePct: 40, avgThreeAtt: 6, gamesPlayed: 70 },
-        { id: '2', name: 'Fluke Center', threePct: 100, avgThreeAtt: 0.5, gamesPlayed: 70 }, // too few attempts
-        { id: '3', name: 'Small Sample', threePct: 55, avgThreeAtt: 5, gamesPlayed: 10 }, // too few games (< 0.4·70)
-        { id: '4', name: 'No Volume Data', threePct: 99 }, // no attempts/games fields at all
-        { id: '5', name: 'Attempts No Games', threePct: 60, avgThreeAtt: 5 }, // clears attempts, no games field
+        { id: '1', name: 'Sharpshooter', threePct: 40, avgThreeMade: 1.5, gamesPlayed: 44 }, // 66 made
+        { id: '2', name: 'Fluke Guard', threePct: 100, avgThreeMade: 0.1, gamesPlayed: 44 }, // 4 made
+        { id: '3', name: 'Small Sample', threePct: 55, avgThreeMade: 1, gamesPlayed: 10 }, // 10 made
+        { id: '4', name: 'No Volume Data', threePct: 99 }, // no made/games fields at all
+        { id: '5', name: 'Made No Games', threePct: 60, avgThreeMade: 5 }, // no games field
       ],
       limit: 10,
     })
     expect(rows.map((r) => r.name)).toEqual(['Sharpshooter'])
+  })
+
+  it('qualifies a field goal percentage leader on 85 made', () => {
+    const rows = leaderboard('fgPct', {
+      players: [
+        { id: '1', name: 'Post Scorer', fgPct: 58, avgFgMade: 6, gamesPlayed: 44 }, // 264 made
+        { id: '2', name: 'Perfect Cameo', fgPct: 100, avgFgMade: 1, gamesPlayed: 44 }, // 44 made
+        { id: '3', name: 'Just Short', fgPct: 70, avgFgMade: 4, gamesPlayed: 21 }, // 84 made
+      ],
+      limit: 10,
+    })
+    expect(rows.map((r) => r.name)).toEqual(['Post Scorer'])
+  })
+
+  // The WNBA's per-game rule takes EITHER leg — 20 games or the season total — which is
+  // what keeps a high-production short season (Kelsey Plum's 16 games) rankable while a
+  // three-game cameo is not.
+  it('qualifies a per-game leader on games OR the season total', () => {
+    const rows = leaderboard('avgPoints', {
+      players: [
+        { id: '1', name: 'Ever Present', avgPoints: 15, gamesPlayed: 44 },
+        { id: '2', name: 'Short But Heavy', avgPoints: 25, gamesPlayed: 17 }, // 425 pts, clears 400
+        { id: '3', name: 'Short And Light', avgPoints: 22, gamesPlayed: 16 }, // 352 pts, under both legs
+        { id: '4', name: 'Cameo', avgPoints: 40, gamesPlayed: 3 },
+        { id: '5', name: 'No Games Field', avgPoints: 99 }, // an average with nothing behind it
+      ],
+      limit: 10,
+    })
+    expect(rows.map((r) => r.name)).toEqual(['Short But Heavy', 'Ever Present'])
+  })
+
+  // Mid-season both legs scale, so a June board ranks who has been available.
+  it('scales both legs of the rule to the season so far', () => {
+    const rows = leaderboard('avgRebounds', {
+      players: [
+        // Busiest player has 22 of 44, so the floor is half: 10 games or 100 rebounds.
+        { id: '1', name: 'Regular', avgRebounds: 8, gamesPlayed: 22 },
+        { id: '2', name: 'Ten Games', avgRebounds: 9, gamesPlayed: 10 },
+        { id: '3', name: 'Nine Games', avgRebounds: 12, gamesPlayed: 9 }, // 108 reb clears the total leg
+        { id: '4', name: 'Four Games', avgRebounds: 11, gamesPlayed: 4 }, // 44 reb, neither leg
+      ],
+      limit: 10,
+    })
+    expect(rows.map((r) => r.name)).toEqual(['Nine Games', 'Ten Games', 'Regular'])
+  })
+
+  it('never scales the floor past a full season', () => {
+    const rows = leaderboard('avgPoints', {
+      players: [
+        { id: '1', name: 'Played 45', avgPoints: 8, gamesPlayed: 45 },
+        { id: '2', name: 'Played 20', avgPoints: 20, gamesPlayed: 20 },
+      ],
+      limit: 10,
+    })
+    expect(rows.map((r) => r.name)).toEqual(['Played 20', 'Played 45'])
   })
 
   it('lists only players who recorded a counting stat, not everyone on zero', () => {
@@ -154,5 +216,15 @@ describe('the committed player table', () => {
     for (let i = 1; i < roster.length; i++) {
       expect(roster[i - 1].avgPoints).toBeGreaterThanOrEqual(roster[i].avgPoints)
     }
+  })
+})
+
+describe('teamLabel', () => {
+  it('names the club and the games played with it', () => {
+    expect(teamLabel({ abbr: 'LA', gp: 12 })).toBe('LA · 12 games')
+  })
+
+  it('omits the count when the split could not be resolved', () => {
+    expect(teamLabel({ abbr: 'LA', gp: null })).toBe('LA')
   })
 })

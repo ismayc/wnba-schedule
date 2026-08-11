@@ -158,12 +158,12 @@ describe('GameCard', () => {
 })
 
 describe('StatsView leaders', () => {
-  it('forces one decimal on per-game averages so the column stays aligned', () => {
+  it('forces two decimals on per-game averages so the column stays aligned', () => {
     const { container } = render(<StatsView games={GAMES} tz={TZ} />)
     // Default category is Points (PPG): every value reads like "21.0", never bare "21".
     const vals = [...container.querySelectorAll('.lead-value')].map((n) => n.textContent)
     expect(vals.length).toBeGreaterThan(0)
-    for (const v of vals) expect(v).toMatch(/^\d+\.\d$/)
+    for (const v of vals) expect(v).toMatch(/^\d+\.\d\d$/)
   })
 
   it('opens the player pop-out with the full stat row when a name is clicked', async () => {

@@ -9,6 +9,9 @@ import { useFollow } from '../context/follow.jsx'
 import TeamLogo from './TeamLogo.jsx'
 
 const one = (n) => n.toFixed(1)
+// Player rate stats are stored and ranked at more precision than the one decimal team
+// numbers use; the roster line shows the same figures as the leaderboards.
+const two = (n) => n.toFixed(2)
 const signed = (n) => (n > 0 ? `+${one(n)}` : one(n))
 
 // Form as a strip of results, oldest first — the same read as the standings dots but
@@ -122,8 +125,8 @@ export default function TeamPanel({ abbr, season, games, tz, hideScores, onClose
                     <span className="lead-pos">{p.pos}</span>
                   </span>
                   <span className="tp-p-line">
-                    {one(p.avgPoints)} <i>pts</i> · {one(p.avgRebounds)} <i>reb</i> ·{' '}
-                    {one(p.avgAssists)} <i>ast</i>
+                    {two(p.avgPoints)} <i>pts</i> · {two(p.avgRebounds)} <i>reb</i> ·{' '}
+                    {two(p.avgAssists)} <i>ast</i>
                   </span>
                 </div>
               ))}

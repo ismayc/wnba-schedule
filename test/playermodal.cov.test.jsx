@@ -13,6 +13,7 @@ const fullPlayer = {
   name: 'Test Player',
   short: 'T. Player',
   team: 'LV',
+  teams: [{ abbr: 'LV', gp: 22 }],
   pos: 'C',
   gamesPlayed: 10,
   avgMinutes: 30,
@@ -45,7 +46,14 @@ afterEach(() => {
 describe('PlayerModal coverage', () => {
   it('handles an unknown team, a missing average, an empty name, and no game log', async () => {
     fetchPlayer.mockResolvedValue(null) // no bio, no games
-    const player = { ...fullPlayer, name: '', team: 'ZZZ', avgSteals: undefined, pos: undefined }
+    const player = {
+      ...fullPlayer,
+      name: '',
+      team: 'ZZZ',
+      teams: [{ abbr: 'ZZZ', gp: 5 }],
+      avgSteals: undefined,
+      pos: undefined,
+    }
     const { container } = render(<PlayerModal player={player} tz="America/New_York" onClose={() => {}} />)
 
     // Unknown team → no logo, the raw abbreviation stands in for the display name.

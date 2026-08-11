@@ -10,7 +10,12 @@
 import { writeFile, mkdir, readFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { parseLeaders } from './leaders.mjs'
+import {
+  parseLeaders,
+  parseAthleteSeason,
+  parseSeasonTeams,
+  resolveSeasonTeams,
+} from './leaders.mjs'
 import { CONCURRENCY, mapLimit, fetchRetry, getJson } from './lib/fetch.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -315,11 +320,69 @@ async function enrichWithBoxScores(games) {
 // names); this one inlines name, team, and position, so the app ships leaderboards
 // with zero runtime requests. Parsing (mapping each value by the feed's published
 // column name rather than by array position) lives in ./leaders.mjs so it can be tested.
-export async function fetchLeaders(season = SEASON) {
+export async function fetchLeaders(season = SEASON, teams) {
+  const teamList = (await (teams ?? fetchTeams())) || []
+  const abbrById = new Map(teamList.map((t) => [String(t.id), t.abbr]))
+
   const d = await getJson(
     `${WEB}/statistics/byathlete?region=us&lang=en&season=${season}&seasontype=2&limit=300`
   )
-  return parseLeaders(d)
+  const byId = new Map(parseLeaders(d).map((p) => [String(p.id), p]))
+
+  // byathlete alone is not the league. It answered with 128 of 207 rostered players in
+  // 2026 — no Ionescu, Plum, Collier or Sabally — and in 2025 it omitted Angel Reese, the
+  // rebounding leader. So walk the rosters and fill in anyone it skipped, from the
+  // per-athlete season payload.
+  const rosters = await mapLimit(teamList, CONCURRENCY, async (t) =>
+    getJson(`${SITE}/teams/${t.id}/roster`).then((r) => ({ team: t, athletes: r.athletes || [] }))
+  )
+  const missing = []
+  for (const { team, athletes } of rosters)
+    for (const a of athletes)
+      if (!byId.has(String(a.id)))
+        missing.push({
+          id: String(a.id),
+          name: a.displayName,
+          short: a.shortName || a.displayName,
+          pos: a.position?.abbreviation || null,
+          current: team.abbr,
+        })
+
+  // One request per player, for EVERY player — not just the ones byathlete skipped.
+  //
+  // The season teams have to come from the splits because byathlete's own `teams` array
+  // cannot be trusted: it is season-accurate for 2026 but absent altogether for 2023, where
+  // the only club on offer is `teamShortName` — the player's CURRENT one. Taking that at
+  // face value badged 2023's scoring leader Jewell Loyd as an Ace when she spent that season
+  // a Storm, which is exactly the anachronism these badges exist to avoid.
+  const splits = new Map()
+  const filled = []
+  await mapLimit([...missing, ...byId.values()], CONCURRENCY, async (p) => {
+    try {
+      const stats = await getJson(
+        `${WEB}/athletes/${p.id}/stats?region=us&lang=en&season=${season}`
+      )
+      const split = parseSeasonTeams(stats, season, abbrById)
+      if (split.length) splits.set(String(p.id), split)
+      if (!byId.has(String(p.id))) {
+        const row = parseAthleteSeason(stats, season, p)
+        // No row means no games this season — a roster spot, not a player to rank.
+        if (row) filled.push(row)
+      }
+    } catch (err) {
+      // A 404 is not a failure: a rostered player who has never appeared has no stats page
+      // at all, and she has no season to rank anyway. Anything else is worth saying out
+      // loud — but still must not sink a refresh whose schedule came back clean.
+      if (!/HTTP 404/.test(err.message))
+        console.warn(`  ! season stats for ${p.name} failed (${err.message})`)
+    }
+  })
+  if (missing.length) console.log(`  +${filled.length} players ESPN's leaders feed omitted`)
+
+  return [...byId.values(), ...filled]
+    .map((p) => resolveSeasonTeams(p, splits.get(String(p.id))))
+    .filter((p) => p.team && p.gamesPlayed)
+    .sort((a, b) => (b.avgPoints ?? 0) - (a.avgPoints ?? 0))
 }
 
 // Logos never render larger than ~64px, so pull them through ESPN's image combiner at
@@ -410,7 +473,7 @@ async function main() {
   )
 
   console.log('Fetching player stats…')
-  const leaders = await fetchLeaders()
+  const leaders = await fetchLeaders(SEASON, teams)
   console.log(`  ${leaders.length} qualified players`)
 
   await writeFile(

@@ -53,6 +53,7 @@ const player = {
   name: "A'ja Wilson",
   short: 'A. Wilson',
   team: 'LV',
+  teams: [{ abbr: 'LV', gp: 22 }],
   pos: 'C',
   gamesPlayed: 23,
   avgMinutes: 31.5,
@@ -130,13 +131,13 @@ describe('PlayerModal (component)', () => {
   it('shows committed season stats immediately, then the fetched game log', async () => {
     stub()
     render(<PlayerModal player={player} tz="America/New_York" onClose={() => {}} />)
-    // Committed and instant — averages forced to one decimal (blocks 2 → "2.0").
+    // Committed and instant — averages forced to two decimals (blocks 2 → "2.00").
     expect(screen.getByText("A'ja Wilson")).toBeInTheDocument()
-    expect(screen.getByText('25.6')).toBeInTheDocument()
-    expect(screen.getByText('2.0')).toBeInTheDocument()
-    expect(screen.getByText(/FG 9.2-17.6/)).toBeInTheDocument()
-    // Whole-number split values are forced to one decimal too (made 1 → "1.0").
-    expect(screen.getByText(/3PT 1.0-2.3/)).toBeInTheDocument()
+    expect(screen.getByText('25.60')).toBeInTheDocument()
+    expect(screen.getByText('2.00')).toBeInTheDocument()
+    expect(screen.getByText(/FG 9.20-17.60/)).toBeInTheDocument()
+    // Whole-number split values are forced to two decimals too (made 1 → "1.00").
+    expect(screen.getByText(/3PT 1.00-2.30/)).toBeInTheDocument()
     // The fetched recent games fill in.
     expect(await screen.findByText('PHX')).toBeInTheDocument()
     expect(screen.getByText('SEA')).toBeInTheDocument()
@@ -147,6 +148,23 @@ describe('PlayerModal (component)', () => {
     // A flag that 404s hides itself rather than showing a broken image.
     fireEvent.error(flag)
     expect(flag.style.display).toBe('none')
+  })
+
+  it('names both clubs for a player who was traded mid-season', () => {
+    stub()
+    const traded = {
+      ...player,
+      team: 'LA',
+      teams: [
+        { abbr: 'LA', gp: 12 },
+        { abbr: 'PHX', gp: 4 },
+      ],
+    }
+    render(<PlayerModal player={traded} tz="America/New_York" onClose={() => {}} />)
+    const sub = document.querySelector('.pm-sub')
+    // Oldest first, and both named — a single badge would have to pick one.
+    expect(sub.querySelector('.pm-arrow')).toBeInTheDocument()
+    expect(sub.querySelectorAll('.logo')).toHaveLength(2)
   })
 
   it('falls back to the player’s initials when the headshot 404s', () => {

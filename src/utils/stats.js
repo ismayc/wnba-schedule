@@ -102,14 +102,34 @@ export const LEADER_CATEGORIES = [
   { key: 'tripleDouble', label: 'Triple-doubles', short: 'TD' },
 ]
 
-// Rate categories need a volume floor, or a low-attempt fluke (a center going 1-for-1 from
-// three) tops the percentage list. Require a per-game attempts minimum AND a share of the
-// games the leader has played, so it scales from mid-season to a full slate.
-const QUALIFIERS = {
-  fgPct: { att: 'avgFgAtt', perGame: 5 },
-  threePct: { att: 'avgThreeAtt', perGame: 2 },
+// A leaderboard needs a volume floor, or it ranks flukes — a centre going 1-for-1 from
+// three would top the percentage list on a single make.
+//
+// These are the WNBA's own qualification minimums, as published by basketball-reference
+// (basketball-reference.com/about/wnba_rate_stat_req.html). They are NOT the NBA's: the
+// per-game categories take a games floor OR a season total, whichever the player reaches,
+// and the percentages qualify on makes.
+//
+//   points/rebounds/assists/steals/blocks per game   20 games, or the category total
+//   field goal %                                     85 made
+//   3-point %                                        20 made
+//
+// The totals are stated for a full 44-game season, so each minimum is scaled by how much of
+// the season has been played — otherwise every board sits empty through May and June. The
+// games leg is scaled too, which is what keeps a 3-game hot streak off an early board.
+const FULL_SEASON = 44
+const MIN_GAMES = 20
+const RATE_STATS = {
+  avgPoints: 400,
+  avgRebounds: 200,
+  avgAssists: 100,
+  avgSteals: 35,
+  avgBlocks: 35,
 }
-const QUALIFIED_GAMES_SHARE = 0.4
+const MADE_MINIMUMS = {
+  fgPct: { made: 'avgFgMade', min: 85 },
+  threePct: { made: 'avgThreeMade', min: 20 },
+}
 
 // Counting stats (not per-game averages): only players who actually recorded one belong on
 // the board — otherwise the tie logic pads it with everyone stuck on zero.
@@ -120,13 +140,23 @@ const COUNT_STATS = new Set(['doubleDouble', 'tripleDouble'])
 export function leaderboard(key, { limit = 10, players = PLAYERS } = {}) {
   let eligible = players.filter((p) => p[key] != null)
   if (COUNT_STATS.has(key)) eligible = eligible.filter((p) => p[key] > 0)
-  const q = QUALIFIERS[key]
-  if (q) {
-    // A rotation share of the leader's games, so a small-sample hot streak doesn't rank.
-    const maxGP = eligible.reduce((m, p) => Math.max(m, p.gamesPlayed ?? 0), 0)
-    const minGP = QUALIFIED_GAMES_SHARE * maxGP
-    eligible = eligible.filter((p) => (p[q.att] ?? 0) >= q.perGame && (p.gamesPlayed ?? 0) >= minGP)
-  }
+  // How much of a season this is: the busiest player's games against a full 44. A finished
+  // season gives 1, so the thresholds are exactly the WNBA's published ones. Capped at 1 so
+  // a rescheduled 45th game can't push the bar past the real rule.
+  const maxGP = eligible.reduce((m, p) => Math.max(m, p.gamesPlayed ?? 0), 0)
+  const share = Math.min(1, maxGP / FULL_SEASON)
+  const total = RATE_STATS[key]
+  // `p[key]` is already known non-null here — eligible filtered on it — so only the games
+  // count needs a fallback. Either leg qualifies, which is the WNBA's rule.
+  if (total)
+    eligible = eligible.filter(
+      (p) =>
+        (p.gamesPlayed ?? 0) >= MIN_GAMES * share ||
+        p[key] * (p.gamesPlayed ?? 0) >= total * share
+    )
+  const q = MADE_MINIMUMS[key]
+  if (q)
+    eligible = eligible.filter((p) => (p[q.made] ?? 0) * (p.gamesPlayed ?? 0) >= q.min * share)
   const sorted = [...eligible].sort((a, b) => b[key] - a[key] || a.name.localeCompare(b.name))
 
   const ranked = []
@@ -144,6 +174,11 @@ export function leaderboard(key, { limit = 10, players = PLAYERS } = {}) {
   const cut = ranked[limit - 1]
   return cut ? ranked.filter((p) => p.rank <= cut.rank) : ranked
 }
+
+// Hover text for one of a player's season teams. `gp` is absent only when ESPN's per-team
+// splits couldn't be resolved at fetch time, in which case the count is genuinely unknown
+// and claiming one would be worse than omitting it.
+export const teamLabel = (t) => (t.gp == null ? t.abbr : `${t.abbr} · ${t.gp} games`)
 
 export const playersByTeam = (abbr, players = PLAYERS) =>
   players.filter((p) => p.team === abbr).sort((a, b) => (b.avgPoints ?? 0) - (a.avgPoints ?? 0))

@@ -4,6 +4,52 @@ A dated changelog for The WNBA Schedule. Each heading is a calendar
 day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-08-11
+
+- **The leaders data was missing a third of the league.** ESPN's `byathlete`
+  feed — the sole source for every leaderboard, team roster panel and player
+  pop-out — answered with **128 of 207 rostered players**, and the omissions
+  were not fringe: no Sabrina Ionescu (21 games), Kelsey Plum (16), Napheesa
+  Collier or Satou Sabally. It is inconsistent season to season, too: the 2025
+  feed drops **Angel Reese, who led the WNBA in rebounding that year**, so the
+  archived 2025 rebounding board named the wrong leader outright.
+
+  The universe is now built from the rosters as well: anyone `byathlete` skips
+  is rebuilt from `/athletes/{id}/stats`, which is the richer payload anyway —
+  integer season totals (so an average is computed at full precision rather than
+  read back from a rounded one), the double-double and triple-double counts, and
+  the per-team splits. 201 players now, and 2025's rebounding leader is Angel
+  Reese as it should always have been.
+
+- **League leaders now use the WNBA's published qualification minimums.** The
+  per-game boards ranked anyone with a stat line, and the percentage boards
+  qualified on attempts per game. The real rule — published at
+  basketball-reference.com/about/wnba_rate_stat_req.html, and *not* the NBA's —
+  takes either leg: **20 games or the season total** (400 PTS / 200 TRB / 100 AST
+  / 35 STL / 35 BLK), and **85 made field goals** for FG%, **20 made threes** for
+  3P%. Each is scaled by how much of the season has been played, so a board in
+  June ranks who has been available instead of sitting empty.
+
+  Against Basketball-Reference's current 2026 board, points, rebounds, assists
+  and blocks now match exactly. Steals differs at #10 only in how a 1.5-vs-1.5
+  display tie is ordered, and there our arithmetic is right (48 steals in 31
+  games beats 40 in 26). The percentage boards deliberately differ in-season:
+  BBRef applies the made-shot minimums unscaled, which would leave FG% empty
+  through May. They converge once a season is complete.
+
+- **Leaders show the team(s) a player actually played for that season**, oldest
+  first, with the games alongside each. This could not simply reuse the NBA's
+  approach: ESPN's `teams` array is season-accurate for 2026 but **absent
+  entirely for 2023**, leaving only the player's *current* club — which badged
+  2023's scoring leader Jewell Loyd as an Ace when she spent that season a Storm.
+  Season membership is therefore resolved from the per-team splits for every
+  player, not just the ones who moved. Archived History boards carry the field
+  and show badges for the first time.
+
+- **Per-game averages are shown at two decimals and sorted at four.** One decimal
+  manufactured ties that then broke alphabetically; the hidden digits are never
+  displayed and exist only so a pair reading the same still sorts correctly.
+
 ## 2026-08-10
 
 - **The refresh gate is now CI's own gate.** The twice-daily refresh ran plain

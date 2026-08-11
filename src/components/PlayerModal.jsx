@@ -1,12 +1,15 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { TEAM_BY_ABBR } from '../data/teams.js'
 import { formatDate } from '../utils/time.js'
 import { fetchPlayer, headshotUrl } from '../services/player.js'
 import { flagUrl } from '../utils/flag.js'
 import { useModalA11y } from '../hooks/useModalA11y.js'
+import { teamLabel } from '../utils/stats.js'
 import TeamLogo from './TeamLogo.jsx'
 
-const one = (n) => (typeof n === 'number' ? n.toFixed(1) : (n ?? '–'))
+// Two decimals, matching the leaderboards these rows are opened from — a player whose
+// board value reads 12.86 must not become 12.9 in her own pop-out.
+const two = (n) => (typeof n === 'number' ? n.toFixed(2) : (n ?? '–'))
 
 // First + last initial, for the headshot fallback (~5 fringe players have no photo).
 const initials = (name) =>
@@ -48,7 +51,8 @@ export default function PlayerModal({ player, tz, onClose }) {
 
   if (!player) return null
 
-  const team = TEAM_BY_ABBR[player.team]
+  // The team(s) she played that season for, oldest first — every row reaching this pop-out
+  // comes from a leaderboard, live or archived, and both carry the field.
   const { bio, games, status } = extra
 
   return (
@@ -82,8 +86,13 @@ export default function PlayerModal({ player, tz, onClose }) {
           <div className="pm-id">
             <strong className="pm-name">{player.name}</strong>
             <span className="pm-sub">
-              {team && <TeamLogo abbr={player.team} size={16} />}
-              {team?.displayName || player.team}
+              {player.teams.map((t, i) => (
+                <Fragment key={t.abbr}>
+                  {i > 0 && <i className="pm-arrow">→</i>}
+                  <TeamLogo abbr={t.abbr} size={16} />
+                  <span title={teamLabel(t)}>{TEAM_BY_ABBR[t.abbr]?.displayName || t.abbr}</span>
+                </Fragment>
+              ))}
               {player.pos ? ` · ${player.pos}` : ''}
               {bio?.jersey ? ` · #${bio.jersey}` : ''}
             </span>
@@ -119,20 +128,20 @@ export default function PlayerModal({ player, tz, onClose }) {
         <div className="pm-stats">
           {SEASON_STATS.map((s) => (
             <div className="pm-stat" key={s.key}>
-              <span className="pm-stat-v">{one(player[s.key])}</span>
+              <span className="pm-stat-v">{two(player[s.key])}</span>
               <span className="pm-stat-l">{s.label}</span>
             </div>
           ))}
         </div>
         <div className="pm-splits">
           <span>
-            FG {one(player.avgFgMade)}-{one(player.avgFgAtt)} · {one(player.fgPct)}%
+            FG {two(player.avgFgMade)}-{two(player.avgFgAtt)} · {two(player.fgPct)}%
           </span>
           <span>
-            3PT {one(player.avgThreeMade)}-{one(player.avgThreeAtt)} · {one(player.threePct)}%
+            3PT {two(player.avgThreeMade)}-{two(player.avgThreeAtt)} · {two(player.threePct)}%
           </span>
           <span>
-            FT {one(player.avgFtMade)}-{one(player.avgFtAtt)} · {one(player.ftPct)}%
+            FT {two(player.avgFtMade)}-{two(player.avgFtAtt)} · {two(player.ftPct)}%
           </span>
         </div>
 
