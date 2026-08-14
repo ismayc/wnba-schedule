@@ -6,6 +6,13 @@ import GameCard from './GameCard.jsx'
 // yesterday's finals are always one glance away without loading the whole season.
 export const RECENT_LOOKBACK_DAYS = 7
 
+// How many upcoming game-DAYS the default view shows before collapsing the rest
+// behind the "Later games" toggle. Counted in game-days (not calendar days) so a
+// pre-season landing still shows the fortnight around opening day rather than an
+// empty window. Without this cap a fresh rollover renders the entire season on
+// load — brutal on a phone (it timed out CI's app tests on the NBA sibling).
+export const RECENT_LOOKAHEAD_DAYS = 14
+
 // Labels derived from the 'YYYY-MM' key itself (UTC so the month never shifts).
 const monthLabel = (mk) =>
   new Date(`${mk}-01T12:00:00.000Z`).toLocaleDateString('en-US', {
@@ -37,16 +44,26 @@ export default function ScheduleView({ games, tz, hideScores, showPast = false, 
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b))
   }, [games, tz])
 
-  // Default = the last week of results through every upcoming game; Full season shows
+  // The "Later games" collapse is deliberately component-local, like search and the
+  // phase chips: it is never written to the URL or localStorage, so it can't add a
+  // persisted readState key (which would break the family's deep-equal link tests).
+  const [showLater, setShowLater] = useState(false)
+
+  // Default = the last week of results through the next fortnight of game-days, with
+  // the rest of the upcoming season behind "Later games"; Full season shows
   // everything, grouped into collapsible months.
-  const days = useMemo(() => {
-    if (showPast) return allDays
+  const { days, laterCount } = useMemo(() => {
+    if (showPast) return { days: allDays, laterCount: 0 }
     const recent = allDays.filter(([key]) => key >= cutoff)
     // Off-season: with the whole season in the past there's nothing in the last week and
     // nothing upcoming, so the recent window is empty. Fall back to the last ~week of
     // actual game-days rather than render a blank schedule on a finished season.
-    return recent.length ? recent : allDays.slice(-RECENT_LOOKBACK_DAYS)
-  }, [allDays, showPast, cutoff])
+    if (!recent.length) return { days: allDays.slice(-RECENT_LOOKBACK_DAYS), laterCount: 0 }
+    const upcoming = recent.filter(([key]) => key >= today)
+    const hidden = showLater ? [] : upcoming.slice(RECENT_LOOKAHEAD_DAYS)
+    const shown = hidden.length ? recent.slice(0, recent.length - hidden.length) : recent
+    return { days: shown, laterCount: hidden.reduce((n, [, gs]) => n + gs.length, 0) }
+  }, [allDays, showPast, showLater, cutoff, today])
 
   // The results/upcoming boundary the view lands on: the most recent past day shown
   // (yesterday, usually) with today right below it. Falls back to today.
@@ -208,9 +225,33 @@ export default function ScheduleView({ games, tz, hideScores, showPast = false, 
     )
   }
 
-  // Recent (default): a short flat list, no need for month machinery.
+  // Recent (default): a short flat list, no need for month machinery. The rest of
+  // the upcoming season sits behind a toggle mirroring the "Earlier games" chip.
   if (!showPast) {
-    return <section className="view schedule">{days.map(renderDay)}</section>
+    return (
+      <section className="view schedule">
+        {days.map(renderDay)}
+        {laterCount > 0 && (
+          <button
+            className="chip later-toggle"
+            onClick={() => setShowLater(true)}
+            title="Show the rest of the upcoming season"
+          >
+            <span aria-hidden="true">▸</span> Later games
+            <span className="chip-count">{laterCount}</span>
+          </button>
+        )}
+        {showLater && (
+          <button
+            className="chip later-toggle"
+            onClick={() => setShowLater(false)}
+            title="Collapse back to the next two weeks"
+          >
+            <span aria-hidden="true">▾</span> Later games
+          </button>
+        )}
+      </section>
+    )
   }
 
   // Full season: a sticky month jump-bar over collapsible month sections.

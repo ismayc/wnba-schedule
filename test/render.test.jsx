@@ -228,6 +228,31 @@ describe('ScheduleView', () => {
       expect(container.querySelector('.month-jump')).toBeFalsy()
     })
 
+    it('caps the default view at a fortnight of upcoming game-days behind a Later toggle', () => {
+      // 20 future game-days, two games each — the default view must show the first 14
+      // days and fold the remaining 6 (12 games) behind "Later games". Without the cap
+      // a fresh rollover renders the whole upcoming season on load. Synthesized rather
+      // than read from committed data: mid-season the live schedule may hold fewer
+      // than 14 upcoming game-days, and tests must survive the twice-daily refresh.
+      const wk = []
+      for (let d = 1; d <= 20; d++) {
+        const date = shift(today, d)
+        wk.push(g(`f${d}a`, date, 'NY', 'IND'))
+        wk.push(g(`f${d}b`, date, 'PHX', 'LA'))
+      }
+      const { container } = render(<ScheduleView games={wk} tz={TZ} />)
+      expect(container.querySelectorAll('.day')).toHaveLength(14)
+
+      const later = screen.getByRole('button', { name: /Later games/ })
+      expect(within(later).getByText('12')).toBeInTheDocument()
+      fireEvent.click(later)
+      expect(container.querySelectorAll('.day')).toHaveLength(20)
+
+      // The toggle flips to a collapse control and folds the tail back away.
+      fireEvent.click(screen.getByRole('button', { name: /Later games/ }))
+      expect(container.querySelectorAll('.day')).toHaveLength(14)
+    })
+
     it('lands scrolled on the most recent past day (so yesterday is right there)', () => {
       const spy = Element.prototype.scrollIntoView
       render(<ScheduleView games={games} tz={TZ} />)

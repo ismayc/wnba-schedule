@@ -6,6 +6,15 @@ data/source updates, deployment). Newest day on top.
 
 ## 2026-08-14
 
+- **The default schedule now folds the far future behind "Later games".** With a
+  freshly-rolled-over season nothing is in the past, so the default view renders
+  the entire upcoming season on load — heavy on a phone, and slow enough to time
+  out CI's app tests on the NBA sibling. It now shows the last week of results
+  plus the next fortnight of game-days, with the rest behind a "Later games"
+  toggle that mirrors "Earlier games" (count badge included). Counted in
+  game-days, so a pre-season landing shows the fortnight around opening day
+  rather than an empty window (ported from nba-schedule).
+
 - **A PR branch can no longer cancel main's CI or deploy.** The whole CI
   workflow (pull-request runs included) and the refresh workflow shared one
   static `pages` concurrency group; GitHub keeps one running + one pending run

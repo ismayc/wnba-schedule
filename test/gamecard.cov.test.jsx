@@ -90,6 +90,16 @@ describe('GameCard coverage', () => {
     expect(followedSide).toBeInTheDocument()
   })
 
+  it('shows a game note on the standard card', () => {
+    // A regular-franchise game carrying a note (Commissioner's Cup, makeup dates).
+    // Covered here directly: this branch used to lean on committed Cup games being
+    // rendered by an app test, which the Later-games fortnight cap no longer shows.
+    const { container } = render(
+      <GameCard game={{ ...base, note: "WNBA Commissioner's Cup" }} tz={TZ} />
+    )
+    expect(container.querySelector('.note')).toHaveTextContent("Commissioner's Cup")
+  })
+
   it('renders a scored All-Star game with the drafted-side score', () => {
     const allStar = {
       id: 'as1',
