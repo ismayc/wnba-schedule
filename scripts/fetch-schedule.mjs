@@ -17,13 +17,20 @@ import {
   resolveSeasonTeams,
 } from './leaders.mjs'
 import { CONCURRENCY, mapLimit, fetchRetry, getJson } from './lib/fetch.mjs'
+import { SEASON as COMMITTED_SEASON } from '../src/data/teams.js'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const SITE = 'https://site.api.espn.com/apis/site/v2/sports/basketball/wnba'
 const WEB = 'https://site.web.api.espn.com/apis/common/v3/sports/basketball/wnba'
 
 const args = process.argv.slice(2)
-const SEASON = Number(args[args.indexOf('--season') + 1]) || new Date().getFullYear()
+// Default to the season the app is COMMITTED to (teams.js), so the unattended
+// refresh always refreshes what the site is showing; only a rollover moves that
+// target. A calendar default (bare getFullYear()) is the class that bit the NBA
+// viewer the morning after its 2026-08-13 rollover — the date disagreed with the
+// freshly committed season and the bot re-fetched the archived one over it. Here
+// it would flip to the unreleased next season every January 1st.
+const SEASON = Number(args[args.indexOf('--season') + 1]) || COMMITTED_SEASON
 const WITH_LOGOS = !args.includes('--no-logos')
 
 // ESPN seasonType ids. 1=preseason (skipped), 2=regular, 3=postseason, 4=all-star.
