@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import ServicesModal from '../src/components/ServicesModal.jsx'
+import { LOCAL_CATALOG } from '../src/utils/watch.js'
 import TeamLogo from '../src/components/TeamLogo.jsx'
 import Toasts from '../src/components/Toasts.jsx'
 import { ServicesProvider } from '../src/context/services.jsx'
@@ -36,6 +37,58 @@ describe('ServicesModal — backdrop dismissal', () => {
     open(onClose)
     fireEvent.mouseDown(screen.getByRole('dialog'))
     expect(onClose).not.toHaveBeenCalled()
+  })
+})
+
+// ── ServicesModal — local-channel shelf ────────────────────────────────────
+describe('ServicesModal — local & regional channels', () => {
+  const open = () =>
+    render(
+      <ServicesProvider>
+        <ServicesModal onClose={() => {}} />
+      </ServicesProvider>
+    )
+
+  // The shelf renders LOCAL_CATALOG in order, so its first checkbox IS
+  // LOCAL_CATALOG[0] — data-independent, no name matching (labels like
+  // "Victory+" vs "Victory+ ATL" make accessible-name queries ambiguous).
+  const firstLocalBox = (container) =>
+    container.querySelector('details.svc-local input[type="checkbox"]')
+
+  it('starts collapsed when no local channel is selected, and stays put across toggles', () => {
+    const { container } = open()
+    const shelf = container.querySelector('details.svc-local')
+    expect(shelf).not.toHaveAttribute('open')
+
+    // Open the shelf the way a browser does: flip the DOM state, fire `toggle`.
+    shelf.open = true
+    fireEvent(shelf, new Event('toggle'))
+    expect(shelf).toHaveAttribute('open')
+
+    // Checking a channel re-renders the modal — the shelf must not snap shut.
+    fireEvent.click(firstLocalBox(container))
+    expect(shelf).toHaveAttribute('open')
+    expect(JSON.parse(localStorage.getItem('wnba:services'))).toContain(LOCAL_CATALOG[0].key)
+  })
+
+  it('starts open (channel checked and highlighted) when a local pick is saved', () => {
+    localStorage.setItem('wnba:services', JSON.stringify([LOCAL_CATALOG[0].key]))
+    const { container } = open()
+    expect(container.querySelector('details.svc-local')).toHaveAttribute('open')
+    const box = firstLocalBox(container)
+    expect(box).toBeChecked()
+    expect(box.closest('.svc-item')).toHaveClass('on')
+  })
+
+  it('lists every channel the data names, in catalog order, tagged with its team', () => {
+    const { container } = open()
+    const items = [...container.querySelectorAll('.svc-local .svc-item')]
+    expect(items.map((el) => el.querySelector('.svc-name').textContent)).toEqual(
+      LOCAL_CATALOG.map((s) => s.label)
+    )
+    items.forEach((el, i) =>
+      expect(el.querySelector('.svc-kind').textContent).toBe(LOCAL_CATALOG[i].team || 'Local')
+    )
   })
 })
 

@@ -4,6 +4,21 @@ A dated changelog for The WNBA Schedule. Each heading is a calendar
 day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-08-15
+
+- **My services now covers local & regional channels.** A game on a market feed
+  (Fox 12 Plus, KOMO-TV, MNMT, an RSN) could never count as watchable: only
+  national networks were matched, because carriage of a local station depends on
+  where you live. The picker now has a collapsible "Local & regional channels"
+  shelf listing all 26 feeds this season's games name, grouped by the team each
+  one follows, so you check the ones your own provider actually carries. They
+  then drive the 📺 badge and the "On my services" filter exactly like a national
+  service. In Portland, adding Fox 12 Plus takes the Fire from 20 of 44 games
+  watchable on YouTube TV alone to 43 of 44.
+- The shelf is built from the committed schedule rather than a hand-kept list, so
+  a feed ESPN starts (or stops) naming appears (or disappears) on the next data
+  refresh, and a saved pick for a vanished channel is dropped on load.
+
 ## 2026-08-14
 
 - **A New season watch now guards the rollover.** Ported from nba-schedule

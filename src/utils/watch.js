@@ -1,3 +1,5 @@
+import { GAMES } from '../data/schedule.js'
+
 // The streaming services and TV packages a viewer can tell us they have, so the
 // schedule can flag which games they can actually watch — and filter to them.
 //
@@ -9,8 +11,11 @@
 // Bundle carriage differs by bundle and, in reality, by market and over time; the
 // mappings here are the national defaults and are deliberately approximate.
 //
-// Regional/local feeds (Prime Video-Seattle, KOMO-TV, RSNs) are intentionally left
-// out — their availability is market-dependent, so a single answer would be wrong.
+// Regional/local feeds (Prime Video-Seattle, KOMO-TV, Fox 12 Plus) can't be folded
+// into a bundle's mapping — carriage is market-dependent, so a single answer would
+// be wrong (a Portland YouTube TV gets KPDX; an Atlanta one doesn't). Instead the
+// picker offers every local/regional feed the schedule data names, and the viewer
+// checks the ones their own provider carries. See LOCAL_CATALOG below.
 
 // National linear networks, by the exact name ESPN emits in `broadcast`.
 const ESPN = 'ESPN'
@@ -45,6 +50,64 @@ export const SERVICE_CATALOG = [
   { key: 'cable', label: 'Cable / Satellite', kind: 'bundle', match: carries(ESPN, ABC, CBS, NBC, USA, ION, CNBC, NBATV) },
 ]
 
+// Every name the national catalog above already accounts for — a broadcast entry
+// outside this set lands in the local-channel picker. NBCSN is here even though no
+// service matches it (it's US-national cable, not a local feed); TSN is deliberately
+// NOT here, so it stays pickable — that's the only way a Canadian viewer can mark
+// Tempo games watchable.
+const NATIONAL_NAMES = new Set([
+  ESPN,
+  ABC,
+  CBS,
+  NBC,
+  USA,
+  ION,
+  CNBC,
+  NBATV,
+  'NBCSN',
+  'Prime Video',
+  'Peacock',
+  'Paramount+',
+  'Disney+',
+  'WNBA League Pass',
+])
+
+// The distinct local/regional feeds a season's games name, as picker entries. Each
+// feed is attributed to the one team present in EVERY game it airs (a market feed
+// carries its team home and away) — `team` is that abbr, or null if no single team
+// survives the intersection. Sorted by team then name so the picker reads as a
+// per-market list. Pure so tests can feed fixture games; the app-facing
+// LOCAL_CATALOG below derives from the committed schedule, so it tracks whatever
+// ESPN currently emits.
+export function localChannelCatalog(games) {
+  const teamsByName = new Map()
+  for (const g of games) {
+    for (const b of g.broadcast || []) {
+      if (NATIONAL_NAMES.has(b)) continue
+      const prev = teamsByName.get(b)
+      const pair = [g.home, g.away]
+      teamsByName.set(b, new Set(prev ? pair.filter((t) => prev.has(t)) : pair))
+    }
+  }
+  return [...teamsByName.entries()]
+    .map(([name, teams]) => ({
+      key: `local:${name}`,
+      label: name,
+      kind: 'local',
+      team: teams.size === 1 ? [...teams][0] : null,
+      match: carries(name),
+    }))
+    .sort(
+      (a, b) =>
+        (a.team || '\uffff').localeCompare(b.team || '\uffff') ||
+        a.label.localeCompare(b.label)
+    )
+}
+
+export const LOCAL_CATALOG = localChannelCatalog(GAMES)
+
+const FULL_CATALOG = [...SERVICE_CATALOG, ...LOCAL_CATALOG]
+
 export const SERVICE_BY_KEY = Object.fromEntries(SERVICE_CATALOG.map((s) => [s.key, s]))
 
 // Broadcast entries not already shown as a personalized 📺 badge, so a game on
@@ -64,5 +127,5 @@ export function broadcastNotBadged(broadcast, watched) {
 export function watchableServices(broadcast, selectedKeys) {
   if (!broadcast?.length || !selectedKeys?.length) return []
   const selected = new Set(selectedKeys)
-  return SERVICE_CATALOG.filter((s) => selected.has(s.key) && s.match(broadcast))
+  return FULL_CATALOG.filter((s) => selected.has(s.key) && s.match(broadcast))
 }
