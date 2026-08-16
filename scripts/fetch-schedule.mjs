@@ -20,7 +20,12 @@ import { CONCURRENCY, mapLimit, fetchRetry, getJson } from './lib/fetch.mjs'
 import { SEASON as COMMITTED_SEASON } from '../src/data/teams.js'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const SITE = 'https://site.api.espn.com/apis/site/v2/sports/basketball/wnba'
+// Both feeds live on site.web.api, NOT site.api. They serve the same `apis/site/v2`
+// routes with the same payloads, but ESPN's edge applies a datacenter-egress block to
+// site.api only: from a GitHub runner (or any cloud IP) every site.api call answers 403
+// while site.web.api answers 200. Diagnosed 2026-08-16, when the refresh had been red all
+// day — see docs/ESPN-PROXY.md. Do NOT "restore" the site.api host.
+const SITE = 'https://site.web.api.espn.com/apis/site/v2/sports/basketball/wnba'
 const WEB = 'https://site.web.api.espn.com/apis/common/v3/sports/basketball/wnba'
 
 const args = process.argv.slice(2)

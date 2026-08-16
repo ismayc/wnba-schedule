@@ -12,7 +12,10 @@
 //
 // Node built-ins only, so it runs on a bare checkout.
 
-const SCOREBOARD = 'https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/scoreboard'
+// site.web.api, not site.api — the latter 403s every request from a cloud IP.
+// See the note in scripts/fetch-schedule.mjs.
+const SCOREBOARD =
+  'https://site.web.api.espn.com/apis/site/v2/sports/basketball/wnba/scoreboard'
 
 // Each assumption the normalizer in src/services/espn.js depends on.
 const CHECKS = [

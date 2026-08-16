@@ -4,6 +4,21 @@ A dated changelog for The WNBA Schedule. Each heading is a calendar
 day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-08-16
+
+- **The data refresh is unblocked.** Every run since yesterday evening had failed
+  with `HTTP 403`, leaving the site a day stale mid-season. The cause was not the
+  runner's IP, as first assumed, but the *host*: ESPN's edge blocks
+  `site.api.espn.com` for requests from datacenter IPs, so an unattended refresh
+  403s while the same URL answers fine from a home connection. Its sibling
+  `site.web.api.espn.com` serves the identical `apis/site/v2` routes with no such
+  block — verified payload-for-payload on every route the refresh calls — so the
+  data scripts now fetch from there. The two missed games from 08-15 are back in,
+  with line scores and leaders.
+- The app itself is unchanged; only the build-time scripts moved host. The live
+  in-page score overlay was never affected, because it runs from your own browser
+  rather than a datacenter.
+
 ## 2026-08-15
 
 - **My services now covers local & regional channels.** A game on a market feed

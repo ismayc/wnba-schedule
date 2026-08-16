@@ -16,7 +16,9 @@ import { fileURLToPath } from 'node:url'
 import { getJson } from './lib/fetch.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const SITE = 'https://site.api.espn.com/apis/site/v2/sports/basketball/wnba'
+// site.web.api, not site.api — the latter 403s every request from a cloud IP.
+// See the note in scripts/fetch-schedule.mjs.
+const SITE = 'https://site.web.api.espn.com/apis/site/v2/sports/basketball/wnba'
 
 const args = process.argv.slice(2)
 const SEASON = Number(args[args.indexOf('--season') + 1]) || 2026
