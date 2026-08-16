@@ -24,7 +24,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 // routes with the same payloads, but ESPN's edge applies a datacenter-egress block to
 // site.api only: from a GitHub runner (or any cloud IP) every site.api call answers 403
 // while site.web.api answers 200. Diagnosed 2026-08-16, when the refresh had been red all
-// day — see docs/ESPN-PROXY.md. Do NOT "restore" the site.api host.
+// day — see sports-viewer-meta/docs/ESPN-403.md. Do NOT "restore" the site.api host.
 const SITE = 'https://site.web.api.espn.com/apis/site/v2/sports/basketball/wnba'
 const WEB = 'https://site.web.api.espn.com/apis/common/v3/sports/basketball/wnba'
 
