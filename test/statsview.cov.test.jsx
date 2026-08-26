@@ -29,6 +29,24 @@ const finishedSeason = () => {
   return games
 }
 
+// A season barely underway: a handful of results, the rest of the round-robin still to
+// play, so nobody has clinched or been eliminated and every row is "In the field" or
+// "Chasing". Kept synthetic on purpose — the committed schedule decides its own race as
+// the real season runs down, and once every team was clinched or eliminated those two
+// arms of the status stopped being exercised (refresh-data run 32955701284).
+const undecidedSeason = () => {
+  // One result each for seven pairs of teams — spread deliberately, since letting a
+  // single team bank all of its games would clinch it a spot on day one.
+  const played = new Set(
+    Array.from({ length: 7 }, (_, k) => `${TEAMS15[k * 2]}|${TEAMS15[k * 2 + 1]}`)
+  )
+  return finishedSeason().map((g) =>
+    played.has(`${g.home}|${g.away}`)
+      ? g
+      : { ...g, tip: '2026-09-20T00:00:00.000Z', score: undefined, line: undefined }
+  )
+}
+
 beforeEach(() => {
   Element.prototype.scrollIntoView = vi.fn()
   localStorage.clear()
@@ -88,6 +106,16 @@ describe('StatsView coverage', () => {
     await userEvent.click(container.querySelector('.margin-team'))
     await userEvent.click(container.querySelector('.race .team-btn'))
     expect(onPickTeam.mock.calls.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('splits an undecided race into the field and the chasers', () => {
+    const { container } = render(<StatsView games={undecidedSeason()} tz={TZ} />)
+    const race = within(container.querySelector('.race'))
+    expect(race.getAllByText('In the field')).toHaveLength(8)
+    expect(race.getAllByText('Chasing').length).toBeGreaterThan(0)
+    // Nothing is settled this early, so neither decided status shows up.
+    expect(race.queryByText('Clinched')).toBeNull()
+    expect(race.queryByText('Eliminated')).toBeNull()
   })
 
   it('marks clinched and eliminated teams once the season is decided', () => {
