@@ -17,7 +17,7 @@ import {
   resolveSeasonTeams,
 } from './leaders.mjs'
 import { CONCURRENCY, mapLimit, fetchRetry, getJson } from './lib/fetch.mjs'
-import { SEASON as COMMITTED_SEASON } from '../src/data/teams.js'
+import { SEASON as COMMITTED_SEASON, TEAMS as COMMITTED_TEAMS } from '../src/data/teams.js'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 // Both feeds live on site.web.api, NOT site.api. They serve the same `apis/site/v2`
@@ -73,6 +73,40 @@ async function guardAgainstShrink(games, file, label) {
         `  Re-run; pass --allow-shrink if the drop is real (a season change, say).`
     )
   }
+}
+
+// The schedule guard above is a floor, because games legitimately come and go: one
+// postponement is not a broken fetch. A franchise list is not like that. The league has
+// the teams it has, so ANY difference from what is committed means either the feed is
+// wrong or the league changed, and only a human can tell those apart.
+//
+// The floor cannot see this failure. On 2026-08-26 ESPN's 2026-27 team list for the NBA
+// sibling dropped from 30 teams to 13, and grew a "LON" (the London Lions, a preseason
+// exhibition opponent, not a franchise). That truncation happened to gut the schedule
+// far enough to trip the 0.9 floor, but it need not have: lose two teams out of thirty
+// and the remaining games still clear the floor comfortably, so a milder ESPN edit would
+// have quietly published a roster missing two franchises. Every team's schedule, logo,
+// and leaderboard entry hangs off this list, so it gets checked exactly, and checked
+// first, before every per-team request the run would otherwise waste.
+//
+// The WNBA is actively expanding, so this guard will fire on a real expansion year as well
+// as on a broken feed. That is the point: pass `--allow-roster-change` for the one run
+// that lands the new franchise, and the committed roster becomes the new baseline.
+function guardAgainstRosterChange(teams) {
+  if (args.includes('--allow-roster-change')) return
+  const committed = new Set(COMMITTED_TEAMS.map((t) => t.abbr))
+  if (!committed.size) return // first run: nothing to compare against
+  const fetched = new Set(teams.map((t) => t.abbr))
+  const vanished = [...committed].filter((a) => !fetched.has(a))
+  const appeared = [...fetched].filter((a) => !committed.has(a))
+  if (!vanished.length && !appeared.length) return
+  throw new Error(
+    `the team list changed from ${committed.size} teams to ${fetched.size}.\n` +
+      (vanished.length ? `  gone:  ${vanished.join(' ')}\n` : '') +
+      (appeared.length ? `  new:   ${appeared.join(' ')}\n` : '') +
+      `  Every schedule, logo, and leaderboard hangs off this list, so nothing was written.\n` +
+      `  Re-run; pass --allow-roster-change if the league really changed (expansion, say).`
+  )
 }
 
 // ESPN intermittently drops `broadcast` from games that have already been played, then
@@ -439,6 +473,7 @@ async function main() {
   console.log(`Fetching ${SEASON} WNBA teams…`)
   const teams = await fetchTeams()
   console.log(`  ${teams.length} teams`)
+  guardAgainstRosterChange(teams)
 
   console.log('Fetching schedules…')
   const games = await fetchSchedule(teams)
@@ -457,6 +492,11 @@ async function main() {
   console.log('Fetching line scores…')
   console.log(`  ${await enrichWithBoxScores(games)} games with quarter breakdowns`)
 
+  // Nothing is written until every guard has passed: a rejected run that had already
+  // rewritten teams.js would leave a gutted roster on disk for the next local run to
+  // trip over. CI never commits it (the job dies first), but a developer's checkout does.
+  await guardAgainstShrink(games, 'src/data/schedule.js', 'the schedule')
+
   // Logos are keyed by slug and resolved at render time from /logos/, so the committed
   // data carries no absolute ESPN URLs.
   const teamData = teams.map(({ logo, logoDark, ...t }) => t)
@@ -469,8 +509,6 @@ async function main() {
       `export const TEAM_BY_ABBR = Object.fromEntries(TEAMS.map((t) => [t.abbr, t]))\n\n` +
       `export const ALL_ABBRS = TEAMS.map((t) => t.abbr)\n`
   )
-
-  await guardAgainstShrink(games, 'src/data/schedule.js', 'the schedule')
 
   await writeFile(
     join(ROOT, 'src/data/schedule.js'),

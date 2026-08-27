@@ -4,6 +4,24 @@ A dated changelog for The WNBA Schedule. Each heading is a calendar
 day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-08-26
+
+- **The refresh now checks the team list before it fetches anything else.** ESPN broke
+  the NBA sibling today: its 2026-27 team list dropped from 30 teams to 13, and grew a
+  "LON" (the London Lions, a preseason exhibition opponent, not a franchise). That was
+  caught only downstream, by the schedule shrink guard, and only by luck: the shrink
+  guard is a floor at 90%, because postponed games legitimately disappear, so losing two
+  teams would have cleared it and quietly published a roster missing two franchises. A
+  franchise list does not work that way, so it is now compared exactly against what is
+  committed, and any difference stops the run and names the teams that came and went.
+  The WNBA is actively expanding, so `--allow-roster-change` is the override for the one
+  run that lands a new franchise.
+- **A rejected refresh no longer leaves a gutted `teams.js` behind.** The roster file was
+  written before the schedule guard ran, so a run the guard stopped had already
+  overwritten it on disk. Nothing is written now until every guard has passed.
+- No app or data changes: verified against the live feed, which still returns all 15
+  teams and the full 333-game season.
+
 ## 2026-08-16
 
 - **The data refresh is unblocked.** Every run since yesterday evening had failed
