@@ -4,6 +4,19 @@ A dated changelog for The WNBA Schedule. Each heading is a calendar
 day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-08-27
+
+- **The refresh now ignores teams that are not WNBA franchises.** ESPN's team list for a
+  season is not a franchise list: it also carries the exhibition clubs a league's teams
+  are scheduled to play. The NBA sibling's 2026-27 list picked up "LON", the London
+  Lions, a British Basketball League side with a single preseason game on file, which
+  would have landed in the data as an extra team with no logo and a broken color, sitting
+  in the team picker with zero games. A franchise is a team ESPN places in a conference,
+  so that is now the test, taken from the core API's group membership. Nothing is
+  filtered here today: verified against the live feed, the WNBA's two conferences yield
+  exactly the 15 committed franchises, and the full 333-game season fetches unchanged.
+  This is preventive, and it keeps the three schedule viewers reading the same way.
+
 ## 2026-08-26
 
 - **The refresh now checks the team list before it fetches anything else.** ESPN broke
