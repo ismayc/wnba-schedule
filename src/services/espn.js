@@ -4,7 +4,7 @@
 // cover games that are in progress or finished since the last data refresh. Keyless
 // and CORS-open — no backend, no .env.
 
-const SCOREBOARD = 'https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/scoreboard'
+const SCOREBOARD = 'https://site.web.api.espn.com/apis/site/v2/sports/basketball/wnba/scoreboard'
 
 // ESPN buckets a `dates=YYYYMMDD` query by the US-EASTERN day, not UTC (verified:
 // dates=20260728 returns instants up to 07-29T02:00Z). Anchoring the window on the

@@ -8,7 +8,7 @@
 // and injuries/win-probability change up to and through the game. Fetching on open costs
 // one request and works retroactively for any past game.
 
-const SUMMARY = 'https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/summary'
+const SUMMARY = 'https://site.web.api.espn.com/apis/site/v2/sports/basketball/wnba/summary'
 
 // ── Player box score ──────────────────────────────────────────────────
 // REB already sums OREB+DREB, so drop those two to keep the wide table narrower.
