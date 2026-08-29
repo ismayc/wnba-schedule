@@ -114,19 +114,15 @@ function guardAgainstRosterChange(teams) {
   )
 }
 
-// ESPN intermittently drops `broadcast` from games that have already been played, then
-// restores it a few hours later. Left alone, the twice-daily refresh commits that flap
-// back and forth forever — two of main's auto-commits on 2026-07-27 differed only by
-// these two rows, in opposite directions.
-//
-// A finished game cannot legitimately lose its listings, so treat committed broadcast
-// data as sticky: if the feed has stopped reporting it, keep what we already have.
-async function keepKnownBroadcasts(games, file) {
+// The last good run's snapshot, parsed back out of the file it generated. Two guards
+// below ask it what was already known: which listings the feed has since dropped, and
+// which results were already final before this run started.
+async function readCommittedGames(file) {
   let committed
   try {
     committed = await readFile(join(ROOT, file), 'utf8')
   } catch {
-    return 0
+    return new Map() // first run: nothing to compare against
   }
   const known = new Map()
   for (const line of committed.split('\n')) {
@@ -134,17 +130,29 @@ async function keepKnownBroadcasts(games, file) {
     if (!m) continue
     try {
       const g = JSON.parse(m[1])
-      if (g.broadcast?.length) known.set(g.id, g.broadcast)
+      known.set(g.id, g)
     } catch {
       /* a line we can't parse simply isn't a source of truth */
     }
   }
+  return known
+}
+
+// ESPN intermittently drops `broadcast` from games that have already been played, then
+// restores it a few hours later. Left alone, the twice-daily refresh commits that flap
+// back and forth forever — two of main's auto-commits on 2026-07-27 differed only by
+// these two rows, in opposite directions.
+//
+// A finished game cannot legitimately lose its listings, so treat committed broadcast
+// data as sticky: if the feed has stopped reporting it, keep what we already have.
+function keepKnownBroadcasts(games, committed) {
   let restored = 0
   for (const g of games) {
-    if (g.broadcast?.length || !known.has(g.id)) continue
+    const known = committed.get(g.id)?.broadcast
+    if (g.broadcast?.length || !known?.length) continue
     // Only for games in the past: an upcoming game losing its listing is real news.
     if (new Date(g.tip) > new Date()) continue
-    g.broadcast = known.get(g.id)
+    g.broadcast = known
     restored++
   }
   return restored
@@ -409,6 +417,60 @@ async function enrichWithBoxScores(games) {
   return n
 }
 
+// `score` and `line` come from two different ESPN feeds — the per-team schedule and the
+// scoreboard — and for a few minutes after a game ends they disagree: the schedule feed
+// calls it completed while the scoreboard snapshot has not caught up, so the game lands
+// here with a final score and no quarter breakdown. The line-score test rejects that
+// (rightly: a played game without its breakdown is half a result), which throws away the
+// ENTIRE refresh over one game that will be complete by the next run. That is what
+// happened on 2026-08-29: the 19:15 cron ran seven hours late, at 02:11, landing 35
+// minutes after POR@ATL and CON@IND went final; a re-run twelve minutes later fetched
+// both with their lines and committed cleanly.
+//
+// So hold back just that game's result instead of losing the run. The game keeps the
+// shape it had before it tipped, exactly as if the refresh had run a few minutes earlier,
+// and the next run commits it complete. Nothing a viewer can see gets worse: the discarded
+// run never shipped that score either, and now every OTHER game's update ships.
+//
+// Two bounds keep this from going quiet, which is the failure this pipeline must never
+// have:
+//   - Only a result this run just learned. A game whose committed snapshot ALREADY has a
+//     score has lost a line score it used to have — a real regression, left alone to fail
+//     the gate loudly.
+//   - Only a result still inside the settling window. Hours after the final whistle the
+//     scoreboard is not lagging, it is broken, and that also belongs in a red run.
+const SETTLE_WINDOW_MS = 6 * 60 * 60 * 1000
+
+// A simultaneous four-game slate is a normal night; more than that finishing without a
+// single line score between them is not a race, it is the scoreboard feed failing.
+const MAX_DEFERRED = 4
+
+export function deferUnsettledResults(games, committed, now = Date.now()) {
+  const deferred = games.filter(
+    (g) =>
+      g.score &&
+      !g.line &&
+      !committed.get(g.id)?.score &&
+      now - new Date(g.tip).getTime() <= SETTLE_WINDOW_MS
+  )
+  if (deferred.length > MAX_DEFERRED)
+    throw new Error(
+      `${deferred.length} games went final with no line score:\n` +
+        deferred.map((g) => `  ${g.tip}  ${g.away} @ ${g.home}`).join('\n') +
+        `\n  One or two is the scoreboard feed lagging the schedule feed for a few\n` +
+        `  minutes. This many at once is the scoreboard feed itself, so nothing was\n` +
+        `  written — re-run once it is answering.`
+    )
+  for (const g of deferred) {
+    // Everything the scoreboard would have carried alongside the line goes with it, so
+    // the game reads as one that has not been played rather than a half-filled result.
+    delete g.score
+    delete g.ot
+    delete g.stars
+  }
+  return deferred
+}
+
 // Season stat lines for every qualified player, in a single request. The core-API
 // /leaders endpoint returns athletes as $ref links (≈75 extra fetches to resolve
 // names); this one inlines name, team, and position, so the app ships leaderboards
@@ -533,12 +595,17 @@ async function main() {
   const counts = games.reduce((a, g) => ({ ...a, [g.seasonType]: (a[g.seasonType] || 0) + 1 }), {})
   console.log(`  ${games.length} games`, counts)
 
-  // Must run before the schedule is written — it enriches `games` in place.
-  const restored = await keepKnownBroadcasts(games, 'src/data/schedule.js')
+  // Must run before the schedule is written — these enrich `games` in place.
+  const committed = await readCommittedGames('src/data/schedule.js')
+  const restored = keepKnownBroadcasts(games, committed)
   if (restored) console.log(`  kept ${restored} broadcast listing(s) the feed dropped`)
 
   console.log('Fetching line scores…')
   console.log(`  ${await enrichWithBoxScores(games)} games with quarter breakdowns`)
+
+  const deferred = deferUnsettledResults(games, committed)
+  for (const g of deferred)
+    console.log(`  holding ${g.away} @ ${g.home} until its line score lands`)
 
   // Nothing is written until every guard has passed: a rejected run that had already
   // rewritten teams.js would leave a gutted roster on disk for the next local run to
