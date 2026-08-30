@@ -26,7 +26,11 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary', 'json'],
-      include: ['src/**/*.{js,jsx}'],
+      // netlify/functions is inside the gate as well as src. The subscription
+      // endpoint is real shipped code that a subscriber's calendar hits directly,
+      // and it sat outside coverage.include with no tests at all while the badge
+      // read 100%. See sports-viewer-meta/docs/LINEAGES.md section 5.
+      include: ['src/**/*.{js,jsx}', 'netlify/functions/**/*.mjs'],
       exclude: ['src/main.jsx', 'src/data/**'],
       // Enforced gate: the suite (and CI's coverage:badge step) fails if any metric
       // slips below 100%. Genuinely unreachable defensive arms carry an inline
