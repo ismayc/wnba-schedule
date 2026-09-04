@@ -8,10 +8,18 @@ vi.mock('../src/services/player.js', () => ({
   headshotUrl: () => 'data:image/gif;base64,',
 }))
 
+// Both cases here pin the clock relative to the next UNPLAYED game, which the live
+// schedule stops having on September 25. Read the frozen September 4 board instead;
+// see test/fixtures/season-2026.js.
+vi.mock('../src/data/schedule.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  GAMES: (await import('./fixtures/season-2026.js')).GAMES_2026,
+}))
+
 import App from '../src/App.jsx'
 import { FollowProvider } from '../src/context/follow.jsx'
 import { ServicesProvider } from '../src/context/services.jsx'
-import { GAMES } from '../src/data/schedule.js'
+import { GAMES_2026 as GAMES } from './fixtures/season-2026.js'
 
 const flush = async () => {
   await act(async () => {

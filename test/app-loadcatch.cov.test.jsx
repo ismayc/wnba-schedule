@@ -10,6 +10,14 @@ vi.mock('../src/services/espn.js', async (importActual) => {
   return { ...actual, fetchLive: vi.fn().mockRejectedValue(new Error('feed down')) }
 })
 
+// load() only runs while the season is live: App skips the poll entirely once every
+// game is final, so on the live schedule this try/catch stops being reachable on
+// September 25. Read the frozen September 4 board; see test/fixtures/season-2026.js.
+vi.mock('../src/data/schedule.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  GAMES: (await import('./fixtures/season-2026.js')).GAMES_2026,
+}))
+
 import App from '../src/App.jsx'
 import { fetchLive } from '../src/services/espn.js'
 import { FollowProvider } from '../src/context/follow.jsx'

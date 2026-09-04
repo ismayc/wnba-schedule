@@ -9,10 +9,19 @@ vi.mock('../src/services/player.js', () => ({
   headshotUrl: () => 'data:image/gif;base64,',
 }))
 
+// The live-overlay cases here mark a committed game in progress and expect a toast.
+// App stops polling once every game is final (the seasonOver gate), which is what the
+// live schedule becomes on September 25, so read the frozen September 4 board: a
+// season genuinely in progress. See test/fixtures/season-2026.js.
+vi.mock('../src/data/schedule.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  GAMES: (await import('./fixtures/season-2026.js')).GAMES_2026,
+}))
+
 import App from '../src/App.jsx'
 import { FollowProvider } from '../src/context/follow.jsx'
 import { ServicesProvider } from '../src/context/services.jsx'
-import { GAMES } from '../src/data/schedule.js'
+import { GAMES_2026 as GAMES } from './fixtures/season-2026.js'
 import { HISTORY } from '../src/data/history.js'
 import { TEAM_BY_ABBR } from '../src/data/teams.js'
 const teamNameOf = (a) => TEAM_BY_ABBR[a]?.name ?? a

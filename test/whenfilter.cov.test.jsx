@@ -2,6 +2,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 vi.mock('../src/services/summary.js', () => ({ fetchGameSummary: () => Promise.resolve(null) }))
+// The Upcoming filter has to have something to keep, and the live schedule runs out of
+// unplayed games on September 25. Read the frozen September 4 board; see
+// test/fixtures/season-2026.js.
+vi.mock('../src/data/schedule.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  GAMES: (await import('./fixtures/season-2026.js')).GAMES_2026,
+}))
 import App from '../src/App.jsx'
 import { FollowProvider } from '../src/context/follow.jsx'
 import { ServicesProvider } from '../src/context/services.jsx'

@@ -4,6 +4,34 @@ A dated changelog for The WNBA Schedule. Each heading is a calendar
 day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-09-04
+
+- **The suite no longer needs the season to still be running.** The FIBA viewer's
+  tournament started today and its refresh went red on the first data change: 48 tests,
+  all of them really asserting "nothing has been played yet". Sweeping the family for the
+  same shape turned up the mirror image here. Scoring the 35 remaining games and running
+  the gate broke **16 tests across 9 files**. The last regular-season game is September
+  25, and the playoff fixtures are not published until the seeding is known, so a window
+  with nothing unplayed on the board is coming, and after the Finals it lasts until the
+  2027 schedule lands.
+- None of it was an app bug. App deliberately stops polling once every game is final
+  (the `seasonOver` gate, which has its own tests both ways), so with a fully played
+  board the poll-count assertions, the live-overlay toasts, the "Next up" lists, the
+  Upcoming filter and every `GAMES.find((g) => !g.score)` pick fail together.
+- **`test/fixtures/season-2026.js`** is the fix: the September 4 board frozen exactly as
+  committed, 298 played and 35 to come, never regenerated. Nine test files read it
+  instead of the live schedule; the four that mount App `vi.mock` the module, since App
+  reads the committed board directly. The live board keeps its own gate in
+  `schedule.test.js`, which is what a refresh still has to satisfy.
+- **A countdown branch was being covered by accident.** `GameDetail`'s "in 1d 0h" line
+  renders only while the tip is ahead, and it was reached because some other test
+  happened to open a game that was in the future on the day the suite ran. Moving to a
+  frozen board dried it up and dropped branches to 99.94%. It now has its own test with a
+  pinned clock and a literal game, asserting the text, in the same style as the All-Star
+  card countdown in `render.test.jsx`.
+- Verified by running the full coverage gate against the real committed data and against
+  a simulated fully played season: 673 tests and 100% coverage both ways.
+
 ## 2026-08-30
 
 - **Production is now checked after every deploy.** Nothing in this repo ever fetched an

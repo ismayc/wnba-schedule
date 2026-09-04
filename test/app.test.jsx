@@ -5,9 +5,18 @@ import userEvent from '@testing-library/user-event'
 // the summary sections (they have their own suite), so stub the service to keep the
 // fetch call count deterministic and the tests off the network.
 vi.mock('../src/services/summary.js', () => ({ fetchGameSummary: () => Promise.resolve(null) }))
+// App stops polling entirely once every game has a final score (the seasonOver gate),
+// which is correct behavior with its own tests in app-seasonover.cov.test.jsx. It is
+// also what the live schedule looks like from September 25, when the last
+// regular-season game is done. So these wiring tests read the frozen September 4
+// board, a season genuinely in progress. See test/fixtures/season-2026.js.
+vi.mock('../src/data/schedule.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  GAMES: (await import('./fixtures/season-2026.js')).GAMES_2026,
+}))
 import App from '../src/App.jsx'
 import { FollowProvider } from '../src/context/follow.jsx'
-import { GAMES } from '../src/data/schedule.js'
+import { GAMES_2026 as GAMES } from './fixtures/season-2026.js'
 import { ServicesProvider } from '../src/context/services.jsx'
 
 // App is the wiring layer — polling, filters, URL state, and which view is on screen.

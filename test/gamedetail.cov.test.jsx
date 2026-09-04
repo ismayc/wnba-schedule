@@ -8,7 +8,11 @@ vi.mock('../src/services/summary.js', () => ({ fetchGameSummary: vi.fn() }))
 import { fetchGameSummary } from '../src/services/summary.js'
 import GameDetail from '../src/components/GameDetail.jsx'
 import { ServicesProvider } from '../src/context/services.jsx'
-import { GAMES } from '../src/data/schedule.js'
+// This file needs a season IN PROGRESS: something played and something still to come.
+// The live schedule stops being that on September 25, when the last regular-season
+// game is done, so read the frozen September 4 board instead. See
+// test/fixtures/season-2026.js. The live board keeps its own gate in schedule.test.js.
+import { GAMES_2026 as GAMES } from './fixtures/season-2026.js'
 
 const TZ = 'America/New_York'
 const doubleOT = GAMES.find((g) => g.line && g.line.home.length > 5)

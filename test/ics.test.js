@@ -7,7 +7,11 @@ import {
   toIcsDate,
   webcalUrl,
 } from '../src/utils/ics.js'
-import { GAMES } from '../src/data/schedule.js'
+// This file needs a season IN PROGRESS: something played and something still to come.
+// The live schedule stops being that on September 25, when the last regular-season
+// game is done, so read the frozen September 4 board instead. See
+// test/fixtures/season-2026.js. The live board keeps its own gate in schedule.test.js.
+import { GAMES_2026 as GAMES } from './fixtures/season-2026.js'
 
 const NOW = '2026-07-20T12:00:00.000Z'
 const build = (games) => buildIcs(games, { now: NOW })
