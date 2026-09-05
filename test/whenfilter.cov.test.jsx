@@ -30,7 +30,20 @@ const mount = async () => {
   return utils
 }
 
+// Pin the clock as well as the board.
+//
+// Freezing the September 4 board above is only half the job: which bucket a game
+// falls in is a comparison against Date.now(), so once the real clock passes the
+// frozen board every game reads as finished and the Upcoming filter has nothing
+// left to keep. NOW is the same instant the whenBucket unit tests below use, and
+// it sits mid-season on the frozen board, with played and unplayed games either
+// side of it. Verified by rehearsal: this test failed from September 26, 2026 on,
+// with the fixture untouched.
+//
+// Only Date is faked, so userEvent's timers and waitFor keep working.
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(NOW)
   Element.prototype.scrollIntoView = vi.fn()
   localStorage.clear()
   window.history.replaceState(null, '', '/')
@@ -38,6 +51,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  vi.useRealTimers()
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
 })
@@ -88,8 +102,15 @@ describe('the When filter in the app', () => {
     // would hold with the filter disabled — so assert the CONTRAST, which bites in
     // either half of the year.
     const cardCount = () => document.querySelectorAll('article.game').length
+    // The All-Star card is a deliberate early return in GameCard with its own
+    // markup and no state- class, so it is excluded from the state assertions
+    // rather than weakening them. It only shows up here because the pinned clock
+    // sits near the break; the real games either side still carry the class.
+    const stateCards = () => document.querySelectorAll('article.game:not(.allstar)')
     expect(cardCount()).toBeGreaterThan(0)
-    for (const c of document.querySelectorAll('article.game')) {
+    // Non-vacuous: the loop below has to actually iterate over real games.
+    expect(stateCards().length).toBeGreaterThan(0)
+    for (const c of stateCards()) {
       expect(c.className).toMatch(/state-(final|past)\b/)
     }
 
@@ -97,8 +118,8 @@ describe('the When filter in the app', () => {
 
     const beforeUpcoming = cardCount()
     await userEvent.click(screen.getByRole('button', { name: '⏱ Upcoming' }))
-    // Every card on screen is now unplayed — a strictly different set from the one above.
-    for (const c of document.querySelectorAll('article.game')) {
+    // Every card on screen is now unplayed, a strictly different set from the one above.
+    for (const c of stateCards()) {
       expect(c.className).not.toMatch(/state-(final|past)\b/)
     }
     expect(cardCount()).not.toBe(beforeUpcoming)

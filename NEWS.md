@@ -4,6 +4,29 @@ A dated changelog for The WNBA Schedule. Each heading is a calendar
 day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-09-05
+
+- **The coverage gate was already dipping below 100% today.** `WeekView.jsx` lines 63 and
+  140 went uncovered partway through the day, with no commit behind it. `test/week.test.jsx`
+  rendered the LIVE board at the real clock and asserted things about "the games in the
+  current week", so which branches it reached depended on what was on the calendar that
+  afternoon. This morning's refresh passed the same gate a few hours earlier.
+- **Freezing a board is only half the job; the clock has to be pinned too.** Yesterday's
+  `test/fixtures/season-2026.js` fixed the data half for nine files. `week.test.jsx` had
+  never been switched over, and `whenfilter.cov.test.jsx` had the frozen board but not a
+  pinned clock, so which bucket a game falls in still moved with the calendar: it would
+  have failed from **September 26**, the day after the last regular-season game.
+- **Found by rehearsal.** A harness shifts `Date` to a chosen instant and runs the full
+  coverage gate with the committed schedule untouched. `week.test.jsx` failed on
+  **September 6**, one day out.
+- **Both files now pin the clock**, `week.test.jsx` to the day its fixture was frozen and
+  `whenfilter.cov.test.jsx` to the instant its own unit tests already used. Re-rehearsed
+  green at six dates from September 2026 through June 2028.
+- **One assertion was corrected rather than weakened.** With the clock pinned near the
+  All-Star break, the All-Star card is on screen; it is a deliberate early return in
+  `GameCard` with its own markup and no `state-` class, so the state assertions now skip
+  it, and a new check proves the loop still iterates over real games.
+
 ## 2026-09-04
 
 - **The suite no longer needs the season to still be running.** The FIBA viewer's

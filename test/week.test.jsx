@@ -1,10 +1,34 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import WeekView from '../src/components/WeekView.jsx'
-import { GAMES } from '../src/data/schedule.js'
+// The FROZEN board, not src/data/schedule.js. Every test here renders the week
+// containing today and then asserts something about the games in it, so on the
+// live board the whole file is really asserting "the current week is inside the
+// season and has games in it". That is false in the postseason gaps, false after
+// the Finals, and false again before next May. The live board keeps its own gate
+// in test/schedule.test.js, which is what a refresh has to satisfy.
+import { GAMES_2026 as GAMES } from './fixtures/season-2026.js'
 
 const TZ = 'America/New_York'
+
+// Pin the clock too, for the same reason: "the current week" is read from
+// Date.now(), so freezing the board alone would only move the failure. This
+// instant is the day the fixture was frozen, when the week running Sunday
+// August 30 to Saturday September 5 holds both played games and unplayed ones,
+// which is what the score-versus-tip-time tests below need.
+//
+// Verified by rehearsal: without this the file failed on September 6, 2026, a
+// day after the fixture was frozen, with no commit behind it.
+const NOW = new Date('2026-09-04T16:00:00.000Z')
+
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(NOW)
+})
+
+afterEach(() => vi.useRealTimers())
+
 const open = (props = {}) => render(<WeekView games={GAMES} tz={TZ} {...props} />)
 
 describe('WeekView', () => {
