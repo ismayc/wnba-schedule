@@ -6,6 +6,15 @@ data/source updates, deployment). Newest day on top.
 
 ## 2026-09-06
 
+- **Box scores are built for a phone now.** Three changes, all below 560px and none of
+  them touching the desktop table. The four columns that answer "who played well"
+  (MIN, PTS, REB, AST) show by default, which fits with no sideways scroll at all, and
+  **More stats** brings the other nine back for anyone who wants the splits. The column
+  labels stay pinned while the rows scroll under them. And when the table does scroll
+  sideways, a soft shadow appears at whichever edge has more table beyond it. Ported
+  from the FIBA viewer, where it was built and measured first; the one thing that had
+  to differ here is that the scroll wrapper gets its own class, because `.table-scroll`
+  is shared with the standings and history tables.
 - **A red refresh now says which of three things it means.** Fourteen days of Refresh
   data failures across the family sorted into a fetch that did not land (ESPN 5xx, or a
   guard correctly refusing bad data; the site is fine), a red gate (a test asserted a

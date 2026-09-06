@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { PlayerBox, TeamStatsSection, InjuryReport, WinProbSection } from '../src/components/GameSummary.jsx'
 import { fetchGameSummary } from '../src/services/summary.js'
 
@@ -170,6 +170,31 @@ describe('GameSummary sections (components)', () => {
     expect(screen.getByText('Napheesa Collier')).toBeInTheDocument()
     // Totals rows (one per team).
     expect(screen.getAllByText('Totals').length).toBe(2)
+  })
+
+  // The phone view shows MIN/PTS/REB/AST and hides the rest behind this toggle. Which
+  // columns are actually hidden is a media query, so jsdom cannot see it; what is
+  // asserted here is the part that lives in the markup: every non-core column carries
+  // bx-extra, and the toggle flips both tables into bx-all, which the media query keys on.
+  it('flips every stat column on with More stats, and back off', async () => {
+    render(<PlayerBox summary={await readyFrom()} game={game} hideScores={false} />)
+    const toggle = screen.getByRole('button', { name: 'More stats' })
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    const tables = () => [...document.querySelectorAll('.boxscore')]
+    expect(tables()).toHaveLength(2)
+    expect(tables().every((t) => !t.classList.contains('bx-all'))).toBe(true)
+    const head = [...tables()[0].querySelectorAll('thead th')]
+    const core = head.filter((th) => !th.classList.contains('bx-extra')).map((th) => th.textContent)
+    expect(core).toEqual(['Player', 'MIN', 'PTS', 'REB', 'AST'])
+    expect(head.some((th) => th.classList.contains('bx-extra'))).toBe(true)
+    expect(tables()[0].querySelector('tbody td').classList.contains('bx-extra')).toBe(false)
+    expect(tables()[0].querySelector('tfoot td').classList.contains('bx-extra')).toBe(false)
+
+    fireEvent.click(toggle)
+    expect(tables().every((t) => t.classList.contains('bx-all'))).toBe(true)
+    expect(screen.getByRole('button', { name: 'Fewer stats' })).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.click(screen.getByRole('button', { name: 'Fewer stats' }))
+    expect(tables().every((t) => !t.classList.contains('bx-all'))).toBe(true)
   })
 
   it('shows team stats, injuries, and the win-prob chart for a completed game', async () => {

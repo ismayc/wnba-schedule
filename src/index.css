@@ -2713,7 +2713,64 @@ button.drill-row:hover {
    inside .table-scroll rather than pushing the modal sideways. */
 .box-sides {
   display: grid;
+  /* minmax(0, 1fr) and the min-width below are both load-bearing on a phone: a grid
+     item's min-width defaults to its content, so the scroll box would be sized to
+     the table rather than the modal and the modal would overflow sideways. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
+}
+.box-team {
+  min-width: 0;
+}
+/* Scroll cue, CSS only, on the box's own wrapper (.table-scroll is shared with the
+   standings and history). The two `local` gradients ride the content and cover the
+   shadow beneath them at each end; the two `scroll` shadows are fixed to the box. So
+   a shadow shows exactly when there is more table that way, with nothing measuring
+   scrollLeft. Tinted from --text, so it reads in both themes. */
+.bx-scroll {
+  overflow-y: clip;
+  background:
+    linear-gradient(to right, var(--card), transparent) 0 0 / 16px 100% no-repeat local,
+    linear-gradient(to left, var(--card), transparent) 100% 0 / 16px 100% no-repeat local,
+    radial-gradient(
+        farthest-side at 0 50%,
+        color-mix(in srgb, var(--text) 22%, transparent),
+        transparent
+      )
+      0 0 / 7px 100% no-repeat scroll,
+    radial-gradient(
+        farthest-side at 100% 50%,
+        color-mix(in srgb, var(--text) 22%, transparent),
+        transparent
+      )
+      100% 0 / 7px 100% no-repeat scroll;
+}
+/* Heading and the stat toggle on one line. */
+.bx-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.bx-section-head .md-sub {
+  margin-bottom: 8px;
+}
+/* Shown only on a phone: above the breakpoint every column already fits. */
+.bx-more {
+  display: none;
+  background: var(--card-2, var(--bg-soft, var(--card)));
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: var(--radius);
+  padding: 4px 9px;
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.bx-more:hover {
+  color: var(--text);
+  border-color: var(--accent);
 }
 .box-team .lu-head {
   margin-bottom: 6px;
@@ -2745,6 +2802,46 @@ button.drill-row:hover {
   left: 0;
   background: var(--card);
   min-width: 116px;
+  z-index: 1;
+}
+/* The column labels stay put while the rows scroll under them.
+   MEASURED in the FIBA sibling, because it is not what it looks like: sticky
+   resolves against the nearest ancestor SCROLL CONTAINER in either axis. The
+   wrapper has `overflow-x: auto`, so it is that container, it never scrolls
+   vertically, and `top: 0` is inert. So the wrapper stops being a scroll container
+   in exactly the state where it has nothing to scroll, the compact phone table (see
+   the phone block at the end of this file), and the header sticks to the modal,
+   which is the real vertical scroller. "More stats" brings horizontal scrolling
+   back and the pin goes with it, which is the deliberate trade of that mode. */
+.boxscore thead th {
+  position: sticky;
+  top: 0;
+  background: var(--card);
+  z-index: 2;
+}
+.boxscore thead th.bx-name {
+  z-index: 3;
+}
+/* The modal pads 18px at the top, and a sticky top:0 pins to the CONTENT box, so
+   rows would scroll through that strip ABOVE the pinned labels. This curtain paints
+   the strip in the modal's own background. NOT a box-shadow, which is the obvious
+   way and does not work: the table is `border-collapse: collapse`, and Chrome does
+   not paint box-shadow on a cell in the collapsed border model. */
+.boxscore thead th::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 22px;
+  background: var(--card);
+}
+/* Opaque and above the curtain: unscrolled, the curtain reaches up into this band,
+   and without its own background the team name would be painted over. */
+.box-team .lu-head {
+  position: relative;
+  z-index: 5;
+  background: var(--card);
 }
 .boxscore tbody .bx-name {
   font-weight: 500;
@@ -3572,4 +3669,23 @@ button.drill-row:hover {
 .hy-table td,
 .hy-table th {
   font-size: 13px;
+}
+
+/* ---------- Box score on a phone ----------
+   Thirteen columns across twelve rows is a lot of thumb. The four that answer "who
+   played well" are shown by default, which fits with no sideways scroll at all, and
+   "More stats" brings the rest back for anyone who wants the splits. Ported from the
+   FIBA viewer on 2026-09-06. */
+@media (max-width: 560px) {
+  .bx-more {
+    display: inline-block;
+  }
+  .boxscore:not(.bx-all) .bx-extra {
+    display: none;
+  }
+  /* Nothing to scroll in compact mode, so the wrapper stops being a scroll
+     container and the sticky header can resolve against the modal instead. */
+  .bx-scroll:has(.boxscore:not(.bx-all)) {
+    overflow: visible;
+  }
 }

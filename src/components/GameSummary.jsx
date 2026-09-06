@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { liveState } from '../utils/time.js'
 import { LINEUPS, INJURIES } from '../data/lineups.js'
 import TeamLogo from './TeamLogo.jsx'
@@ -10,6 +11,10 @@ import TeamLogo from './TeamLogo.jsx'
 
 // ── Players: box score once stats exist, else starting lineups ─────────
 export function PlayerBox({ summary, game, hideScores }) {
+  // The phone view shows MIN/PTS/REB/AST and keeps the rest behind this. Declared
+  // before the early returns below: a hook cannot be called conditionally.
+  const [showAll, setShowAll] = useState(false)
+
   if (summary.status === 'loading') {
     return (
       <section className="lineups">
@@ -37,11 +42,21 @@ export function PlayerBox({ summary, game, hideScores }) {
 
   return (
     <section className="lineups">
-      <h4 className="md-sub">{showBox ? 'Box score' : 'Starting lineups'}</h4>
+      <div className="bx-section-head">
+        <h4 className="md-sub">{showBox ? 'Box score' : 'Starting lineups'}</h4>
+        {/* Both tables answer to one control: two toggles for the same decision is
+            twice the tapping for no extra choice. Hidden above the phone breakpoint,
+            where every column already fits. */}
+        {showBox && (
+          <button className="bx-more" onClick={() => setShowAll((s) => !s)} aria-expanded={showAll}>
+            {showAll ? 'Fewer stats' : 'More stats'}
+          </button>
+        )}
+      </div>
       {showBox ? (
         <div className="box-sides">
-          <BoxTable side={away} />
-          <BoxTable side={home} />
+          <BoxTable side={away} showAll={showAll} />
+          <BoxTable side={home} showAll={showAll} />
         </div>
       ) : (
         <div className="lu-sides">
@@ -159,7 +174,14 @@ export function WinProbSection({ summary, game, hideScores }) {
 }
 
 // ── Private renderers ──────────────────────────────────────────────────
-function BoxTable({ side }) {
+// The four that answer "who played well". On a phone these fit with no sideways
+// scroll at all; everything else is one tap away behind "More stats". Marked in the
+// markup rather than filtered here, so the desktop table is unchanged and the
+// narrow-screen rule is a media query rather than a viewport measurement in JS.
+const CORE_COLS = new Set(['minutes', 'points', 'rebounds', 'assists'])
+const extra = (key) => (CORE_COLS.has(key) ? undefined : 'bx-extra')
+
+function BoxTable({ side, showAll }) {
   if (!side) return null
   const rows = [...side.starters, ...side.bench]
   const benchStart = side.starters.length
@@ -176,15 +198,17 @@ function BoxTable({ side }) {
         {side.abbr && <TeamLogo abbr={side.abbr} size={18} />}
         <strong>{side.name}</strong>
       </header>
-      <div className="table-scroll">
-        <table className="boxscore">
+      {/* bx-scroll as well as table-scroll: the phone rules below act on this
+          wrapper only, and .table-scroll is shared with the standings and history. */}
+      <div className="table-scroll bx-scroll">
+        <table className={showAll ? 'boxscore bx-all' : 'boxscore'}>
           <thead>
             <tr>
               <th className="bx-name" scope="col">
                 Player
               </th>
               {side.columns.map((c) => (
-                <th key={c.key} scope="col">
+                <th key={c.key} scope="col" className={extra(c.key)}>
                   {c.label}
                 </th>
               ))}
@@ -198,7 +222,9 @@ function BoxTable({ side }) {
                   {p.pos && <span className="lu-pos">{p.pos}</span>}
                 </th>
                 {side.columns.map((c) => (
-                  <td key={c.key}>{cell(p, c.key)}</td>
+                  <td key={c.key} className={extra(c.key)}>
+                    {cell(p, c.key)}
+                  </td>
                 ))}
               </tr>
             ))}
@@ -210,7 +236,9 @@ function BoxTable({ side }) {
                   Totals
                 </th>
                 {side.columns.map((c) => (
-                  <td key={c.key}>{side.totals[c.key] || ''}</td>
+                  <td key={c.key} className={extra(c.key)}>
+                    {side.totals[c.key] || ''}
+                  </td>
                 ))}
               </tr>
             </tfoot>
