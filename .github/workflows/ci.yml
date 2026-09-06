@@ -162,7 +162,7 @@ jobs:
         run: node sports-viewer-meta/scripts/rehearse-clock.mjs --repo the-wnba-schedule | tee rehearsal.txt
       - name: Keep the result
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rehearsal-the-wnba-schedule
           path: rehearsal.txt
