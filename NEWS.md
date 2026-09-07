@@ -6,6 +6,23 @@ data/source updates, deployment). Newest day on top.
 
 ## 2026-09-06
 
+- **Every league fact now lives in one file, `src/config/league.js`.** The two ESPN URL
+  grammars, the storage prefix, the period vocabulary, the live-overlay window, the `.ics`
+  identity, the deploy host and the locale were inline literals across seven files; 17
+  files now import one module. The pattern comes from `the-nfl-schedule`, the only sibling
+  that already had it, and this repo is the third of ten to get it. Behavior is unchanged:
+  all 674 existing tests passed untouched.
+- **`App.jsx` had ten inline `localStorage` literals spelling out `wnba:` by hand.** They
+  are one `const NS = LEAGUE.storageKey` now. That costs something worth naming:
+  `guards.test.js` finds storage keys with a single-quoted-literal regex, so those ten
+  were most of what it could see here. `index.html` keeps its literal, guards checks that
+  against the family registry, and the new `test/chrome-identity.test.js` chains the
+  config to `index.html`, so the guarantee holds end to end.
+- **Two ESPN grammars, not one.** `site.web.api` spells this league `basketball/wnba`;
+  `sports.core.api` spells it `basketball/leagues/wnba`. Deriving the second from the first
+  would couple two URL shapes ESPN changes independently, so both are explicit fields.
+- Nothing needed correcting here. Unlike the scaffolded siblings, this repo is the origin
+  of the basketball lineage rather than a copy of one.
 - **Box scores are built for a phone now.** Three changes, all below 560px and none of
   them touching the desktop table. The four columns that answer "who played well"
   (MIN, PTS, REB, AST) show by default, which fits with no sideways scroll at all, and
