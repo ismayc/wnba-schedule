@@ -23,8 +23,10 @@ import App from '../src/App.jsx'
 import { FollowProvider } from '../src/context/follow.jsx'
 import { ServicesProvider } from '../src/context/services.jsx'
 
-// This app opens on the schedule view, which scrolls the current day into view.
-// jsdom has no scrollIntoView; the sibling app tests stub it the same way.
+// This app's schedule view scrolls the current day into view once there are past days
+// to scroll past. jsdom has no scrollIntoView, and at a date before the season starts
+// the ref is undefined so `target?.` short-circuits and hides the gap. The NBA sibling's
+// clock rehearsal at 2026-12-06 is what surfaced that.
 Element.prototype.scrollIntoView = vi.fn()
 
 const mount = async () => {
