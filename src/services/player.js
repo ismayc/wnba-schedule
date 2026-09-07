@@ -1,12 +1,13 @@
+import { LEAGUE } from '../config/league.js'
 // Per-player extras for the leaderboard pop-out: bio and a recent game log, fetched on
 // open (keyless, CORS-open — the same pattern as the game-detail summary). The season
 // stat line the modal shows first is already committed in PLAYERS, so this only enriches;
 // a failure degrades to stats-only rather than blocking.
 
-const WEB = 'https://site.web.api.espn.com/apis/common/v3/sports/basketball/wnba'
+const WEB = `https://site.web.api.espn.com/apis/common/v3/sports/${LEAGUE.espnPath}`
 // birthPlace (city/state/country) is not on the site overview — only on the core
 // athlete record — so the pop-out's country line takes a second keyless request.
-const CORE = 'https://sports.core.api.espn.com/v2/sports/basketball/leagues/wnba/athletes'
+const CORE = `https://sports.core.api.espn.com/v2/sports/${LEAGUE.coreLeaguePath}/athletes`
 
 // Deterministic headshot URL — no request needed. The <img> hides itself on a 404.
 export const headshotUrl = (id) =>

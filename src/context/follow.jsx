@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { LEAGUE } from '../config/league.js'
 
-const KEY = 'wnba:followed'
+const KEY = `${LEAGUE.storageKey}:followed`
 const FollowCtx = createContext(null)
 
 // Inert fallback so components (and tests) render standalone without a provider.

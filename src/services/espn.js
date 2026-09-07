@@ -1,16 +1,19 @@
+import { LEAGUE } from '../config/league.js'
 // Live overlay.
 //
 // The committed schedule already carries every completed result, so this only has to
 // cover games that are in progress or finished since the last data refresh. Keyless
 // and CORS-open — no backend, no .env.
 
-const SCOREBOARD = 'https://site.web.api.espn.com/apis/site/v2/sports/basketball/wnba/scoreboard'
+const SCOREBOARD = `https://site.web.api.espn.com/apis/site/v2/sports/${LEAGUE.espnPath}/scoreboard`
 
 // ESPN buckets a `dates=YYYYMMDD` query by the US-EASTERN day, not UTC (verified:
 // dates=20260728 returns instants up to 07-29T02:00Z). Anchoring the window on the
 // UTC day meant an evening viewer in the US was already on "tomorrow" in UTC, so the
 // three-day window slid to {today, +1, +2} in Eastern terms and dropped yesterday's
 // finals from the overlay.
+// 'en-CA' formats as YYYY-MM-DD, which is what the ESPN query wants. Deliberately
+// NOT LEAGUE.locale: this is a key format, not something a reader ever sees.
 const EASTERN_DAY = new Intl.DateTimeFormat('en-CA', {
   timeZone: 'America/New_York',
   year: 'numeric',

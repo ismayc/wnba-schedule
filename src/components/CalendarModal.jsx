@@ -3,12 +3,13 @@ import { SEASON } from '../data/teams.js'
 import { downloadIcs, webcalUrl, googleCalendarUrl } from '../utils/ics.js'
 import { useFollow } from '../context/follow.jsx'
 import { useModalA11y } from '../hooks/useModalA11y.js'
+import { LEAGUE } from '../config/league.js'
 
 // A subscription must point at the DEPLOYED feed — a localhost URL can't be subscribed
 // to, and only Netlify serves the function (GitHub Pages ships the static download only).
 // So the webcal/Google links always use the production Netlify origin, regardless of
 // where the app itself is being served from.
-const PROD = 'https://the-wnba-schedule.netlify.app'
+const PROD = LEAGUE.feedHost
 const FEED = `${PROD}/calendar.ics`
 
 function SubRow({ label, httpsUrl }) {
@@ -90,7 +91,10 @@ export default function CalendarModal({ games, filtered, onClose }) {
           <div className="cal-downloads">
             <button
               onClick={() =>
-                downloadIcs(games, { filename: `wnba-${SEASON}.ics`, name: `WNBA ${SEASON}` })
+                downloadIcs(games, {
+                  filename: `${LEAGUE.ics.filenameBase}-${SEASON}.ics`,
+                  name: `${LEAGUE.name} ${SEASON}`,
+                })
               }
             >
               All games ({games.length})
@@ -99,8 +103,8 @@ export default function CalendarModal({ games, filtered, onClose }) {
               <button
                 onClick={() =>
                   downloadIcs(filtered, {
-                    filename: `wnba-${SEASON}-filtered.ics`,
-                    name: `WNBA ${SEASON}`,
+                    filename: `${LEAGUE.ics.filenameBase}-${SEASON}-filtered.ics`,
+                    name: `${LEAGUE.name} ${SEASON}`,
                   })
                 }
               >
@@ -111,8 +115,8 @@ export default function CalendarModal({ games, filtered, onClose }) {
               <button
                 onClick={() =>
                   downloadIcs(myGames, {
-                    filename: `wnba-${SEASON}-my-teams.ics`,
-                    name: `WNBA ${SEASON} — My Teams`,
+                    filename: `${LEAGUE.ics.filenameBase}-${SEASON}-my-teams.ics`,
+                    name: `${LEAGUE.name} ${SEASON} — My Teams`,
                   })
                 }
               >

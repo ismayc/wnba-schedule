@@ -9,6 +9,7 @@ import {
 import { playoffRace, PLAYOFF_SPOTS } from '../utils/standings.js'
 import { formatDate } from '../utils/time.js'
 import TeamLogo from './TeamLogo.jsx'
+import { LEAGUE } from '../config/league.js'
 
 const one = (n) => n.toFixed(1)
 // Player rate stats carry two decimals. ESPN publishes them at full precision and the
@@ -84,7 +85,7 @@ function TotalsStrip({ games, tz, onOpen }) {
       </div>
 
       {open === 'ot' && (
-        <GameList games={t.otGames} tz={tz} onOpen={onOpen} note={(g) => (g.ot > 1 ? `${g.ot}OT` : 'OT')} />
+        <GameList games={t.otGames} tz={tz} onOpen={onOpen} note={(g) => (g.ot > 1 ? `${g.ot}${LEAGUE.overtimeLabel}` : LEAGUE.overtimeLabel)} />
       )}
       {open === 'close' && (
         <GameList

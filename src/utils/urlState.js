@@ -58,6 +58,8 @@ export function readState(search = window.location.search) {
 export function isValidZone(tz) {
   if (!tz) return false
   try {
+    // Any locale works: this only probes whether the zone itself throws, so it is
+    // deliberately NOT LEAGUE.locale.
     new Intl.DateTimeFormat('en-US', { timeZone: tz })
     return true
   } catch {

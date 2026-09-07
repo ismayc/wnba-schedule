@@ -32,6 +32,7 @@ import TeamPanel from './components/TeamPanel.jsx'
 import ServicesModal from './components/ServicesModal.jsx'
 import { detectEvents, eventKey } from './services/alerts.js'
 import TeamLogo from './components/TeamLogo.jsx'
+import { LEAGUE } from './config/league.js'
 
 const VIEWS = [
   { id: 'schedule', label: '📋 Schedule' },
@@ -42,6 +43,12 @@ const VIEWS = [
   { id: 'stats', label: '📈 Stats' },
   { id: 'history', label: '📜 History' },
 ]
+
+// localStorage namespace. One const rather than eleven inline literals; the value
+// itself is LEAGUE.storageKey, and test/chrome-identity.test.js ties that to the
+// pre-paint literal in index.html, which guards.test.js checks against the family
+// registry.
+const NS = LEAGUE.storageKey
 
 const LIVE_REFRESH_MS = 30_000
 const IDLE_REFRESH_MS = 120_000
@@ -84,7 +91,7 @@ export default function App() {
   const [hideScores, setHideScores] = useState(() => {
     if (initial.hideExplicit) return initial.hide
     try {
-      return localStorage.getItem('wnba:spoilerFree') !== '0'
+      return localStorage.getItem(`${NS}:spoilerFree`) !== '0'
     } catch {
       return DEFAULTS.hide
     }
@@ -100,7 +107,7 @@ export default function App() {
   const [showPast, setShowPast] = useState(() => {
     if (initial.pastExplicit) return initial.past
     try {
-      return localStorage.getItem('wnba:showPast') === '1'
+      return localStorage.getItem(`${NS}:showPast`) === '1'
     } catch {
       return false
     }
@@ -110,7 +117,7 @@ export default function App() {
   // like a followed team rather than living in the shareable URL.
   const [watchOnly, setWatchOnly] = useState(() => {
     try {
-      return localStorage.getItem('wnba:watchOnly') === '1'
+      return localStorage.getItem(`${NS}:watchOnly`) === '1'
     } catch {
       return false
     }
@@ -138,7 +145,7 @@ export default function App() {
   )
   const [alerts, setAlerts] = useState(() => {
     try {
-      return localStorage.getItem('wnba:alerts') === '1'
+      return localStorage.getItem(`${NS}:alerts`) === '1'
     } catch {
       return false
     }
@@ -245,7 +252,7 @@ export default function App() {
   // the same way). A shared ?hide= link still overrides this on load.
   useEffect(() => {
     try {
-      localStorage.setItem('wnba:spoilerFree', hideScores ? '1' : '0')
+      localStorage.setItem(`${NS}:spoilerFree`, hideScores ? '1' : '0')
     } catch {
       /* private mode — the preference just won't persist */
     }
@@ -254,7 +261,7 @@ export default function App() {
   // Same for the "show past days" toggle — remembered per-device, ?past= still overrides.
   useEffect(() => {
     try {
-      localStorage.setItem('wnba:showPast', showPast ? '1' : '0')
+      localStorage.setItem(`${NS}:showPast`, showPast ? '1' : '0')
     } catch {
       /* private mode — the preference just won't persist */
     }
@@ -264,7 +271,7 @@ export default function App() {
     const next = theme === 'dark' ? 'light' : 'dark'
     document.documentElement.dataset.theme = next
     try {
-      localStorage.setItem('wnba:theme', next)
+      localStorage.setItem(`${NS}:theme`, next)
     } catch {
       /* ignore */
     }
@@ -321,7 +328,7 @@ export default function App() {
     setPhases([])
     setWhen('')
     try {
-      localStorage.setItem('wnba:watchOnly', '0')
+      localStorage.setItem(`${NS}:watchOnly`, '0')
     } catch {
       /* private mode — the preference just won't persist */
     }
@@ -376,7 +383,7 @@ export default function App() {
       <header className="top">
         <div className="brand">
           <h1>
-            The WNBA Schedule <span className="season">{SEASON}</span>
+            {LEAGUE.title} <span className="season">{SEASON}</span>
           </h1>
           <p className="tagline">
             Every game in your timezone
@@ -414,7 +421,7 @@ export default function App() {
               const next = !alerts
               setAlerts(next)
               try {
-                localStorage.setItem('wnba:alerts', next ? '1' : '0')
+                localStorage.setItem(`${NS}:alerts`, next ? '1' : '0')
               } catch {
                 /* ignore */
               }
@@ -570,7 +577,7 @@ export default function App() {
                         const next = !watchOnly
                         setWatchOnly(next)
                         try {
-                          localStorage.setItem('wnba:watchOnly', next ? '1' : '0')
+                          localStorage.setItem(`${NS}:watchOnly`, next ? '1' : '0')
                         } catch {
                           /* private mode — the filter just won't be remembered */
                         }
@@ -744,7 +751,7 @@ export default function App() {
           {updatedAt && (
             <span className="dim">
               Updated{' '}
-              {updatedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+              {updatedAt.toLocaleTimeString(LEAGUE.locale, { hour: 'numeric', minute: '2-digit' })}
             </span>
           )}
         </div>

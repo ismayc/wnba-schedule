@@ -1,3 +1,4 @@
+import { LEAGUE } from '../config/league.js'
 // Notable-moment detection.
 //
 // A soccer viewer can toast every goal — ~2.7 a match, each one genuinely notable.
@@ -12,8 +13,8 @@
 // notification.
 
 // A one-possession margin in the final period.
-const CLOSE_MARGIN = 5
-const REGULATION_PERIODS = 4
+const CLOSE_MARGIN = LEAGUE.closeMargin
+const REGULATION_PERIODS = LEAGUE.regulationPeriods
 
 const leaderOf = (g) => {
   if (!g?.score) return null

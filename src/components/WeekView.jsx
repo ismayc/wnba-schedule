@@ -3,6 +3,7 @@ import { dayKey, todayKey, formatTime } from '../utils/time.js'
 import { TEAM_BY_ABBR } from '../data/teams.js'
 import { useFollow } from '../context/follow.jsx'
 import TeamLogo from './TeamLogo.jsx'
+import { LEAGUE } from '../config/league.js'
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -22,7 +23,7 @@ const shiftDays = (key, n) => {
 }
 
 const monthLabel = (key) =>
-  new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', month: 'long', day: 'numeric' }).format(
+  new Intl.DateTimeFormat(LEAGUE.locale, { timeZone: 'UTC', month: 'long', day: 'numeric' }).format(
     anchor(key)
   )
 

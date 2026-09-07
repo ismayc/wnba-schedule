@@ -1,3 +1,4 @@
+import { LEAGUE } from '../config/league.js'
 // Timezone + formatting core.
 //
 // Every game's `tip` is an absolute instant (UTC ISO string), so rendering into any
@@ -31,7 +32,7 @@ export function timezoneOptions(current) {
   return known ? TIMEZONES : [{ id: current, label: current.split('/').pop().replace(/_/g, ' ') }, ...TIMEZONES]
 }
 
-const fmt = (tz, opts) => new Intl.DateTimeFormat('en-US', { timeZone: tz, ...opts })
+const fmt = (tz, opts) => new Intl.DateTimeFormat(LEAGUE.locale, { timeZone: tz, ...opts })
 
 export function formatTime(iso, tz) {
   return fmt(tz, { hour: 'numeric', minute: '2-digit' }).format(new Date(iso))
@@ -68,7 +69,7 @@ export function dayLabel(key, tz, now = new Date()) {
   }
   if (shift(-1) === today) return 'Tomorrow'
   if (shift(1) === today) return 'Yesterday'
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(LEAGUE.locale, {
     timeZone: 'UTC',
     weekday: 'long',
     month: 'long',
@@ -78,7 +79,7 @@ export function dayLabel(key, tz, now = new Date()) {
 
 // A WNBA game runs ~2h; treat that as the window in which a game with no live feed
 // should still be considered possibly in progress.
-const GAME_MS = 2.25 * 60 * 60 * 1000
+const GAME_MS = LEAGUE.gameLengthMs
 
 export function liveState(game, now = Date.now()) {
   if (game.postponed || game.canceled) return 'void'

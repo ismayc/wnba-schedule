@@ -4,6 +4,7 @@ import { watchableServices, broadcastNotBadged } from '../utils/watch.js'
 import { useFollow } from '../context/follow.jsx'
 import { useServices } from '../context/services.jsx'
 import TeamLogo from './TeamLogo.jsx'
+import { LEAGUE } from '../config/league.js'
 
 // Halftime and end-of-quarter are stable states; a running clock is not. Falls back
 // to ESPN's own label when the period is unknown.
@@ -13,7 +14,8 @@ export function livePeriod(game) {
   if (/end/i.test(label)) return label.toUpperCase()
   const p = game.period
   if (!p) return label.toUpperCase() || 'LIVE'
-  return p > 4 ? (p - 4 > 1 ? `OT${p - 4}` : 'OT') : `Q${p}`
+  const { regulationPeriods: REG, overtimeLabel: OT, periodShort: Q } = LEAGUE
+  return p > REG ? (p - REG > 1 ? `${OT}${p - REG}` : OT) : `${Q}${p}`
 }
 
 function Side({ abbr, score, winner, hideScores }) {

@@ -1,6 +1,7 @@
 import { useMemo, useRef, useEffect, useState } from 'react'
 import { dayKey, dayLabel, todayKey } from '../utils/time.js'
 import GameCard from './GameCard.jsx'
+import { LEAGUE } from '../config/league.js'
 
 // How many days back the default ("recent") view reaches — a week of results, so
 // yesterday's finals are always one glance away without loading the whole season.
@@ -15,13 +16,13 @@ export const RECENT_LOOKAHEAD_DAYS = 14
 
 // Labels derived from the 'YYYY-MM' key itself (UTC so the month never shifts).
 const monthLabel = (mk) =>
-  new Date(`${mk}-01T12:00:00.000Z`).toLocaleDateString('en-US', {
+  new Date(`${mk}-01T12:00:00.000Z`).toLocaleDateString(LEAGUE.locale, {
     month: 'long',
     year: 'numeric',
     timeZone: 'UTC',
   })
 const monthShort = (mk) =>
-  new Date(`${mk}-01T12:00:00.000Z`).toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' })
+  new Date(`${mk}-01T12:00:00.000Z`).toLocaleDateString(LEAGUE.locale, { month: 'short', timeZone: 'UTC' })
 
 export default function ScheduleView({ games, tz, hideScores, showPast = false, onOpen }) {
   const today = todayKey(tz)

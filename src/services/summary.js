@@ -1,3 +1,4 @@
+import { LEAGUE } from '../config/league.js'
 // Everything the game-detail modal shows that isn't in the committed snapshot: the
 // player box score, team-stat comparison, injury report, attendance/officials, and the
 // win-probability curve. All of it comes from ONE ESPN summary request per game open —
@@ -8,7 +9,7 @@
 // and injuries/win-probability change up to and through the game. Fetching on open costs
 // one request and works retroactively for any past game.
 
-const SUMMARY = 'https://site.web.api.espn.com/apis/site/v2/sports/basketball/wnba/summary'
+const SUMMARY = `https://site.web.api.espn.com/apis/site/v2/sports/${LEAGUE.espnPath}/summary`
 
 // ── Player box score ──────────────────────────────────────────────────
 // REB already sums OREB+DREB, so drop those two to keep the wide table narrower.

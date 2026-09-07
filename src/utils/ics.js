@@ -4,10 +4,11 @@
 // and the calendar app renders it in the subscriber's own zone. No VTIMEZONE needed.
 
 import { TEAM_BY_ABBR } from '../data/teams.js'
+import { LEAGUE } from '../config/league.js'
 
 // A WNBA game runs about two hours.
-const DURATION = 'PT2H30M'
-const PRODID = '-//the-wnba-schedule//EN'
+const DURATION = LEAGUE.ics.durationIso
+const PRODID = LEAGUE.ics.prodId
 
 // Backslash, semicolon, and comma are delimiters in RFC 5545 and must be escaped;
 // newlines become the literal two-character sequence \n.
@@ -61,7 +62,7 @@ function vevent(game, { now }) {
   const lines = [
     'BEGIN:VEVENT',
     // Stable UID so re-importing updates events rather than duplicating them.
-    `UID:${game.id}@the-wnba-schedule`,
+    `UID:${game.id}@${LEAGUE.ics.domain}`,
     `DTSTAMP:${toIcsDate(now)}`,
     `DTSTART:${toIcsDate(game.tip)}`,
     `DURATION:${DURATION}`,
@@ -91,7 +92,7 @@ export function buildIcs(games, { name = 'WNBA', now = new Date().toISOString() 
   return lines.map(fold).join('\r\n') + '\r\n'
 }
 
-export function downloadIcs(games, { filename = 'wnba.ics', name } = {}) {
+export function downloadIcs(games, { filename = `${LEAGUE.ics.filenameBase}.ics`, name } = {}) {
   const blob = new Blob([buildIcs(games, { name })], { type: 'text/calendar;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
