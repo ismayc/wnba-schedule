@@ -33,6 +33,7 @@ import ServicesModal from './components/ServicesModal.jsx'
 import { detectEvents, eventKey } from './services/alerts.js'
 import TeamLogo from './components/TeamLogo.jsx'
 import { LEAGUE } from './config/league.js'
+import { playoffRace } from './utils/standings.js'
 
 const VIEWS = [
   { id: 'schedule', label: '📋 Schedule' },
@@ -174,6 +175,13 @@ export default function App() {
 
   // Committed schedule + live overlay. Everything downstream is derived from this.
   const games = useMemo(() => applyLive(GAMES, live), [live])
+
+  // The playoff race, derived ONCE. playoffRace runs the tiebreaker chain and the
+  // clinch/elimination solver over the season. It used to be computed inside
+  // StandingsView, StatsView and TeamPanel independently, and TeamPanel's memo ran on
+  // every `games` change even while the panel was CLOSED, because the component only
+  // returns null further down.
+  const race = useMemo(() => playoffRace(games), [games])
   const nLive = useMemo(() => liveCount(games), [games])
   // The archived season a History-opened panel describes, or null for the live one.
   const panelSeason = panelYear == null ? null : HISTORY.find((s) => s.year === panelYear)
@@ -657,7 +665,7 @@ export default function App() {
         {view === 'week' && (
           <WeekView games={scheduleGames} tz={tz} hideScores={hideScores} onOpen={setDetail} />
         )}
-        {view === 'standings' && <StandingsView games={games} onPick={pickTeam} />}
+        {view === 'standings' && <StandingsView games={games} race={race} onPick={pickTeam} />}
         {view === 'playoffs' && (
           <Bracket games={games} tz={tz} onPick={pickTeam} onOpen={setDetail} />
         )}
@@ -667,6 +675,7 @@ export default function App() {
         {view === 'stats' && (
           <StatsView
             games={games}
+            race={race}
             tz={tz}
             onPickTeam={pickTeam}
             onPickPlayer={setPlayerModal}
@@ -693,6 +702,7 @@ export default function App() {
 
       <TeamPanel
         abbr={teamPanel}
+        race={race}
         season={panelSeason}
         games={games}
         tz={tz}

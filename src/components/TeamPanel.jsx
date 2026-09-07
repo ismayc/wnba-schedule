@@ -38,12 +38,27 @@ function Form({ results, onOpen, gamesById }) {
 // `season` is an archived season when the panel was opened from the History view.
 // Everything the panel shows then has to come from THAT season — its final table,
 // its player table, its games — rather than from the live board.
-export default function TeamPanel({ abbr, season, games, tz, hideScores, onClose, onSchedule, onOpenGame }) {
+export default function TeamPanel({
+  abbr,
+  season,
+  games,
+  tz,
+  hideScores,
+  race: raceProp,
+  onClose,
+  onSchedule,
+  onOpenGame,
+}) {
   const ref = useModalA11y(onClose, !!abbr)
   const { isFollowed, toggle } = useFollow()
 
   const board = season ? season.games : games
-  const race = useMemo(() => playoffRace(games), [games])
+  // From App, derived once. This used to be `useMemo(() => playoffRace(games), [games])`,
+  // which ran the whole tiebreaker-and-clinch solver on every `games` change even while
+  // the panel was closed: the `if (!abbr || !row) return null` guard is further down, and
+  // hooks run before it. The `upcoming` memo below already guarded on `abbr`; this one
+  // never did.
+  const race = useMemo(() => raceProp ?? (abbr ? playoffRace(games) : []), [raceProp, abbr, games])
   const gamesById = useMemo(() => new Map(board.map((g) => [g.id, g])), [board])
   const row = season ? seasonTeamRow(season, abbr) : race.find((r) => r.abbr === abbr)
   const roster = useMemo(

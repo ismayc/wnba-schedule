@@ -152,9 +152,11 @@ function Table({ caption, rows, rankKey, onPick, cutAfter, showFinish }) {
   )
 }
 
-export default function StandingsView({ games, onPick }) {
+export default function StandingsView({ games, onPick, race }) {
   const [mode, setMode] = useState('league')
-  const league = useMemo(() => playoffRace(games), [games])
+  // `race` comes from App, which derives it once for every view that needs it. The
+  // fallback keeps this component renderable on its own.
+  const league = useMemo(() => race ?? playoffRace(games), [games, race])
   const byConf = useMemo(() => conferenceStandings(games), [games])
 
   return (

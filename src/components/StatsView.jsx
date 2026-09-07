@@ -268,8 +268,10 @@ function statusOf(row) {
   return row.inPlayoffs ? STATUS.in : STATUS.chasing
 }
 
-function PlayoffRace({ games, onPickTeam }) {
-  const rows = useMemo(() => playoffRace(games), [games])
+function PlayoffRace({ games, race, onPickTeam }) {
+  // `race` comes from App, derived once for every view that needs it; the fallback
+  // keeps this renderable on its own.
+  const rows = useMemo(() => race ?? playoffRace(games), [games, race])
   const cut = rows[PLAYOFF_SPOTS - 1]
 
   return (
@@ -330,7 +332,7 @@ function PlayoffRace({ games, onPickTeam }) {
 // Stable identity so the Leaders memo doesn't recompute on every parent render.
 const liveLeaders = (cat) => leaderboard(cat.key, { limit: 10 })
 
-export default function StatsView({ games, tz, onPickTeam, onPickPlayer, onOpen }) {
+export default function StatsView({ games, tz, race, onPickTeam, onPickPlayer, onOpen }) {
   return (
     <section className="view">
       <div className="view-head">
@@ -340,7 +342,7 @@ export default function StatsView({ games, tz, onPickTeam, onPickPlayer, onOpen 
       <Leaders getRows={liveLeaders} onPickTeam={onPickTeam} onPickPlayer={onPickPlayer} />
       <div className="grid-2">
         <MarginChart rows={teamScoring(games)} onPickTeam={onPickTeam} />
-        <PlayoffRace games={games} onPickTeam={onPickTeam} />
+        <PlayoffRace games={games} race={race} onPickTeam={onPickTeam} />
       </div>
     </section>
   )
