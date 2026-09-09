@@ -313,7 +313,7 @@ export const GAMES = [
   {"id":"401857195","tip":"2026-09-18T23:30:00.000Z","seasonType":"regular","home":"TOR","away":"IND","venue":"Coca-Cola Coliseum","city":"Toronto","state":"ON","broadcast":["ION","WNBA League Pass","TSN"]},
   {"id":"401857196","tip":"2026-09-18T23:30:00.000Z","seasonType":"regular","home":"MIN","away":"NY","venue":"Target Center","city":"Minneapolis","state":"MN","broadcast":["ION","WNBA League Pass"]},
   {"id":"401857197","tip":"2026-09-19T02:00:00.000Z","seasonType":"regular","home":"GS","away":"POR","venue":"Chase Center","city":"San Francisco","state":"CA","broadcast":["ION","WNBA League Pass"]},
-  {"id":"401857198","tip":"2026-09-19T17:00:00.000Z","seasonType":"regular","home":"DAL","away":"PHX","venue":"College Park Center","city":"Arlington","state":"TX","broadcast":["CBS"]},
+  {"id":"401857198","tip":"2026-09-19T17:00:00.000Z","seasonType":"regular","home":"DAL","away":"PHX","venue":"College Park Center","city":"Arlington","state":"TX","broadcast":["CBS","Paramount+"]},
   {"id":"401857199","tip":"2026-09-19T23:00:00.000Z","seasonType":"regular","home":"ATL","away":"CHI","venue":"State Farm Arena","city":"Atlanta","state":"GA","broadcast":["Prime Video"]},
   {"id":"401857200","tip":"2026-09-20T01:00:00.000Z","seasonType":"regular","home":"GS","away":"SEA","venue":"Chase Center","city":"San Francisco","state":"CA","broadcast":["Prime Video"]},
   {"id":"401857201","tip":"2026-09-20T17:00:00.000Z","seasonType":"regular","home":"CON","away":"MIN","venue":"Mohegan Sun Arena","city":"Uncasville","state":"CT","broadcast":["WNBA League Pass","NBC Sports BO","Victory+ MIN"]},
