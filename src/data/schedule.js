@@ -331,9 +331,9 @@ export const GAMES = [
   {"id":"401857213","tip":"2026-09-24T00:00:00.000Z","seasonType":"regular","home":"NY","away":"ATL","venue":"Barclays Center","city":"Brooklyn","state":"NY","broadcast":["USA Net","WWOR-TV","Atlanta News First","Liberty Live","Victory+ ATL"]},
   {"id":"401857214","tip":"2026-09-24T02:00:00.000Z","seasonType":"regular","home":"SEA","away":"DAL","venue":"Climate Pledge Arena","city":"Seattle","state":"WA","broadcast":["USA Net","CNBC","CW Seattle","KFAA-TV","Prime Video-Seattle"]},
   {"id":"401857215","tip":"2026-09-24T23:00:00.000Z","seasonType":"regular","home":"CON","away":"TOR","venue":"Mohegan Sun Arena","city":"Uncasville","state":"CT","broadcast":["NBA TV","NBC Sports BO","TSN"]},
-  {"id":"401857216","tip":"2026-09-24T23:30:00.000Z","seasonType":"regular","home":"WSH","away":"CHI","venue":"Capital One Arena","city":"Washington","state":"DC","broadcast":["CW26","MNMT"]},
+  {"id":"401857216","tip":"2026-09-24T23:30:00.000Z","seasonType":"regular","home":"WSH","away":"CHI","venue":"Capital One Arena","city":"Washington","state":"DC","broadcast":["WNBA League Pass","CW26","MNMT"]},
   {"id":"401857217","tip":"2026-09-25T00:00:00.000Z","seasonType":"regular","home":"MIN","away":"IND","venue":"Target Center","city":"Minneapolis","state":"MN","broadcast":["USA Net","Victory+ MIN"]},
-  {"id":"401857218","tip":"2026-09-25T02:00:00.000Z","seasonType":"regular","home":"LA","away":"GS","venue":"crypto.com Arena","city":"Los Angeles","state":"CA","broadcast":["KPIX+","Spectrum Sports Net"]},
+  {"id":"401857218","tip":"2026-09-25T02:00:00.000Z","seasonType":"regular","home":"LA","away":"GS","venue":"crypto.com Arena","city":"Los Angeles","state":"CA","broadcast":["WNBA League Pass","KPIX+","Spectrum Sports Net"]},
   {"id":"401857219","tip":"2026-09-25T02:00:00.000Z","seasonType":"regular","home":"PHX","away":"LV","venue":"Mortgage Matchup Center","city":"Phoenix","state":"AZ","broadcast":["USA Net","CNBC","AZ Family Sports Net","Vegas 34","Merc+"]},
 ]
 
