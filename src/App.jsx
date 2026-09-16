@@ -4,6 +4,7 @@ import { SEASON, TEAMS } from './data/teams.js'
 import {
   detectTimezone,
   timezoneOptions,
+  formatZoneAbbr,
   dayKey,
   todayKey,
   anyImminent,
@@ -394,7 +395,8 @@ export default function App() {
             {LEAGUE.title} <span className="season">{SEASON}</span>
           </h1>
           <p className="tagline">
-            Every game in your timezone
+            Every game in your timezone{' '}
+            <span className="tz-abbr">({formatZoneAbbr(new Date().toISOString(), tz)})</span>
             {nLive > 0 && (
               <span className="live-now">
                 {' '}
