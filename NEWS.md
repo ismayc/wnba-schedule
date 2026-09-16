@@ -4,6 +4,17 @@ A dated changelog for The WNBA Schedule. Each heading is a calendar
 day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-09-16
+
+- **Fixed the squished "Next up" rows in a team's Standings pop-out.** The `.drill`
+  lists not wrapped in a clickable `.drill-row` (TeamPanel's "Next up" and GameDetail's
+  season series) placed their cells straight into a non-flex `<li>`, so the fixed-width
+  date column and the right-aligned kickoff time both no-opped and the row squished to
+  inline text. A scoped CSS rule, `.drill li:not(:has(> .drill-row))`, now gives an
+  unwrapped row the same flex layout as a wrapped one, and a `.drill-team` class
+  truncates a long opponent name. Family-wide fix (NFL, NBA, WNBA) so new viewers
+  inherit it; CSS-only.
+
 ## 2026-09-10
 
 - **Fixed: the game-detail popup could not be closed on mobile.** The modal was sized and
