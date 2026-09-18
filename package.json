@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:data": "LIVE_DATA=1 vitest run",
     "coverage:badge": "vitest run --coverage && node scripts/coverage-badge.mjs",
     "fetch:schedule": "node scripts/fetch-schedule.mjs --season 2026",
     "fetch:history": "node scripts/fetch-history.mjs",

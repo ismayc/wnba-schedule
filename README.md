@@ -151,7 +151,8 @@ Two data caveats the archive handles explicitly:
 ```bash
 npm install
 npm run dev              # local dev server
-npm test                 # unit + render tests
+npm test                 # unit + render tests, against frozen data
+npm run test:data        # the live suite: the real committed data (what a refresh must pass)
 npm run build            # production bundle
 npm run coverage:badge   # tests with coverage, writes public/coverage.json
 
@@ -167,6 +168,22 @@ the data jobs on a bare checkout with no install step. A CI job enforces this.
 
 The suite leans on real data rather than hand-made fixtures, because real data contains
 the edge cases you wouldn't think to invent.
+
+Real, but frozen. There are two suites, and they never mix:
+
+- **The main suite** (`npm test`, the 100% coverage gate) never sees the modules the
+  refresh rewrites. A plugin in `vite.config.js` resolves every import of
+  `src/data/schedule.js`, `leaders.js`, and `teams.js` to a frozen September 4, 2026
+  stand-in under `test/fixtures/frozen/`, whoever the importer is. Coverage therefore
+  cannot move when the data does: the gate passes unchanged with those three modules
+  emptied out. Before this, a refresh reddened the gate three times in six weeks, each
+  time because a branch was covered only by whatever the live data happened to contain.
+- **The live suite** (`npm run test:data`, `test/live/`) reads the real modules and has no
+  coverage threshold. It holds invariants (unique ids, known teams, finite stats, a
+  standings table that recounts from the games) and a smoke render of every view, every
+  game dialog, and every team panel, checked for the residue of a bad value (`NaN`,
+  `Invalid Date`, 1969). This is the gate a refresh has to pass. Only things true on any
+  day of any season belong in it.
 
 - **Standings** are checked against the actual 2026 season, and the numbers are
   independently verifiable against ESPN's published standings.

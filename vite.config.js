@@ -1,8 +1,45 @@
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
+import { configDefaults } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 
+const abs = (rel) => fileURLToPath(new URL(rel, import.meta.url))
+
+// The modules the refresh workflow rewrites, each mapped to a frozen stand-in.
+// test/guards.test.js asserts every file scripts/fetch-schedule.mjs writes is listed here.
+const FROZEN = new Map([
+  [abs('./src/data/schedule.js'), abs('./test/fixtures/frozen/schedule.js')],
+  [abs('./src/data/leaders.js'), abs('./test/fixtures/frozen/leaders.js')],
+  [abs('./src/data/teams.js'), abs('./test/fixtures/frozen/teams.js')],
+])
+
+// `LIVE_DATA=1` (npm run test:data) runs only test/live/ and reads the real modules.
+const LIVE = Boolean(process.env.LIVE_DATA)
+
+// Under vitest, every import of a refreshed data module resolves to its frozen stand-in,
+// whoever the importer is: a test, or src/utils/stats.js three imports down. The coverage
+// gate therefore cannot be moved by a refresh, by construction. Before this, tests were
+// switched to a frozen board one file at a time, and whatever was missed stayed covered
+// by luck until the season moved: the playoff race (August 10), the week view
+// (September 5), the leaders trade arrow (September 18, refresh-data run 35398009311).
+//
+// Matching is on the RESOLVED path, so the spelling of the import does not matter.
+// `apply` keeps this out of `vite build` and `vite dev`; vitest runs in mode "test". The
+// config stays a plain object because sports-viewer-meta's rehearse-clock.mjs imports
+// and extends it.
+const frozenData = () => ({
+  name: 'frozen-data',
+  enforce: 'pre',
+  apply: (_config, { mode }) => mode === 'test' && !LIVE,
+  async resolveId(source, importer, options) {
+    if (!/data\/\w+\.js$/.test(source)) return null
+    const resolved = await this.resolve(source, importer, { ...options, skipSelf: true })
+    return (resolved && FROZEN.get(resolved.id)) ?? null
+  },
+})
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), frozenData()],
   // Relative base so the same dist/ works at a domain root (Netlify) and under a
   // subpath (GitHub Pages /the-wnba-schedule/).
   base: './',
@@ -27,6 +64,12 @@ export default defineConfig({
     // All twelve app repos serialise as of 2026-08-30, and
     // sports-viewer-meta/scripts/audit-family.mjs asserts it so this stays true.
     fileParallelism: false,
+    // Two suites, never mixed. The default run is everything except test/live/, against
+    // frozen data, under the 100% gate. `LIVE_DATA=1` is only test/live/: invariants and
+    // smoke renders against the real refreshed modules, with no coverage threshold. That
+    // second suite is what a refresh has to pass.
+    include: [LIVE ? 'test/live/**/*.test.{js,jsx}' : 'test/**/*.test.{js,jsx}'],
+    exclude: [...configDefaults.exclude, ...(LIVE ? [] : ['test/live/**'])],
     setupFiles: ['./test/setup.js'],
     // Full-app userEvent tests under v8 instrumentation can brush the default 5s
     // ceiling on a loaded CI runner (mount + several interaction clicks). Give them

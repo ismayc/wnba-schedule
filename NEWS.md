@@ -4,6 +4,38 @@ A dated changelog for The WNBA Schedule. Each heading is a calendar
 day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-09-18 (later)
+
+- **A refresh can no longer move the coverage gate, by construction.** The fix below
+  covered one branch; the class was still open, because 16 of 60 test files imported the
+  live data modules and `src/utils/stats.js` reads the player table directly, so any
+  render of the Stats view read whoever led the league that day. A plugin in
+  `vite.config.js` now resolves every import of `src/data/schedule.js`, `leaders.js`, and
+  `teams.js` (the three modules the refresh rewrites) to a frozen September 4 stand-in in
+  `test/fixtures/frozen/`, matching on the resolved path so the importer does not matter.
+  Proven by emptying all three live modules and running the full gate: 684 tests, still
+  100% on all four measures.
+- **The refresh gate is now a live suite, not the coverage gate.** `npm run test:data`
+  runs `test/live/` against the real modules with no coverage threshold: the schedule
+  integrity checks (moved from `test/schedule.test.js`), invariants on the player table
+  and the derived standings, a parity check that the frozen stand-ins export what the
+  live modules export, and a smoke render of all seven views, every game dialog, and
+  every team panel, scanned for `NaN`, `undefined`, `Invalid Date`, and 1969. It runs in
+  about 6 seconds against about 3 minutes for the old gate. Proven to have teeth: a null
+  tip and a string-valued stat planted in the live data failed six tests.
+- **Only invariants went into the live suite.** Several of the old live-data assertions
+  were facts about this season (the top seed is a West team, the leader has a winning
+  record, more than 50 players qualify). Those stay in the main suite, where the frozen
+  board makes them permanent. In a refresh gate each one is a future false alarm. The
+  Sun at Fever regression is a 2026 event id, so it now runs only while the live board
+  is 2026 and cannot block the first refresh after rollover.
+- **CI runs both.** The `test` job runs the live suite against the committed data after
+  the coverage gate, and `Gate against the next refresh` runs it against freshly fetched
+  data. Five new guards in `test/guards.test.js` keep the arrangement from eroding:
+  imports of the live paths must receive the frozen objects (by identity), every module
+  the fetch script writes must have a stand-in, the two suites must stay separate, the
+  refresh must gate on the live suite, and no live test may import a fixture.
+
 ## 2026-09-18
 
 - **Fixed a red refresh gate: the trade arrow on the leaders board was covered by luck.**

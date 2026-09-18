@@ -7,7 +7,7 @@ import WeekView from '../src/components/WeekView.jsx'
 // live board the whole file is really asserting "the current week is inside the
 // season and has games in it". That is false in the postseason gaps, false after
 // the Finals, and false again before next May. The live board keeps its own gate
-// in test/schedule.test.js, which is what a refresh has to satisfy.
+// in test/live/, which is what a refresh has to satisfy.
 import { GAMES_2026 as GAMES } from './fixtures/season-2026.js'
 
 const TZ = 'America/New_York'

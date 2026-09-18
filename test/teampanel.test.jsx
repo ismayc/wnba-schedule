@@ -6,7 +6,7 @@ import { FollowProvider } from '../src/context/follow.jsx'
 // This file needs a season IN PROGRESS: "Next up" is the list of a team's UNPLAYED
 // games, which the live schedule stops having on September 25, when the last
 // regular-season game is done. See test/fixtures/season-2026.js. The live board keeps
-// its own gate in schedule.test.js.
+// its own gate in test/live/.
 import { GAMES_2026 as GAMES } from './fixtures/season-2026.js'
 import { seedings } from '../src/utils/standings.js'
 import { HISTORY } from '../src/data/history.js'

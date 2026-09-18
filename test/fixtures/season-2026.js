@@ -11,7 +11,7 @@
 // September 4 broke 16 tests across 9 files.
 //
 // This board is never regenerated. The LIVE board still has its own gate in
-// test/schedule.test.js, which is what a refresh has to satisfy.
+// test/live/, which is what a refresh has to satisfy (npm run test:data).
 export const GAMES_2026 = [
   {"id":"401856890","tip":"2026-05-08T23:30:00.000Z","seasonType":"regular","home":"NY","away":"CON","venue":"Barclays Center","city":"Brooklyn","state":"NY","broadcast":["ION"],"score":[106,75],"line":{"home":[36,30,21,19],"away":[13,24,23,15]},"stars":[{"cat":"points","v":"31","who":"B. Stewart","team":"NY"},{"cat":"rebounds","v":"10","who":"B. Stewart","team":"NY"},{"cat":"assists","v":"11","who":"J. Vanloo","team":"NY"},{"cat":"points","v":"16","who":"D. Miller","team":"CON"},{"cat":"rebounds","v":"6","who":"A. Morrow","team":"CON"},{"cat":"assists","v":"6","who":"S. Rivers","team":"CON"}]},
   {"id":"401856891","tip":"2026-05-08T23:30:00.000Z","seasonType":"regular","home":"TOR","away":"WSH","venue":"Coca-Cola Coliseum","city":"Toronto","state":"ON","broadcast":["ION","TSN"],"score":[65,68],"line":{"home":[13,17,17,18],"away":[17,20,14,17]},"stars":[{"cat":"points","v":"27","who":"M. Mabrey","team":"TOR"},{"cat":"rebounds","v":"7","who":"M. Mabrey","team":"TOR"},{"cat":"assists","v":"2","who":"M. Mabrey","team":"TOR"},{"cat":"points","v":"26","who":"S. Citron","team":"WSH"},{"cat":"rebounds","v":"16","who":"K. Iriafen","team":"WSH"},{"cat":"assists","v":"3","who":"G. Amoore","team":"WSH"}]},

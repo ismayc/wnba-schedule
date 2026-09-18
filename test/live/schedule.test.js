@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { GAMES } from '../src/data/schedule.js'
-import { ALL_ABBRS } from '../src/data/teams.js'
+import { GAMES } from '../../src/data/schedule.js'
+import { ALL_ABBRS, SEASON } from '../../src/data/teams.js'
 
+// LIVE suite (npm run test:data): this file reads the real, refreshed modules. It moved
+// here from test/schedule.test.js when the main suite's data was frozen, because under
+// the freeze it would have been checking a fixture that never changes.
+//
 // The committed schedule is the single source of truth for *who* plays whom — the
 // live overlay only ever paints score/clock/status onto a game matched by id, and
 // never rewrites the matchup (see espn.test.js). So a regenerated schedule that
@@ -44,7 +48,9 @@ describe('committed schedule integrity', () => {
   })
 })
 
-describe("Sun's July 22 game — regression for the reported mismatch", () => {
+// A 2026 event id, so it only applies while the live board IS 2026. Without the season
+// check this would block the first refresh after the 2027 rollover.
+describe.runIf(SEASON === 2026)("Sun's July 22 game — regression for the reported mismatch", () => {
   // A viewer saw "Sun v Fever" and expected "Sun v Mercury"; ESPN's live scoreboard
   // (and this committed row) confirm the Fever game is the real one. The Mercury
   // (PHX) played earlier that day. Pin it so a data refresh can't quietly flip it.
