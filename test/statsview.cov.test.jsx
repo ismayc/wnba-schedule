@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import StatsView from '../src/components/StatsView.jsx'
+import StatsView, { Leaders } from '../src/components/StatsView.jsx'
 import { GAMES } from '../src/data/schedule.js'
 
 const TZ = 'America/New_York'
@@ -106,6 +106,37 @@ describe('StatsView coverage', () => {
     await userEvent.click(container.querySelector('.margin-team'))
     await userEvent.click(container.querySelector('.race .team-btn'))
     expect(onPickTeam.mock.calls.length).toBeGreaterThanOrEqual(3)
+  })
+
+  // Synthetic rows on purpose. The live board only draws the trade arrow while a traded
+  // player happens to sit in the PPG top ten, and for a stretch exactly one did (Kelsey
+  // Plum, LA then PHX). When a refresh moved her out, the arrow's branch stopped being
+  // exercised and the 100% gate blocked the data commit (refresh-data run 35398009311).
+  it('draws one arrow between the clubs of a traded leader and none for a one-club player', () => {
+    const rows = [
+      { id: 'a', rank: 1, name: 'One Club', pos: 'G', value: 20, teams: [{ abbr: 'LV', gp: 30 }] },
+      {
+        id: 'b',
+        rank: 2,
+        name: 'Traded Midseason',
+        pos: 'F',
+        value: 18,
+        teams: [
+          { abbr: 'LA', gp: 12 },
+          { abbr: 'PHX', gp: 5 },
+        ],
+      },
+    ]
+    const { container } = render(<Leaders getRows={() => rows} />)
+    const [oneClub, traded] = container.querySelectorAll('.lead-teams')
+    expect(oneClub.querySelectorAll('button')).toHaveLength(1)
+    expect(oneClub.querySelector('.lead-arrow')).toBeNull()
+    // Two badges, oldest first, with a single arrow between them.
+    expect([...traded.querySelectorAll('button')].map((b) => b.title)).toEqual([
+      'LA · 12 games',
+      'PHX · 5 games',
+    ])
+    expect(traded.querySelectorAll('.lead-arrow')).toHaveLength(1)
   })
 
   it('splits an undecided race into the field and the chasers', () => {

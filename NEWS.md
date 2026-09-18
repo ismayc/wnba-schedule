@@ -4,6 +4,19 @@ A dated changelog for The WNBA Schedule. Each heading is a calendar
 day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-09-18
+
+- **Fixed a red refresh gate: the trade arrow on the leaders board was covered by luck.**
+  `StatsView.jsx` line 114 draws the arrow between the clubs of a player traded midseason,
+  and no test rendered it on purpose. It was exercised only while a traded player sat in
+  the live PPG top ten, and exactly one did (Kelsey Plum, LA then PHX). The afternoon
+  refresh moved her off the board, branch coverage fell to 99.94%, and the gate correctly
+  refused to commit the data (run 35398009311, issue #5). Nothing wrong shipped; the site
+  served the morning snapshot. `test/statsview.cov.test.jsx` now renders `Leaders` with a
+  synthetic one-club row and a synthetic traded row, so both sides of the branch are
+  covered whoever leads the league. Verified by fetching the same fresh data locally and
+  running the full gate: 100% on all four measures.
+
 ## 2026-09-16
 
 - **Fixed the squished "Next up" rows in a team's Standings pop-out.** The `.drill`
