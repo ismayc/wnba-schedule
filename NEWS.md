@@ -35,7 +35,7 @@ data/source updates, deployment). Newest day on top.
   placements, none outside the reported range, and one-point margins reproduce the
   engine's order exactly. None of this season's remaining tiebreaks can actually be
   decided by a picked margin, so the live grid shows no `*` today. 1,050 random
-  synthetic leagues built to force close ties (21 million placements) found no miss
+  synthetic leagues built to force close ties (19 million placements) found no miss
   either. That run caught a real bug in a draft: a split where step 3 came out level
   and step 4 decided was not being re-checked. `test/scenarios.test.js` now checks
   every margin 1..M of every picked game on a board where margins genuinely reorder
