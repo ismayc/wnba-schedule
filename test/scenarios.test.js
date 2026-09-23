@@ -12,8 +12,11 @@ import {
   meanSeed,
   maxMargin,
   rowPercents,
+  exactFinishRanges,
+  playoffRaceExact,
 } from '../src/utils/scenarios.js'
-import { computeStandings, rankTable, seedings, PLAYOFF_SPOTS } from '../src/utils/standings.js'
+import { computeStandings, rankTable, seedings, playoffRace, PLAYOFF_SPOTS } from '../src/utils/standings.js'
+import { TEAMS } from '../src/data/teams.js'
 
 const game = (over) => ({
   id: String(Math.random()),
@@ -366,5 +369,79 @@ describe('rankTable', () => {
     expect(rows.map((r) => r.abbr)).toEqual(seedings(games).map((r) => r.abbr))
     expect(trace.map((t) => t.step)).toContain(3)
     expect(trace.map((t) => t.step)).toContain(5)
+  })
+})
+
+describe('playoffRaceExact', () => {
+  // A full single round-robin with two games left open, from a seeded generator: a
+  // board where the tiebreak-blind win bounds miss a clinch, an elimination and a
+  // narrower window that the exact enumeration finds.
+  const board = () => {
+    let seed = 9
+    const rand = () => (seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31
+    const abbrs = TEAMS.map((t) => t.abbr)
+    const games = []
+    let id = 0
+    for (let i = 0; i < 15; i++)
+      for (let j = i + 1; j < 15; j++) {
+        const isOpen = rand() < 0.03
+        const m = 1 + Math.floor(rand() * 9)
+        const homeWins = rand() < 0.5 + (j - i) / 40
+        games.push({
+          id: `g${id++}`,
+          seasonType: 'regular',
+          tip: isOpen ? '2026-09-20T00:00:00.000Z' : '2026-05-01T00:00:00.000Z',
+          home: abbrs[i],
+          away: abbrs[j],
+          score: isOpen ? null : homeWins ? [80 + m, 80] : [80, 80 + m],
+        })
+      }
+    return games
+  }
+  const games = board()
+  const open = remainingGames(games)
+  const arith = playoffRace(games)
+  const exact = playoffRaceExact(games)
+
+  it('corrects the win bounds, both ways, where tiebreakers decide', () => {
+    expect(open).toHaveLength(2)
+    const by = (rows, abbr) => rows.find((r) => r.abbr === abbr)
+    // Four teams finish 11-3. The win bounds let LV finish as high as 1 and promise it
+    // no worse than 3; the group's head-to-head puts it 4th in every outcome.
+    expect([by(arith, 'LV').bestRank, by(arith, 'LV').worstRank]).toEqual([1, 3])
+    expect([by(exact, 'LV').bestRank, by(exact, 'LV').worstRank]).toEqual([4, 4])
+    // A three-way tie at 6-8 drops WSH to 10th, below the 9th the bounds promised.
+    expect(by(arith, 'WSH').worstRank).toBe(9)
+    expect([by(exact, 'WSH').bestRank, by(exact, 'WSH').worstRank]).toEqual([10, 10])
+    const newlyClinched = exact.filter((r, i) => r.clinched && !arith[i].clinched)
+    expect(newlyClinched.length).toBeGreaterThan(0)
+    // A clinched team has no magic number left to show.
+    for (const r of newlyClinched) expect(r.magic).toBeNull()
+    expect(exact.some((r, i) => r.eliminated && !arith[i].eliminated)).toBe(true)
+  })
+
+  it('never rules out a finish that some result and margins produce (brute force)', () => {
+    const ranges = Object.fromEntries(exact.map((r) => [r.abbr, [r.bestRank, r.worstRank]]))
+    for (let mask = 0; mask < 4; mask++) {
+      for (const [a, b] of [[1, 1], [1, 60], [60, 1], [30, 30], [500, 2]]) {
+        const ms = [a, b]
+        const scored = games.map((g) => {
+          const i = open.findIndex((o) => o.id === g.id)
+          if (i < 0) return g
+          const m = ms[i]
+          return { ...g, score: mask & (1 << i) ? [100 + m, 100] : [100, 100 + m] }
+        })
+        seedings(scored).forEach((row, pos) => {
+          expect(pos + 1).toBeGreaterThanOrEqual(ranges[row.abbr][0])
+          expect(pos + 1).toBeLessThanOrEqual(ranges[row.abbr][1])
+        })
+      }
+    }
+  })
+
+  it('falls back to the win bounds when too many games are open', () => {
+    expect(exactFinishRanges(games, { max: 1 })).toBeNull()
+    const many = games.map((g) => ({ ...g, score: null }))
+    expect(playoffRaceExact(many)).toEqual(playoffRace(many))
   })
 })

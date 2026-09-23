@@ -6,7 +6,8 @@ import {
   teamLabel,
   LEADER_CATEGORIES,
 } from '../utils/stats.js'
-import { playoffRace, PLAYOFF_SPOTS } from '../utils/standings.js'
+import { PLAYOFF_SPOTS } from '../utils/standings.js'
+import { playoffRaceExact } from '../utils/scenarios.js'
 import { formatDate } from '../utils/time.js'
 import TeamLogo from './TeamLogo.jsx'
 import { LEAGUE } from '../config/league.js'
@@ -271,7 +272,7 @@ function statusOf(row) {
 function PlayoffRace({ games, race, onPickTeam }) {
   // `race` comes from App, derived once for every view that needs it; the fallback
   // keeps this renderable on its own.
-  const rows = useMemo(() => race ?? playoffRace(games), [games, race])
+  const rows = useMemo(() => race ?? playoffRaceExact(games), [games, race])
   const cut = rows[PLAYOFF_SPOTS - 1]
 
   return (

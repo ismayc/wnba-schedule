@@ -35,7 +35,7 @@ import ServicesModal from './components/ServicesModal.jsx'
 import { detectEvents, eventKey } from './services/alerts.js'
 import TeamLogo from './components/TeamLogo.jsx'
 import { LEAGUE } from './config/league.js'
-import { playoffRace } from './utils/standings.js'
+import { playoffRaceExact } from './utils/scenarios.js'
 
 const VIEWS = [
   { id: 'schedule', label: '📋 Schedule' },
@@ -183,8 +183,10 @@ export default function App() {
   // clinch/elimination solver over the season. It used to be computed inside
   // StandingsView, StatsView and TeamPanel independently, and TeamPanel's memo ran on
   // every `games` change even while the panel was CLOSED, because the component only
-  // returns null further down.
-  const race = useMemo(() => playoffRace(games), [games])
+  // returns null further down. Once 12 or fewer games are left, the finish windows come
+  // from enumerating every remaining result under the full tiebreak chain (the same
+  // engine as the Scenarios tab), so the two views agree.
+  const race = useMemo(() => playoffRaceExact(games), [games])
   const nLive = useMemo(() => liveCount(games), [games])
   // The archived season a History-opened panel describes, or null for the live one.
   const panelSeason = panelYear == null ? null : HISTORY.find((s) => s.year === panelYear)

@@ -13,7 +13,13 @@
 // the tied block spans, as "possible, depending on margins", instead of one seed
 // presented as settled.
 
-import { computeStandings, countsForStandings, rankTable, PLAYOFF_SPOTS } from './standings.js'
+import {
+  computeStandings,
+  countsForStandings,
+  playoffRace,
+  rankTable,
+  PLAYOFF_SPOTS,
+} from './standings.js'
 
 // Seed buckets reported per team: 1..PLAYOFF_SPOTS, then one "out" bucket.
 export const OUT = PLAYOFF_SPOTS + 1
@@ -308,4 +314,49 @@ export function rowPercents(team, total) {
     missing--
   }
   return Object.fromEntries(cells.map((c) => [c.s, c.pct]))
+}
+
+// Every final position (1-based) each team can still reach, with the full tiebreak
+// chain applied, or null when more than `max` games are open. `margin` bounds a picked
+// game's margin; the default of 1,000 points makes point differential effectively
+// unbounded, so no finish is ruled out on an assumption about scores.
+export function exactFinishRanges(games, { max = MAX_OPEN_GAMES, margin = 1000 } = {}) {
+  const open = remainingGames(games)
+  if (open.length > max) return null
+  const base = computeStandings(games.filter(countsForStandings))
+  const out = {}
+  for (let mask = 0; mask < 2 ** open.length; mask++) {
+    const booked = open.map((g, i) => resultOf(g, mask & (1 << i) ? 'home' : 'away'))
+    for (const [abbr, [lo, hi]] of Object.entries(rankBooked(base, booked, margin).ranges)) {
+      const cur = out[abbr]
+      out[abbr] = cur ? [Math.min(cur[0], lo), Math.max(cur[1], hi)] : [lo, hi]
+    }
+  }
+  return out
+}
+
+// playoffRace with its finish window made exact once the schedule is short enough to
+// enumerate. playoffRace alone bounds each team by wins and losses, which cannot see a
+// tiebreaker: on September 23 it had MIN locked at 1 (the banked head-to-head) and GS
+// still able to finish 1, though GS's only way to 32 wins ties MIN, who won the season
+// series 3-1. Its worst-case refinement also assumes a won season series settles a tie,
+// which a tie of three or more teams can overturn (the group's head-to-head decides),
+// so it can promise a finish better than the chain allows. The exact window replaces it
+// outright, and clinched, eliminated and the magic number follow from it.
+export function playoffRaceExact(games) {
+  const race = playoffRace(games)
+  const exact = exactFinishRanges(games)
+  if (!exact) return race
+  return race.map((row) => {
+    const [bestRank, worstRank] = exact[row.abbr]
+    const clinched = worstRank <= PLAYOFF_SPOTS
+    return {
+      ...row,
+      bestRank,
+      worstRank,
+      clinched,
+      eliminated: bestRank > PLAYOFF_SPOTS,
+      magic: clinched ? null : row.magic,
+    }
+  })
 }

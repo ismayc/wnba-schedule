@@ -1,5 +1,6 @@
 import { Fragment, useMemo, useState } from 'react'
-import { conferenceStandings, playoffRace, CONFERENCES, PLAYOFF_SPOTS } from '../utils/standings.js'
+import { conferenceStandings, CONFERENCES, PLAYOFF_SPOTS } from '../utils/standings.js'
+import { playoffRaceExact } from '../utils/scenarios.js'
 import { useFollow } from '../context/follow.jsx'
 import TeamLogo from './TeamLogo.jsx'
 
@@ -156,7 +157,7 @@ export default function StandingsView({ games, onPick, race }) {
   const [mode, setMode] = useState('league')
   // `race` comes from App, which derives it once for every view that needs it. The
   // fallback keeps this component renderable on its own.
-  const league = useMemo(() => race ?? playoffRace(games), [games, race])
+  const league = useMemo(() => race ?? playoffRaceExact(games), [games, race])
   const byConf = useMemo(() => conferenceStandings(games), [games])
 
   return (

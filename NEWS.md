@@ -4,6 +4,27 @@ A dated changelog for The WNBA Schedule. Each heading is a calendar
 day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-09-23
+
+- **The Regular Season table now agrees with Scenarios.** Its Finish column bounded each
+  team by wins and losses only, so it still gave GS a finish of 1 to 3 after MIN
+  clinched: GS's only way to 32 wins ties MIN, and MIN won the season series 3-1. The
+  Scenarios tab (full tiebreak chain) already had GS at 2 or 3. Once 12 or fewer games
+  are left, the race used by Regular Season, Stats, and the team panel now comes from
+  the same enumeration as Scenarios (`playoffRaceExact` in `src/utils/scenarios.js`).
+  Clinched, eliminated, and the magic number follow from it. For this purpose a picked
+  game's margin is unbounded, so point differential never rules a finish out.
+- **The old worst-case bound could also be wrong the other way.** It treated a won
+  season series as settling any tie, but a tie of three or more teams is decided by the
+  whole group's head-to-head records. A test board shows it promising LV no worse than
+  3rd when a four-way tie at 11-3 puts LV 4th in every outcome. The exact window
+  replaces it, and brute force confirms every finish it allows.
+  Earlier in the season, with more games left, the win-bound method still applies as
+  before.
+- **Data refreshed by hand** at 10:30 UTC, after the 09:15 scheduled refresh had not
+  started. It adds last night's five finals, including MIN's loss at IND and GS's loss
+  at POR.
+
 ## 2026-09-22 (latest)
 
 - **Every row of the Scenarios grid now adds up to 100%.** Each cell was rounded on its

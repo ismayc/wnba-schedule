@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { TEAM_BY_ABBR } from '../data/teams.js'
-import { playoffRace, CONFERENCE_BY_ABBR, CONFERENCES } from '../utils/standings.js'
+import { CONFERENCE_BY_ABBR, CONFERENCES } from '../utils/standings.js'
+import { playoffRaceExact } from '../utils/scenarios.js'
 import { playersByTeam } from '../utils/stats.js'
 import { seasonTeamRow, seasonPlayers } from '../utils/history.js'
 import { formatDate, formatTime, liveState } from '../utils/time.js'
@@ -58,7 +59,7 @@ export default function TeamPanel({
   // the panel was closed: the `if (!abbr || !row) return null` guard is further down, and
   // hooks run before it. The `upcoming` memo below already guarded on `abbr`; this one
   // never did.
-  const race = useMemo(() => raceProp ?? (abbr ? playoffRace(games) : []), [raceProp, abbr, games])
+  const race = useMemo(() => raceProp ?? (abbr ? playoffRaceExact(games) : []), [raceProp, abbr, games])
   const gamesById = useMemo(() => new Map(board.map((g) => [g.id, g])), [board])
   const row = season ? seasonTeamRow(season, abbr) : race.find((r) => r.abbr === abbr)
   const roster = useMemo(
