@@ -289,9 +289,10 @@ function seriesLedger(games) {
 // for the best bound — with ONE refinement: a rival who can only TIE the floor (never
 // strictly pass it) stops counting once the season series between the pair is complete
 // and won, because head-to-head is step 1 of the official chain and a banked series
-// settles a two-team tie immutably. (A multi-way tie at the same win count could in
-// principle reorder a group by ITS head-to-heads — the exotic case this refinement
-// accepts; closing it would take a full scenario engine.) bestRank stays purely
+// settles a two-team tie immutably. It applies only when no third team can land on the
+// same win total: a tie of three or more is decided by the whole group's head-to-head,
+// where a won series proves nothing. (That case used to be accepted as exotic; random
+// boards showed it wrong about one time in five.) bestRank stays purely
 // arithmetic, so elimination is never declared off a tiebreaker assumption.
 // bestRank === worstRank therefore means the seed is truly locked.
 export function seedRanges(rows, totals, games) {
@@ -310,10 +311,16 @@ export function seedRanges(rows, totals, games) {
       if (r.floor > b.ceiling) ahead++
       if (r.ceiling > b.floor) couldPass++
       else if (r.ceiling === b.floor) {
-        // Tie-only threat: discounted when the pair's series is finished and ours.
+        // Tie-only threat: discounted when the pair's series is finished and ours, and
+        // only when no third team can also land on that win total. With three or more
+        // tied, step 1 is the whole group's head-to-head, and a series we won can
+        // still leave us below this rival there.
         const e = ledger.get([b.abbr, r.abbr].sort().join('|'))
         const banked = e && e.remaining === 0 && (e.wins[b.abbr] ?? 0) > (e.wins[r.abbr] ?? 0)
-        if (!banked) couldPass++
+        const alone = bounds.every(
+          (t) => t === b || t === r || t.floor > b.floor || t.ceiling < b.floor
+        )
+        if (!banked || !alone) couldPass++
       }
     }
     out[b.abbr] = { bestRank: 1 + ahead, worstRank: 1 + couldPass }

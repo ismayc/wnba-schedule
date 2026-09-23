@@ -15,7 +15,8 @@ import {
   exactFinishRanges,
   playoffRaceExact,
 } from '../src/utils/scenarios.js'
-import { computeStandings, rankTable, seedings, playoffRace, PLAYOFF_SPOTS } from '../src/utils/standings.js'
+import { computeStandings, rankTable, seedings, playoffRace, scheduledGames, PLAYOFF_SPOTS } from '../src/utils/standings.js'
+import { scenarioClinched } from '../src/utils/raceScenarios.js'
 import { TEAMS } from '../src/data/teams.js'
 
 const game = (over) => ({
@@ -430,16 +431,21 @@ describe('playoffRaceExact', () => {
   const arith = playoffRace(games)
   const exact = playoffRaceExact(games)
 
-  it('corrects the win bounds, both ways, where tiebreakers decide', () => {
+  it('tightens the win bounds where tiebreakers decide, and they stay sound', () => {
     expect(open).toHaveLength(2)
     const by = (rows, abbr) => rows.find((r) => r.abbr === abbr)
-    // Four teams finish 11-3. The win bounds let LV finish as high as 1 and promise it
-    // no worse than 3; the group's head-to-head puts it 4th in every outcome.
-    expect([by(arith, 'LV').bestRank, by(arith, 'LV').worstRank]).toEqual([1, 3])
+    // Four teams finish 11-3 and the group's head-to-head puts LV 4th in every outcome.
+    // The win bounds allow 1 to 4; the exact window is just 4.
+    expect(by(arith, 'LV').worstRank).toBeGreaterThanOrEqual(4)
     expect([by(exact, 'LV').bestRank, by(exact, 'LV').worstRank]).toEqual([4, 4])
-    // A three-way tie at 6-8 drops WSH to 10th, below the 9th the bounds promised.
-    expect(by(arith, 'WSH').worstRank).toBe(9)
+    // A three-way tie at 6-8 drops WSH to 10th; the bounds must allow it.
+    expect(by(arith, 'WSH').worstRank).toBeGreaterThanOrEqual(10)
     expect([by(exact, 'WSH').bestRank, by(exact, 'WSH').worstRank]).toEqual([10, 10])
+    // The win bounds are never tighter than the truth.
+    exact.forEach((r, i) => {
+      expect(arith[i].bestRank).toBeLessThanOrEqual(r.bestRank)
+      expect(arith[i].worstRank).toBeGreaterThanOrEqual(r.worstRank)
+    })
     const newlyClinched = exact.filter((r, i) => r.clinched && !arith[i].clinched)
     expect(newlyClinched.length).toBeGreaterThan(0)
     // A clinched team has no magic number left to show.
@@ -470,5 +476,73 @@ describe('playoffRaceExact', () => {
     expect(exactFinishRanges(games, { max: 1 })).toBeNull()
     const many = games.map((g) => ({ ...g, score: null }))
     expect(playoffRaceExact(many)).toEqual(playoffRace(many))
+  })
+})
+
+describe('ties of three or more teams (win bounds and clinch check)', () => {
+  // Random double round-robins with a few games left open, small enough to enumerate
+  // exactly. The win bounds and the clinch check must never promise more than the
+  // exact enumeration allows. Before the fix, about one board in five broke this.
+  const boards = (seed, count) => {
+    const rand = () => (seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31
+    const abbrs = TEAMS.map((t) => t.abbr)
+    const out = []
+    while (out.length < count) {
+      const games = []
+      let id = 0
+      const n = 4 + Math.floor(rand() * 8)
+      for (let i = 0; i < n; i++)
+        for (let j = i + 1; j < n; j++)
+          for (let r = 0; r < 2; r++) {
+            const isOpen = rand() < 0.12
+            const m = 1 + Math.floor(rand() * 6)
+            games.push({
+              id: `g${id++}`,
+              seasonType: 'regular',
+              tip: isOpen ? '2026-09-20T00:00:00.000Z' : '2026-05-01T00:00:00.000Z',
+              home: r ? abbrs[j] : abbrs[i],
+              away: r ? abbrs[i] : abbrs[j],
+              score: isOpen ? null : rand() < 0.5 ? [80 + m, 80] : [80, 80 + m],
+            })
+          }
+      const exact = exactFinishRanges(games, { max: 9 })
+      if (exact) out.push({ games, exact })
+    }
+    return out
+  }
+
+  it('never promises a better worst finish, or a clinch, than the tiebreakers allow', () => {
+    let tight = 0
+    for (const { games, exact } of boards(1, 250)) {
+      for (const r of playoffRace(games)) {
+        const [lo, hi] = exact[r.abbr]
+        expect(r.bestRank).toBeLessThanOrEqual(lo)
+        expect(r.worstRank).toBeGreaterThanOrEqual(hi)
+        if (r.clinched) expect(hi).toBeLessThanOrEqual(PLAYOFF_SPOTS)
+        if (r.eliminated) expect(lo).toBeGreaterThan(PLAYOFF_SPOTS)
+        if (r.worstRank === hi) tight++
+      }
+    }
+    // Sound but not vacuous: most windows still meet the exact worst case.
+    expect(tight).toBeGreaterThan(1000)
+  })
+
+  it('does not clinch LA when losing rivals can pull it into a four-way tie', () => {
+    // CON and CHI winning out leaves LA in a two-way tie it wins on head-to-head. Both
+    // losing instead ties ATL, CHI, CON and LA at 9-11, and step 2 puts LA 9th.
+    const standings = [
+      ['DAL', 13, 5], ['PHX', 11, 7], ['MIN', 10, 7], ['IND', 11, 8], ['GS', 11, 8],
+      ['LA', 9, 8], ['CHI', 9, 10], ['CON', 7, 10], ['ATL', 7, 11], ['LV', 7, 13], ['NY', 6, 14],
+    ]
+    const hit = boards(1, 400).find(({ games }) => {
+      const rows = seedings(games)
+      return standings.every(([a, w, l]) => rows.some((r) => r.abbr === a && r.w === w && r.l === l))
+    })
+    expect(hit).toBeDefined()
+    const { games, exact } = hit
+    expect(exact.LA[1]).toBe(9)
+    const rows = seedings(games)
+    expect(scenarioClinched('LA', rows, scheduledGames(games), games, PLAYOFF_SPOTS)).toBe(false)
+    expect(playoffRace(games).find((r) => r.abbr === 'LA').clinched).toBe(false)
   })
 })

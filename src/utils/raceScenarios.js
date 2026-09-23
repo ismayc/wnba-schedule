@@ -1,9 +1,9 @@
 // Late-season clinch scenarios — bounded exact enumeration over the remaining
 // schedule. The win-bound ranges in standings.js treat rivals independently, so they
 // can miss a clinch the SCHEDULE itself guarantees: two chasers who still play each
-// other cannot both win out — one of them must eat a loss. This engine enumerates the
-// remaining games among the chasers that could still matter and asks, outcome by
-// outcome, whether enough rivals can actually finish ahead.
+// other cannot both win out — one of them must eat a loss. This engine enumerates
+// every remaining game of the chasers that could still matter (the team's own games
+// are losses) and asks, outcome by outcome, whether enough rivals can finish ahead.
 //
 // Scope and honesty:
 // - CLINCH side only. The ✕ / elimination flags stay purely arithmetic in
@@ -56,22 +56,26 @@ export function scenarioClinched(teamAbbr, rows, totals, games, cut, opts = {}) 
   }
   if (ahead0 >= cut) return false // already caught, no enumeration needed
 
-  // Contested games: both sides are chasers, so a win for one is a loss for the
-  // other — the coupling the independent bounds cannot see. Every other remaining
-  // game is handed to the chaser (adversary's choice), including games vs the team.
-  const coupled = remaining.filter((g) => chasers.has(g.home) && chasers.has(g.away))
+  // Every remaining game with a chaser in it is enumerated both ways, except the
+  // team's own (it loses out: a team's win can only ever help it, since whoever passes
+  // it at floor+1 wins would pass it at floor too). Handing each chaser its other games
+  // is NOT the adversary's best play once ties count: a chaser that loses can land ON
+  // the floor and pull the team into a three- or four-way tie that step 1 or 2 then
+  // loses, where a chaser that won would have left a two-way tie the team wins.
+  const involvesTeam = (g) => g.home === teamAbbr || g.away === teamAbbr
+  const coupled = remaining.filter(
+    (g) => !involvesTeam(g) && (chasers.has(g.home) || chasers.has(g.away))
+  )
   if (coupled.length > maxCoupled) return null
 
-  // Adversary-optimal base wins: every chaser wins all of its uncoupled games.
+  // Base wins: real wins plus the chaser's games against the team, which it wins.
   const wins = new Map()
   for (const abbr of chasers) {
     const r = rows.find((x) => x.abbr === abbr)
-    const uncoupled = remaining.filter(
-      (g) =>
-        (g.home === abbr || g.away === abbr) &&
-        !(chasers.has(g.home) && chasers.has(g.away))
+    const vsTeam = remaining.filter(
+      (g) => involvesTeam(g) && (g.home === abbr || g.away === abbr)
     ).length
-    wins.set(abbr, r.w + uncoupled)
+    wins.set(abbr, r.w + vsTeam)
   }
 
   // Head-to-head ledgers inside {team ∪ chasers}, for step-1 tie resolution:
@@ -127,11 +131,14 @@ export function scenarioClinched(teamAbbr, rows, totals, games, cut, opts = {}) 
     if (ahead >= cut) return true
     if (!tied.length || ahead + tied.length < cut) return false
     const group = [teamAbbr, ...tied]
-    const teamPct = groupRecord(teamAbbr, group)
+    const pcts = new Map(group.map((abbr) => [abbr, groupRecord(abbr, group)]))
+    // The official chain skips step 1 outright when any tied team never met the others,
+    // so then it proves nothing and every tied rival is charged against the team.
+    const step1 = [...pcts.values()].every((p) => p !== null)
+    const teamPct = pcts.get(teamAbbr)
     for (const abbr of tied) {
-      const rivalPct = groupRecord(abbr, group)
       // A tied rival counts ahead unless step 1 puts the team strictly above it.
-      if (teamPct === null || rivalPct === null || rivalPct >= teamPct) ahead++
+      if (!step1 || pcts.get(abbr) >= teamPct) ahead++
     }
     return ahead >= cut
   }
@@ -142,9 +149,12 @@ export function scenarioClinched(teamAbbr, rows, totals, games, cut, opts = {}) 
     for (const homeWins of [true, false]) {
       outcome[depth] = homeWins
       const winner = homeWins ? g.home : g.away
-      wins.set(winner, wins.get(winner) + 1)
+      // A win for a non-chaser (a rival already ahead, or one who can't reach the floor)
+      // only matters as the chaser's loss.
+      const tracked = wins.has(winner)
+      if (tracked) wins.set(winner, wins.get(winner) + 1)
       const caught = catches(depth + 1)
-      wins.set(winner, wins.get(winner) - 1)
+      if (tracked) wins.set(winner, wins.get(winner) - 1)
       if (caught) return true
     }
     return false

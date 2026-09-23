@@ -6,6 +6,25 @@ data/source updates, deployment). Newest day on top.
 
 ## 2026-09-23
 
+- **Ties of three or more teams are now handled correctly all season.** The
+  win-count method runs whenever more than 12 games are left. It had two flaws, and
+  both went wrong about one time in five on random test boards:
+  - **Worst-finish bound.** It counted a won season series as winning any tie with
+    that rival. That only holds for two teams. With three or more tied, the whole
+    group's head-to-head decides, so it could promise a finish better than possible.
+    It now counts the series only when no third team can end on the same record.
+  - **Clinch check.** It assumed each rival does worst by the team when it wins all of
+    its games against teams outside the race. With ties, a rival that loses can land
+    exactly level and pull the team into a three- or four-way tie it loses. Example:
+    LA was marked clinched, but two rivals losing ties ATL, CHI, CON and LA at 9-11,
+    and step 2 puts LA 9th. The check now tries every remaining game involving a
+    rival both ways. The team's own games still count as losses, since a team's win
+    can never lower its finish. It also no longer uses step 1 when any tied team never
+    played the others, because the official chain skips that step in that case.
+  - **Tests.** On 250 random boards, the bounds, clinches and eliminations are checked
+    against the exact enumeration. The new tests fail on the old code. The worst
+    timing on the real season is 14 ms.
+
 - **A tapped Scenarios cell now lists exactly which results produce it.** Before, it
   showed only the results every outcome in that cell shared. Now it splits the cell
   into the fewest non-overlapping combinations it can, each with its outcome count, so
