@@ -4,6 +4,52 @@ A dated changelog for The WNBA Schedule. Each heading is a calendar
 day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-09-22
+
+- **New Scenarios tab: how every playoff seed can still happen.** With two days of the
+  regular season left, the tab lists every open game as a pair of toggles (tap a team to
+  pick it, tap again to leave the game open). Every combination of the open games is
+  played out under the same official tiebreak chain the Regular Season table uses, and a
+  grid shows the share of outcomes that lands each team in each seed, 1 through 8 or
+  out. Tapping a cell names the results every one of those outcomes needs ("NY beats
+  ATL"), with buttons to pick those results or to jump to one complete season that gets
+  there. Once every game is picked, the tab shows the exact seeding, how each tie was
+  broken, and the first-round pairings. "Favorites win" and "Clear picks" are one tap
+  each. The grid reports a share of possible outcomes, not a win probability.
+- **Tiebreakers checked end to end.** The chain in `standings.js` was re-read against
+  wnba.com's published procedure (head-to-head record, record vs .500-or-better teams,
+  head-to-head point differential, overall point differential, restart from step 1 on
+  any multi-team elimination), and it matches. Every outcome in the grid now records
+  which of those steps placed the team, and a tapped cell lists them ("head-to-head
+  record: in 960 of 1,728").
+- **Margins are handled, not assumed.** A picked game has no score, but steps 3 and 4
+  are point differential. The first version booked picks as one-point wins and only
+  flagged a margin-decided order. Now each tied group that reaches step 3 (its members
+  are fixed by who wins alone) is re-checked against every margin a picked game could
+  finish by, from 1 point to the season's biggest win (48, PHX at LV, July 11). A team
+  that could land on either side of a rival gets every seed the block spans. The grid
+  marks those outcomes with `*` and keeps them apart from certain ones. A fully picked
+  season shows such a seed as a range ("5–6").
+- **Verified by brute force.** Every one of the 4,096 remaining 2026 outcomes was scored
+  with random and extreme margins and run through the real `seedings()`: 245,760 seed
+  placements, none outside the reported range, and one-point margins reproduce the
+  engine's order exactly. None of this season's remaining tiebreaks can actually be
+  decided by a picked margin, so the live grid shows no `*` today. 1,050 random
+  synthetic leagues built to force close ties (19 million placements) found no miss
+  either. That run caught a real bug in a draft: a split where step 3 came out level
+  and step 4 decided was not being re-checked. `test/scenarios.test.js` now checks
+  every margin 1..M of every picked game on a board where margins genuinely reorder
+  teams.
+- **Engine.** `src/utils/scenarios.js` enumerates up to 12 open games (4,096 seasons,
+  about a quarter of a second with the margin checks). With more open games the tab asks for a few picks first.
+  It ranks each hypothetical table with the new `rankTable` in `standings.js`, which
+  `seedings` now uses too. `resolveTiedGroup` takes an optional trace of which step
+  broke each tie. The real standings are unchanged, and the existing standings tests
+  pass as before.
+- Tests: `test/scenarios.test.js` (engine), `test/scenariosview.cov.test.jsx` (view),
+  plus the URL round trip, an App mount, and the live smoke render of the new tab. The
+  gate stays at 100% on all four measures.
+
 ## 2026-09-18 (later)
 
 - **Player names in the Game leaders block are no longer cut on a phone.** The two teams

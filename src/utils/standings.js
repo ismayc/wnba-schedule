@@ -140,7 +140,12 @@ const vsGroup = (row, groupSet) => {
 // chain from step 1 for every block that is still tied — exactly that rule. A step
 // whose metric can't judge every team (someone never met the group) is skipped whole
 // rather than half-applied.
-export function resolveTiedGroup(rows, games, table) {
+//
+// `trace`, when passed, collects how each tie was broken: one { step, teams } entry per
+// split, where step is 1–4 from the chain above or 5 for the alphabetical stand-in.
+// The Scenarios view uses it to explain an order and to spot orders that hinge on
+// point differential.
+export function resolveTiedGroup(rows, games, table, trace) {
   if (rows.length <= 1) return rows
   const groupSet = new Set(rows.map((r) => r.abbr))
   const group = rows.map((row) => ({ row, vs: vsGroup(row, groupSet) }))
@@ -160,6 +165,7 @@ export function resolveTiedGroup(rows, games, table) {
     if (!metric) continue
     const values = group.map((g) => metric(g))
     if (new Set(values).size < 2) continue // no one separates — next step
+    trace?.push({ step: steps.indexOf(metric) + 1, teams: rows.map((r) => r.abbr) })
     // Someone separates: order the blocks, then restart from step 1 inside each.
     const byValue = new Map()
     group.forEach((g, i) => {
@@ -169,10 +175,11 @@ export function resolveTiedGroup(rows, games, table) {
     })
     return [...byValue.entries()]
       .sort((x, y) => y[0] - x[0])
-      .flatMap(([, block]) => resolveTiedGroup(block, games, table))
+      .flatMap(([, block]) => resolveTiedGroup(block, games, table, trace))
   }
 
   // Beyond the published chain — deterministic stand-in (the league specifies nothing).
+  trace?.push({ step: 5, teams: rows.map((r) => r.abbr) })
   return [...rows].sort((a, b) => a.abbr.localeCompare(b.abbr))
 }
 
@@ -188,20 +195,25 @@ export function compareTeams(a, b, games, table) {
 export const gamesBehind = (leader, row) =>
   ((leader.w - row.w) + (row.l - leader.l)) / 2
 
-export function seedings(games) {
-  const table = computeStandings(games)
-  // Group exact winning-percentage ties, then run each group through the official
-  // chain — the multi-team procedure is NOT a pairwise sort (its restart rule can
-  // order three teams differently than three pairwise comparisons would).
+// Order a standings table 1..n. Groups exact winning-percentage ties, then runs each
+// group through the official chain — the multi-team procedure is NOT a pairwise sort
+// (its restart rule can order three teams differently than three pairwise comparisons
+// would). Works from the table alone, so the Scenarios engine can rank thousands of
+// hypothetical tables without rebuilding them from a game list.
+export function rankTable(table, trace) {
   const byPct = new Map()
   for (const row of Object.values(table)) {
     const list = byPct.get(row.pct) ?? []
     list.push(row)
     byPct.set(row.pct, list)
   }
-  const rows = [...byPct.entries()]
+  return [...byPct.entries()]
     .sort((a, b) => b[0] - a[0])
-    .flatMap(([, group]) => resolveTiedGroup(group, games, table))
+    .flatMap(([, group]) => resolveTiedGroup(group, null, table, trace))
+}
+
+export function seedings(games) {
+  const rows = rankTable(computeStandings(games))
   const leader = rows[0]
   return rows.map((row, i) => ({
     ...row,

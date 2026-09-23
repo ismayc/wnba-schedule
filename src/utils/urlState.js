@@ -20,7 +20,7 @@ export const DEFAULTS = {
   season: null, // History view's chosen season; null = the newest archived one
 }
 
-const VALID_VIEWS = ['schedule', 'week', 'standings', 'playoffs', 'radial', 'stats', 'history']
+const VALID_VIEWS = ['schedule', 'week', 'standings', 'scenarios', 'playoffs', 'radial', 'stats', 'history']
 
 export function readState(search = window.location.search) {
   const p = new URLSearchParams(search)
