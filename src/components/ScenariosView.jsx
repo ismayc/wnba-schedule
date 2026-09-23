@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { computeStandings, countsForStandings, PLAYOFF_SPOTS } from '../utils/standings.js'
 import {
   OUT,
@@ -68,46 +68,77 @@ function Matrix({ result, selected, onSelect, onPickTeam }) {
           <tr>
             <th className="col-team">Team</th>
             {SEEDS.map((s) => (
-              <th key={s} className="num">
+              <th key={s} className={`num ${s === OUT ? 'sc-out-col' : ''}`}>
                 {s === OUT ? 'Out' : s}
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {order.map((abbr) => (
-            <tr key={abbr} className={isFollowed(abbr) ? 'row-followed' : ''}>
-              <td className="col-team">
-                <button className="team-btn" onClick={() => onPickTeam?.(abbr)}>
-                  <TeamLogo abbr={abbr} size={22} />
-                  <span className="team-nick">{abbr}</span>
-                </button>
-              </td>
-              {SEEDS.map((s) => {
-                const { count, maybe } = result.teams[abbr][s]
-                const on = selected?.abbr === abbr && selected.seed === s
-                const locked = count === result.total
-                const text = locked ? '✓' : count ? share(count, result.total) : ''
-                return (
-                  <td key={s} className="num sc-cell-td">
+          {order.map((abbr, row) => {
+            const out = result.teams[abbr][OUT]
+            // With the current picks: out in every outcome, or in the top 8 in every one.
+            const eliminated = out.count === result.total
+            const clinched = !out.count && !out.maybe
+            return (
+              <Fragment key={abbr}>
+                <tr className={`${isFollowed(abbr) ? 'row-followed' : ''} ${eliminated ? 'row-elim' : ''}`}>
+                  <td className="col-team">
                     <button
-                      className={`sc-cell ${on ? 'on' : ''} ${locked ? 'locked' : ''} ${s === OUT ? 'out' : ''} ${maybe ? 'maybe' : ''}`}
-                      style={{ '--share': (count + maybe / 2) / result.total }}
-                      disabled={!count && !maybe}
-                      aria-pressed={on}
-                      aria-label={`${abbr} ${seedName(s)}: ${count} of ${result.total} outcomes${
-                        maybe ? `, ${maybe} more depending on margins` : ''
-                      }`}
-                      onClick={() => onSelect(on ? null : { abbr, seed: s })}
+                      className="team-btn"
+                      aria-label={`${abbr}${clinched ? ', clinched' : ''}${eliminated ? ', eliminated' : ''}`}
+                      onClick={() => onPickTeam?.(abbr)}
                     >
-                      {text}
-                      {maybe > 0 && <sup>*</sup>}
+                      <TeamLogo abbr={abbr} size={22} />
+                      <span className="team-nick">{abbr}</span>
+                      {clinched && (
+                        <span className="badge badge-in hide-sm" title="In the playoffs in every outcome">
+                          ✓
+                        </span>
+                      )}
+                      {eliminated && (
+                        <span className="badge badge-out hide-sm" title="Out of the playoffs in every outcome">
+                          ✕
+                        </span>
+                      )}
                     </button>
                   </td>
-                )
-              })}
-            </tr>
-          ))}
+                  {SEEDS.map((s) => {
+                    const { count, maybe } = result.teams[abbr][s]
+                    const on = selected?.abbr === abbr && selected.seed === s
+                    const locked = count === result.total
+                    // A lock on "Out" is elimination, not an achievement: an ✕, not a ✓.
+                    const mark = s === OUT ? '✕' : '✓'
+                    const text = locked ? mark : count ? share(count, result.total) : ''
+                    return (
+                      <td key={s} className={`num sc-cell-td ${s === OUT ? 'sc-out-col' : ''}`}>
+                        <button
+                          className={`sc-cell ${on ? 'on' : ''} ${locked ? 'locked' : ''} ${s === OUT ? 'out' : ''} ${maybe ? 'maybe' : ''}`}
+                          style={{ '--share': (count + maybe / 2) / result.total }}
+                          disabled={!count && !maybe}
+                          aria-pressed={on}
+                          aria-label={`${abbr} ${seedName(s)}: ${count} of ${result.total} outcomes${
+                            maybe ? `, ${maybe} more depending on margins` : ''
+                          }`}
+                          onClick={() => onSelect(on ? null : { abbr, seed: s })}
+                        >
+                          {text}
+                          {maybe > 0 && <sup>*</sup>}
+                        </button>
+                      </td>
+                    )
+                  })}
+                </tr>
+                {row + 1 === PLAYOFF_SPOTS && (
+                  <tr className="cutline">
+                    <td colSpan={SEEDS.length + 1}>
+                      <span>Playoff line: top {PLAYOFF_SPOTS} make the postseason</span>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            )
+          })}
         </tbody>
       </table>
     </div>
@@ -383,9 +414,10 @@ export default function ScenariosView({ games, tz, onPick }) {
                 <p className="legend">
                   <span className="legend-item">
                     Each cell is the share of the {result.total.toLocaleString()} ways the open games
-                    can go, not a win probability. ✓ means locked. * means the seed is also possible in
-                    some outcomes depending on the final margins, since point differential is a
-                    tiebreaker.
+                    can go, not a win probability. ✓ means the seed is locked, and ✕ under Out means
+                    eliminated. * means the seed is also possible in some outcomes depending on the
+                    final margins, since point differential is a tiebreaker. Teams are ordered by
+                    their average finish, so the playoff line falls after the eight best.
                   </span>
                 </p>
               </div>

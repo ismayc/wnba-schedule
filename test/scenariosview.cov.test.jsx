@@ -38,9 +38,24 @@ describe('ScenariosView — picking games', () => {
     expect(screen.getByText(/0 of 2 picked/)).toBeInTheDocument()
     expect(screen.getByText(/4 outcomes/)).toBeInTheDocument()
     expect(cell('MIN the 1 seed')).toHaveTextContent('50%')
-    expect(cell('TOR out of the playoffs')).toHaveTextContent('✓')
+    // Eliminated reads as an ✕ (and a dimmed row), never a checkmark.
+    expect(cell('TOR out of the playoffs')).toHaveTextContent('✕')
+    expect(cell('TOR out of the playoffs').closest('tr')).toHaveClass('row-elim')
+    expect(screen.getAllByTitle('Out of the playoffs in every outcome').length).toBeGreaterThan(0)
     expect(cell('TOR the 1 seed')).toBeDisabled()
     expect(cell('MIN the 1 seed').closest('tr')).toHaveClass('row-followed')
+    expect(cell('MIN the 1 seed').closest('tr')).not.toHaveClass('row-elim')
+    // MIN finishes top 3 in every outcome: clinched.
+    expect(within(cell('MIN the 1 seed').closest('tr')).getByTitle('In the playoffs in every outcome')).toHaveTextContent('✓')
+    // LV can still miss out, so no badge either way.
+    const lvRow = cell('LV the 1 seed').closest('tr')
+    expect(within(lvRow).queryByTitle(/every outcome/)).toBeNull()
+    // The playoff line sits after the eighth row.
+    const rows = within(screen.getByRole('table')).getAllByRole('row')
+    expect(rows[9]).toHaveClass('cutline')
+    expect(rows[9]).toHaveTextContent('Playoff line: top 8 make the postseason')
+    expect(screen.getByRole('button', { name: 'TOR, eliminated' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'LV' })).toBeInTheDocument()
 
     const minWins = screen.getByRole('button', { name: 'Minnesota Lynx win' })
     await userEvent.click(minWins)
@@ -69,7 +84,7 @@ describe('ScenariosView — picking games', () => {
     const onPick = vi.fn()
     mount([...SMALL, game({ id: 'lv', home: 'LA', away: 'PHX', score: [40, 38], live: true })], { onPick })
     expect(screen.getByText('Live')).toBeInTheDocument()
-    await userEvent.click(within(screen.getByRole('table')).getByRole('button', { name: 'MIN' }))
+    await userEvent.click(within(screen.getByRole('table')).getByRole('button', { name: 'MIN, clinched' }))
     expect(onPick).toHaveBeenCalledWith('MIN')
   })
 })

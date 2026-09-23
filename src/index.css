@@ -4006,3 +4006,19 @@ button.drill-row:hover {
   font-weight: 700;
   margin-left: 1px;
 }
+
+/* The playoff line runs down the grid too: seeds 1-8 on the left, Out on the right. */
+.sc-matrix .sc-out-col {
+  border-left: 2px dashed var(--accent);
+}
+
+/* Eliminated is a loss, so its lock reads in the loss color, not as a checkmark. */
+.sc-cell.out.locked {
+  background: rgba(255, 107, 107, 0.16);
+  color: var(--loss);
+  font-size: 14px;
+}
+
+.sc-matrix .badge {
+  margin-left: 2px;
+}

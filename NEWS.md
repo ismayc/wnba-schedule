@@ -4,6 +4,18 @@ A dated changelog for The WNBA Schedule. Each heading is a calendar
 day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-09-22 (later)
+
+- **The Scenarios grid draws the playoff line.** A dashed rule runs across the grid
+  after the eighth team (teams are ordered by average finish), labeled like the Regular
+  Season table's cut, and down the grid between seed 8 and Out.
+- **Eliminated reads as eliminated.** A team out in every outcome used to show a ✓ in
+  its Out cell, which read like an achievement. It now shows an ✕ in the loss color, its
+  row dims, and its name carries the ✕ badge from the Regular Season table. A team in the
+  top 8 in every outcome gets the ✓ badge. Both follow your picks, and both badges hide at
+  phone width, where the dimmed row and the ✕ cell carry it. The team buttons announce
+  "clinched" or "eliminated" to screen readers.
+
 ## 2026-09-22
 
 - **New Scenarios tab: how every playoff seed can still happen.** With two days of the
