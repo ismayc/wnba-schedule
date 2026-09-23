@@ -7,10 +7,9 @@ import {
   enumerateScenarios,
   favoritePicks,
   meanSeed,
-  picksFromMask,
+  combinations,
   rowPercents,
   rankScenario,
-  requirements,
 } from '../utils/scenarios.js'
 import { formatDate, formatTime } from '../utils/time.js'
 import { useFollow } from '../context/follow.jsx'
@@ -18,6 +17,8 @@ import { TEAM_BY_ABBR } from '../data/teams.js'
 import TeamLogo from './TeamLogo.jsx'
 
 const SEEDS = Array.from({ length: OUT }, (_, i) => i + 1)
+// A cell lists at most this many result combinations, then sums up the rest.
+const MAX_COMBOS = 6
 const seedName = (s) => (s === OUT ? 'out of the playoffs' : `the ${s} seed`)
 const winnerOf = (g, side) => (side === 'home' ? g.home : g.away)
 const loserOf = (g, side) => (side === 'home' ? g.away : g.home)
@@ -164,7 +165,7 @@ function Tiebreaks({ tally, of }) {
 }
 
 // What it takes for one team to land in one seed bucket.
-function Path({ result, selected, picks, onApply, tz }) {
+function Path({ result, selected, picks, onApply }) {
   const { abbr, seed } = selected
   const cell = result.teams[abbr][seed]
   const team = TEAM_BY_ABBR[abbr]
@@ -177,9 +178,14 @@ function Path({ result, selected, picks, onApply, tz }) {
     )
   }
   const locked = cell.count === result.total
-  const needs = requirements(cell, result.undecided)
-  const lockPicks = { ...picks }
-  for (const { game, side } of needs) lockPicks[game.id] = side
+  const combos = combinations(cell.masks, result.undecided)
+  const shown = combos.slice(0, MAX_COMBOS)
+  const hidden = combos.slice(MAX_COMBOS)
+  const apply = (results) => {
+    const next = { ...picks }
+    for (const { game, side } of results) next[game.id] = side
+    onApply(next)
+  }
   return (
     <div className="sc-path">
       <p className="sc-path-lead">
@@ -191,7 +197,7 @@ function Path({ result, selected, picks, onApply, tz }) {
         ) : cell.count ? (
           <>
             The {team.name} finish as {seedName(seed)} in <strong>{cell.count.toLocaleString()}</strong>{' '}
-            of {result.total.toLocaleString()} possible outcomes.
+            of {result.total.toLocaleString()} outcomes{combos.length > 1 ? ', when:' : ', when'}
           </>
         ) : (
           <>
@@ -200,6 +206,41 @@ function Path({ result, selected, picks, onApply, tz }) {
           </>
         )}
       </p>
+      {!locked && shown.length > 0 && (
+        <ul className="sc-combos">
+          {shown.map(({ results, count }) => (
+            <li key={results.map((r) => r.game.id + r.side).join()}>
+              <button
+                className="sc-combo"
+                aria-label={`Pick ${results.map(({ game, side }) => `${winnerOf(game, side)} over ${loserOf(game, side)}`).join(', ')}`}
+                onClick={() => apply(results)}
+              >
+                <span className="sc-combo-results">
+                  {results.map(({ game, side }, i) => (
+                    <span key={game.id}>
+                      {i > 0 && <span className="dim"> + </span>}
+                      <strong>{winnerOf(game, side)}</strong> beats {loserOf(game, side)}
+                    </span>
+                  ))}
+                </span>
+                <span className="sc-combo-count">{count.toLocaleString()}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {hidden.length > 0 && (
+        <p className="sc-path-sub">
+          + {hidden.length} more combinations ({hidden.reduce((n, c) => n + c.count, 0).toLocaleString()}{' '}
+          outcomes)
+        </p>
+      )}
+      {!locked && shown.length > 0 && (
+        <p className="sc-path-sub">
+          {combos.length > 1 ? 'Each line lists' : 'Those are'} the only results that matter; the
+          other games can go either way. Tap a line to pick it.
+        </p>
+      )}
       {cell.maybe > 0 && (
         <p className="sc-path-sub sc-margin">
           {cell.count
@@ -209,41 +250,7 @@ function Path({ result, selected, picks, onApply, tz }) {
           anywhere from 1 to {result.margin} points (this season's biggest win).
         </p>
       )}
-      {!locked &&
-        (needs.length ? (
-          <>
-            <p className="sc-path-sub">Every one of them needs:</p>
-            <ul className="sc-needs">
-              {needs.map(({ game, side }) => (
-                <li key={game.id}>
-                  <TeamLogo abbr={winnerOf(game, side)} size={18} />
-                  <strong>{winnerOf(game, side)}</strong> beats {loserOf(game, side)}
-                  <span className="dim"> · {formatDate(game.tip, tz)}</span>
-                </li>
-              ))}
-            </ul>
-            {needs.length < result.undecided.length && (
-              <p className="sc-path-sub">
-                Beyond that, it comes down to a combination of the other results.
-              </p>
-            )}
-          </>
-        ) : (
-          <p className="sc-path-sub">
-            No single result is required. It comes down to a combination of results.
-          </p>
-        ))}
       <Tiebreaks tally={cell.tiebreaks} of={possible} />
-      {!locked && (
-        <div className="sc-actions">
-          <button className="chip" disabled={!needs.length} onClick={() => onApply(lockPicks)}>
-            Pick the required results
-          </button>
-          <button className="chip" onClick={() => onApply(picksFromMask(result.undecided, cell.example, picks))}>
-            Show one way it happens
-          </button>
-        </div>
-      )}
     </div>
   )
 }
@@ -408,7 +415,6 @@ export default function ScenariosView({ games, tz, onPick }) {
                     selected={selected}
                     picks={picks}
                     onApply={(next) => (setPicks(next), setSelected(null))}
-                    tz={tz}
                   />
                 )}
                 <p className="legend">

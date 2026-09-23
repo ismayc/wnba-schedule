@@ -90,27 +90,35 @@ describe('ScenariosView — picking games', () => {
 })
 
 describe('ScenariosView — what a seed takes', () => {
-  it('lists the required results and applies them', async () => {
+  it('lists exactly the results behind a cell, and picks one on tap', async () => {
     mount(SMALL)
     await userEvent.click(cell('MIN the 1 seed'))
     expect(cell('MIN the 1 seed')).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByText(/in/, { selector: '.sc-path-lead' })).toHaveTextContent('2 of 4')
-    expect(screen.getByText('Every one of them needs:')).toBeInTheDocument()
-    expect(screen.getByText(/combination of the other results/)).toBeInTheDocument()
+    expect(screen.getByText(/in/, { selector: '.sc-path-lead' })).toHaveTextContent('2 of 4 outcomes, when')
+    // One line: MIN beats LV; g2 can go either way.
+    const line = screen.getByRole('button', { name: 'Pick MIN over LV' })
+    expect(line).toHaveTextContent('MIN beats LV')
+    expect(line).toHaveTextContent('2')
+    expect(screen.getByText(/Those are the only results that matter/)).toBeInTheDocument()
     expect(screen.getByText('Tiebreakers that decide it:')).toBeInTheDocument()
     expect(screen.getByText(/overall point differential: in 1 of 2/)).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Pick the required results' }))
+    await userEvent.click(line)
     expect(screen.getByText(/1 of 2 picked/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Minnesota Lynx win' })).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('says when no single result is required, and shows an example', async () => {
+  it('lists each separate way to a seed', async () => {
     mount(SMALL)
-    // LV is 2nd after (LV, GS) or (MIN, LV): both games go both ways.
+    // LV is 2nd after (LV beats MIN, GS beats LV) or (MIN beats LV, LV beats GS).
     await userEvent.click(cell('LV the 2 seed'))
-    expect(screen.getByText(/No single result is required/)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Pick the required results' })).toBeDisabled()
-    await userEvent.click(screen.getByRole('button', { name: 'Show one way it happens' }))
+    expect(screen.getByText(/in/, { selector: '.sc-path-lead' })).toHaveTextContent('2 of 4 outcomes, when:')
+    expect(screen.getByText(/Each line lists the only results that matter/)).toBeInTheDocument()
+    const ways = screen.getAllByRole('button', { name: /^Pick / })
+    expect(ways.map((b) => b.getAttribute('aria-label')).sort()).toEqual([
+      'Pick LV over MIN, GS over LV',
+      'Pick MIN over LV, LV over GS',
+    ])
+    await userEvent.click(ways[0])
     expect(screen.getByText(/2 of 2 picked/)).toBeInTheDocument()
     expect(screen.getByText('Seeding with your picks')).toBeInTheDocument()
   })
@@ -119,7 +127,7 @@ describe('ScenariosView — what a seed takes', () => {
     mount(SMALL)
     await userEvent.click(cell('TOR out of the playoffs'))
     expect(screen.getByText('Locked.')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Show one way it happens' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^Pick / })).toBeNull()
     await userEvent.click(cell('TOR out of the playoffs'))
     expect(screen.queryByText('Locked.')).toBeNull()
 
@@ -152,8 +160,8 @@ describe('ScenariosView — what a seed takes', () => {
     expect(cell('GS the 3 seed')).toHaveTextContent('25%*')
     await userEvent.click(cell('GS the 3 seed'))
     expect(screen.getByText(/In 1 more outcomes they could/)).toBeInTheDocument()
-    // The example prefers an outcome that holds at any margin.
-    await userEvent.click(screen.getByRole('button', { name: 'Show one way it happens' }))
+    // The listed results are the certain outcome; picking them settles GS at 3.
+    await userEvent.click(screen.getAllByRole('button', { name: /^Pick / })[0])
     expect(screen.getByText('Seeding with your picks')).toBeInTheDocument()
     expect(screen.queryByText(/could land anywhere in it/)).toBeNull()
   })
@@ -175,6 +183,20 @@ describe('ScenariosView — what a seed takes', () => {
       .filter((t) => /^\d+%$/.test(t))
       .reduce((n, t) => n + parseInt(t, 10), 0)
     expect(lv).toBe(100)
+  })
+
+  it('sums up combinations past the first six', async () => {
+    const opps = ['GS', 'LA', 'PHX', 'POR', 'SEA', 'DAL', 'TOR', 'ATL']
+    const beaten = ['CHI', 'CON', 'WSH', 'ATL', 'NY', 'IND', 'CHI', 'NY']
+    mount([
+      ...beaten.map((o, i) => game({ id: `m${i}`, home: 'MIN', away: o })),
+      game({ id: 'mL', home: 'MIN', away: 'CON', score: [70, 80] }),
+      ...opps.map((o, i) => open(`o${i}`, o, 'LV')),
+    ])
+    // LV's 5th place needs a particular number of wins: many separate ways.
+    await userEvent.click(cell('LV the 5 seed'))
+    expect(screen.getAllByRole('button', { name: /^Pick / })).toHaveLength(6)
+    expect(screen.getByText(/^\+ \d+ more combinations \(\d+ outcomes\)$/)).toBeInTheDocument()
   })
 })
 

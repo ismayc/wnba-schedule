@@ -6,6 +6,18 @@ data/source updates, deployment). Newest day on top.
 
 ## 2026-09-23
 
+- **A tapped Scenarios cell now lists exactly which results produce it.** Before, it
+  showed only the results every outcome in that cell shared. Now it splits the cell
+  into the fewest non-overlapping combinations it can, each with its outcome count, so
+  the counts add up to the cell's total. For example, the Liberty are the 8 seed in 80
+  of 128 outcomes: "ATL beats NY" (64), or "NY beats ATL + DAL beats SEA + WSH beats
+  CHI" (16). Games not listed can go either way. Tapping a line picks those results.
+  After six lines, the rest are summed up. This replaces the "Pick the required
+  results" and "Show one way it happens" buttons. `combinations` in
+  `src/utils/scenarios.js` splits on the most lopsided game, then merges pieces that
+  differ in one result. A test expands every piece back into outcomes on every cell of
+  a board, checking each outcome appears exactly once.
+
 - **The Regular Season table now agrees with Scenarios.** Its Finish column bounded each
   team by wins and losses only, so it still gave GS a finish of 1 to 3 after MIN
   clinched: GS's only way to 32 wins ties MIN, and MIN won the season series 3-1. The

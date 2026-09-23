@@ -4022,3 +4022,38 @@ button.drill-row:hover {
 .sc-matrix .badge {
   margin-left: 2px;
 }
+
+/* The exact result combinations behind a tapped cell: one tappable line each. */
+.sc-combos {
+  list-style: none;
+  margin: 4px 0 8px;
+  padding: 0;
+}
+
+.sc-combo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  margin: 3px 0;
+  padding: 6px 10px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sc-combo:hover {
+  border-color: var(--accent);
+}
+
+.sc-combo-count {
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

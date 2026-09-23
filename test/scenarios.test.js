@@ -8,7 +8,7 @@ import {
   rankScenario,
   enumerateScenarios,
   picksFromMask,
-  requirements,
+  combinations,
   meanSeed,
   maxMargin,
   rowPercents,
@@ -133,7 +133,8 @@ describe('enumerateScenarios', () => {
     }
     // MIN (1-0) is first exactly when it beats LV; then g2 can go either way.
     expect(r.teams.MIN[1].count).toBe(2)
-    expect(r.teams.MIN[1].homeWins).toEqual([2, 1])
+    // Bit 0 is g1 (MIN home): every MIN-first outcome has it set.
+    expect(r.teams.MIN[1].masks.every((m) => m & 1)).toBe(true)
     // 15 teams, 8 seeds: the rest pile into OUT.
     expect(r.teams.TOR[OUT].count).toBe(4)
   })
@@ -153,8 +154,8 @@ describe('enumerateScenarios', () => {
     expect([m.teams.MIN[1].count, m.teams.MIN[1].maybe]).toEqual([0, 2])
     expect([m.teams.MIN[2].count, m.teams.MIN[2].maybe]).toEqual([0, 2])
     expect(m.teams.MIN[1].tiebreaks).toEqual({ 4: 2 })
-    // A margin-dependent outcome still counts toward what the seed requires.
-    expect(requirements(m.teams.LV[1], m.undecided).map(({ side }) => side)).toEqual(['home'])
+    // Only certain outcomes carry masks; a margin-dependent one is counted apart.
+    expect(m.teams.MIN[1].masks).toEqual([])
     expect(r.teams.MIN[1].maybe).toBe(0)
   })
 
@@ -167,36 +168,62 @@ describe('enumerateScenarios', () => {
   })
 })
 
-describe('picksFromMask, requirements, meanSeed', () => {
+describe('picksFromMask, combinations, meanSeed', () => {
   const games = [
     game({ home: 'MIN', away: 'SEA' }),
     open({ id: 'g1', home: 'MIN', away: 'LV' }),
     open({ id: 'g2', home: 'GS', away: 'LV', tip: '2026-09-21T00:00:00.000Z' }),
   ]
   const r = enumerateScenarios(games)
+  const flat = (cs) => cs.map(({ results, count }) => [results.map(({ game: g, side }) => `${g.id}:${side}`), count])
 
   it('turns a mask back into picks', () => {
     expect(picksFromMask(r.undecided, 0b01, { keep: 'home' })).toEqual({ keep: 'home', g1: 'home', g2: 'away' })
     expect(picksFromMask(r.undecided, 0b10)).toEqual({ g1: 'away', g2: 'home' })
   })
 
-  it('lists the results every scenario in a bucket shares', () => {
+  it('names exactly the results behind a cell', () => {
     // LV finishes first only by winning both games.
-    const lv1 = requirements(r.teams.LV[1], r.undecided)
-    expect(lv1.map(({ game: g, side }) => [g.id, side])).toEqual([
-      ['g1', 'away'],
-      ['g2', 'away'],
+    expect(flat(combinations(r.teams.LV[1].masks, r.undecided))).toEqual([[['g1:away', 'g2:away'], 1]])
+    // MIN is first by beating LV, whatever happens in g2.
+    expect(flat(combinations(r.teams.MIN[1].masks, r.undecided))).toEqual([[['g1:home'], 2]])
+    // LV is second two different ways, and neither result alone decides it.
+    expect(flat(combinations(r.teams.LV[2].masks, r.undecided))).toEqual([
+      [['g1:home', 'g2:away'], 1],
+      [['g1:away', 'g2:home'], 1],
     ])
-    // MIN is first only by beating LV; g2 is free (it goes both ways in those outcomes).
-    const min = requirements(r.teams.MIN[1], r.undecided)
-    expect(min.map(({ game: g, side }) => [g.id, side])).toEqual([['g1', 'home']])
-    expect(requirements(r.teams.TOR[1], r.undecided)).toEqual([])
+    expect(combinations([], r.undecided)).toEqual([])
   })
 
-  it('reproduces a bucket from its example mask', () => {
-    const cell = r.teams.LV[1]
-    const { rows } = rankScenario(games, picksFromMask(r.undecided, cell.example))
-    expect(rows[0].abbr).toBe('LV')
+  it('merges pieces that differ only in who wins one game', () => {
+    const three = [0, 1, 2].map((i) => open({ id: `m${i}` }))
+    // Bit 1 set, the rest free, except the split would first peel off bit 0 or 2.
+    const masks = [0b010, 0b011, 0b110, 0b111]
+    expect(flat(combinations(masks, three))).toEqual([[['m1:home'], 4]])
+  })
+
+  it('is exact and disjoint on every cell of a real-sized board', () => {
+    const teams = ['MIN', 'LV', 'GS', 'SEA', 'LA', 'PHX', 'DAL', 'POR']
+    const board = [game({ home: 'MIN', away: 'SEA' }), game({ home: 'LV', away: 'GS', score: [80, 85] })]
+    for (let i = 0; i < 7; i++)
+      board.push(open({ id: `b${i}`, home: teams[i], away: teams[(i * 3 + 1) % 8], tip: `2026-09-2${i}T00:00:00.000Z` }))
+    const e = enumerateScenarios(board)
+    let cells = 0
+    for (const t of Object.values(e.teams))
+      for (const c of Object.values(t)) {
+        const cs = combinations(c.masks, e.undecided)
+        // Expand every piece back into scenarios: each exactly once, and nothing else.
+        const got = []
+        for (const { results } of cs) {
+          const fixed = Object.fromEntries(results.map(({ game: g, side }) => [e.undecided.indexOf(g), side]))
+          for (let m = 0; m < e.total; m++)
+            if (Object.entries(fixed).every(([i, side]) => !!(m & (1 << i)) === (side === 'home'))) got.push(m)
+        }
+        expect(got.sort((a, b) => a - b)).toEqual([...c.masks].sort((a, b) => a - b))
+        expect(cs.reduce((n, x) => n + x.count, 0)).toBe(c.count)
+        if (c.count) cells++
+      }
+    expect(cells).toBeGreaterThan(20)
   })
 
   it('averages the seed bucket', () => {

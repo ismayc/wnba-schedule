@@ -198,12 +198,9 @@ const bucket = (pos) => Math.min(pos, OUT)
  * per seed bucket (1..PLAYOFF_SPOTS and OUT):
  *   count      — scenarios that land the team in that bucket whatever the margins
  *   maybe      — scenarios where it lands there only for some margins
- *   homeWins   — per undecided game, how many of the count + maybe scenarios the home
- *                team won (what the bucket requires)
  *   tiebreaks  — { step: n }: how many of those scenarios a tiebreak step helped decide
  *                the team's place
- *   example    — a scenario (bitmask over `undecided`) that lands the team there,
- *                preferring one that does so whatever the margins
+ *   masks      — every scenario (bitmask) that lands it there whatever the margins
  * With more than `max` undecided games nothing is enumerated and `tooMany` is set.
  */
 export function enumerateScenarios(games, picks = {}, { max = MAX_OPEN_GAMES } = {}) {
@@ -221,10 +218,8 @@ export function enumerateScenarios(games, picks = {}, { max = MAX_OPEN_GAMES } =
       result.teams[abbr][s] = {
         count: 0,
         maybe: 0,
-        homeWins: undecided.map(() => 0),
         tiebreaks: {},
-        example: null,
-        sure: false,
+        masks: [],
       }
     }
   }
@@ -240,14 +235,11 @@ export function enumerateScenarios(games, picks = {}, { max = MAX_OPEN_GAMES } =
       const sure = bucket(lo) === bucket(hi)
       for (let s = bucket(lo); s <= bucket(hi); s++) {
         const cell = result.teams[abbr][s]
-        if (sure) cell.count++
-        else cell.maybe++
+        if (sure) {
+          cell.count++
+          cell.masks.push(mask)
+        } else cell.maybe++
         for (const step of steps) cell.tiebreaks[step] = (cell.tiebreaks[step] ?? 0) + 1
-        if (cell.example === null || (sure && !cell.sure)) {
-          cell.example = mask
-          cell.sure = sure
-        }
-        for (let j = 0; j < n; j++) if (mask & (1 << j)) cell.homeWins[j]++
       }
     }
   }
@@ -259,19 +251,6 @@ export function enumerateScenarios(games, picks = {}, { max = MAX_OPEN_GAMES } =
 export function picksFromMask(undecided, mask, picks = {}) {
   const out = { ...picks }
   undecided.forEach((g, i) => (out[g.id] = mask & (1 << i) ? 'home' : 'away'))
-  return out
-}
-
-// What a seed bucket demands: the undecided games whose result is the same in every
-// scenario that lands the team there. Returns [{ game, side }] in schedule order.
-export function requirements(cell, undecided) {
-  const possible = cell.count + cell.maybe
-  if (!possible) return []
-  const out = []
-  undecided.forEach((game, i) => {
-    if (cell.homeWins[i] === possible) out.push({ game, side: 'home' })
-    else if (cell.homeWins[i] === 0) out.push({ game, side: 'away' })
-  })
   return out
 }
 
@@ -359,4 +338,61 @@ export function playoffRaceExact(games) {
       magic: clinched ? null : row.magic,
     }
   })
+}
+
+// The exact set of results behind a cell, written as few non-overlapping combinations
+// as possible. `masks` are the cell's scenarios (bit i set = home wins undecided game
+// i). The set is split one game at a time, always on the game that divides it most
+// unevenly, until each piece is "these results, anything in the other games"; then any
+// two pieces that differ only in who wins one game are merged back into one. The
+// pieces stay disjoint, so their counts add up to the cell's count exactly. Returns
+// [{ results: [{ game, side }], count }], largest first.
+export function combinations(masks, undecided) {
+  const out = []
+  const split = (set, fixed, free) => {
+    if (!set.length) return
+    if (set.length === 2 ** free.length) {
+      out.push({ fixed, count: set.length })
+      return
+    }
+    // The most lopsided game: a required result (one side empty) comes out first.
+    let best = free[0]
+    let bestGap = -1
+    for (const i of free) {
+      const home = set.filter((m) => m & (1 << i)).length
+      const gap = Math.abs(2 * home - set.length)
+      if (gap > bestGap) [best, bestGap] = [i, gap]
+    }
+    const rest = free.filter((i) => i !== best)
+    split(set.filter((m) => m & (1 << best)), { ...fixed, [best]: 'home' }, rest)
+    split(set.filter((m) => !(m & (1 << best))), { ...fixed, [best]: 'away' }, rest)
+  }
+  split(masks, {}, undecided.map((_, i) => i))
+  // Merge: two pieces fixing the same games, with the same winners in all but one.
+  const same = (fa, fb, skip) =>
+    Object.keys(fa).every((i) => i === skip || fa[i] === fb[i])
+  for (let merged = true; merged; ) {
+    merged = false
+    for (let a = 0; a < out.length && !merged; a++)
+      for (let b = a + 1; b < out.length && !merged; b++) {
+        const fa = out[a].fixed
+        const fb = out[b].fixed
+        if (Object.keys(fa).length !== Object.keys(fb).length) continue
+        const i = Object.keys(fa).find((k) => k in fb && fa[k] !== fb[k])
+        if (i === undefined || !Object.keys(fa).every((k) => k in fb) || !same(fa, fb, i)) continue
+        const { [i]: _, ...fixed } = fa
+        out[a] = { fixed, count: out[a].count + out[b].count }
+        out.splice(b, 1)
+        merged = true
+      }
+  }
+  return out
+    .map(({ fixed, count }) => ({
+      count,
+      results: Object.keys(fixed)
+        .map(Number)
+        .sort((a, b) => a - b)
+        .map((i) => ({ game: undecided[i], side: fixed[i] })),
+    }))
+    .sort((a, b) => b.count - a.count)
 }
