@@ -4,6 +4,16 @@ A dated changelog for The WNBA Schedule. Each heading is a calendar
 day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-09-22 (latest)
+
+- **Every row of the Scenarios grid now adds up to 100%.** Each cell was rounded on its
+  own, so ATL showed 13 + 75 + 13 = 101%, and NY and DAL were at 101% too. The counts
+  underneath were right; only the display rounding drifted. A row now uses the
+  largest-remainder method: each cell takes its floor, and the missing points go to the
+  largest fractional parts (the bigger count, then the better seed, breaks a tie). ATL's
+  two 12.5% seeds now show 13% and 12%. A share that rounds to 0 still reads "<1%". Any
+  outcome marked * is left out, because its seed depends on the final margins.
+
 ## 2026-09-22 (later)
 
 - **The Scenarios grid draws the playoff line.** A dashed rule runs across the grid

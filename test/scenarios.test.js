@@ -11,6 +11,7 @@ import {
   requirements,
   meanSeed,
   maxMargin,
+  rowPercents,
 } from '../src/utils/scenarios.js'
 import { computeStandings, rankTable, seedings, PLAYOFF_SPOTS } from '../src/utils/standings.js'
 
@@ -203,6 +204,48 @@ describe('picksFromMask, requirements, meanSeed', () => {
   it('names every tiebreak step', () => {
     expect(Object.keys(TIEBREAK_STEPS)).toEqual(['1', '2', '3', '4', '5'])
     expect(OUT).toBe(PLAYOFF_SPOTS + 1)
+  })
+})
+
+describe('rowPercents', () => {
+  const team = (counts, maybes = {}) =>
+    Object.fromEntries(
+      Array.from({ length: OUT }, (_, i) => i + 1).map((s) => [s, { count: counts[s] ?? 0, maybe: maybes[s] ?? 0 }])
+    )
+  const sum = (p) => Object.values(p).reduce((a, b) => a + b, 0)
+
+  it('adds up to exactly 100 where rounding each cell would not', () => {
+    // 512 + 3072 + 512 of 4096: 12.5 + 75 + 12.5 rounds to 13 + 75 + 13 = 101.
+    const p = rowPercents(team({ 3: 512, 4: 3072, 5: 512 }), 4096)
+    expect(sum(p)).toBe(100)
+    // An exact tie on the remainder goes to the better seed.
+    expect(p).toEqual({ 3: 13, 4: 75, 5: 12 })
+    // Thirds would round to 33 + 33 + 33 = 99.
+    expect(sum(rowPercents(team({ 1: 1, 2: 1, 3: 1 }), 3))).toBe(100)
+  })
+
+  it('gives a leftover point to the bigger count before the better seed', () => {
+    // 2/7 = 28.57 and 5/7 = 71.43: floors 28 + 71, one point short, 28's remainder wins.
+    expect(rowPercents(team({ 1: 2, 2: 5 }), 7)).toEqual({ 1: 29, 2: 71 })
+  })
+
+  it('leaves margin-dependent outcomes out, so such a row can sum below 100', () => {
+    const p = rowPercents(team({ 1: 2 }, { 1: 1, 2: 1 }), 4)
+    expect(p).toEqual({ 1: 50 })
+  })
+
+  it('matches every row of the grid on a random board', () => {
+    const games = [
+      game({ home: 'MIN', away: 'SEA' }),
+      open({ id: 'a', home: 'MIN', away: 'LV' }),
+      open({ id: 'b', home: 'GS', away: 'LV', tip: '2026-09-21T00:00:00.000Z' }),
+      open({ id: 'c', home: 'LA', away: 'PHX', tip: '2026-09-22T00:00:00.000Z' }),
+    ]
+    const r = enumerateScenarios(games)
+    // Rows whose seeds all hold at any margin sum to 100 exactly.
+    const certain = Object.values(r.teams).filter((t) => Object.values(t).every((c) => !c.maybe))
+    expect(certain.length).toBeGreaterThan(5)
+    for (const t of certain) expect(sum(rowPercents(t, r.total))).toBe(100)
   })
 })
 

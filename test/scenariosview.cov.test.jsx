@@ -158,16 +158,23 @@ describe('ScenariosView — what a seed takes', () => {
     expect(screen.queryByText(/could land anywhere in it/)).toBeNull()
   })
 
-  it('shows a share under 1% as <1%', () => {
-    // LV must win all seven of its games to pass a 7-1 MIN: 1 of 128 outcomes.
-    const opps = ['GS', 'LA', 'PHX', 'POR', 'SEA', 'DAL', 'TOR']
-    const beaten = ['CHI', 'CON', 'WSH', 'ATL', 'NY', 'IND', 'CHI']
+  it('shows a share that rounds to 0% as <1%, and every row sums to 100%', () => {
+    // LV must win all eight of its games to pass an 8-1 MIN: 1 of 256 outcomes, which
+    // the row's largest-remainder rounding leaves at 0.
+    const opps = ['GS', 'LA', 'PHX', 'POR', 'SEA', 'DAL', 'TOR', 'ATL']
+    const beaten = ['CHI', 'CON', 'WSH', 'ATL', 'NY', 'IND', 'CHI', 'NY']
     mount([
       ...beaten.map((o, i) => game({ id: `m${i}`, home: 'MIN', away: o })),
       game({ id: 'mL', home: 'MIN', away: 'CON', score: [70, 80] }),
       ...opps.map((o, i) => open(`o${i}`, o, 'LV')),
     ])
     expect(cell('LV the 1 seed')).toHaveTextContent('<1%')
+    const lv = within(cell('LV the 1 seed').closest('tr'))
+      .getAllByRole('button')
+      .map((b) => b.textContent)
+      .filter((t) => /^\d+%$/.test(t))
+      .reduce((n, t) => n + parseInt(t, 10), 0)
+    expect(lv).toBe(100)
   })
 })
 

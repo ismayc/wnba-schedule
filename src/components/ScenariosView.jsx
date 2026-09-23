@@ -8,6 +8,7 @@ import {
   favoritePicks,
   meanSeed,
   picksFromMask,
+  rowPercents,
   rankScenario,
   requirements,
 } from '../utils/scenarios.js'
@@ -20,10 +21,8 @@ const SEEDS = Array.from({ length: OUT }, (_, i) => i + 1)
 const seedName = (s) => (s === OUT ? 'out of the playoffs' : `the ${s} seed`)
 const winnerOf = (g, side) => (side === 'home' ? g.home : g.away)
 const loserOf = (g, side) => (side === 'home' ? g.away : g.home)
-const share = (count, total) => {
-  const p = (100 * count) / total
-  return p < 1 ? '<1%' : `${Math.round(p)}%`
-}
+// A share that rounds to 0% is still possible, so it reads "<1%" rather than nothing.
+const share = (pct) => (pct ? `${pct}%` : '<1%')
 
 // One open game: tap a team to pick it, tap it again to leave the game open.
 function GameRow({ game, pick, onPick, tz }) {
@@ -80,6 +79,7 @@ function Matrix({ result, selected, onSelect, onPickTeam }) {
             // With the current picks: out in every outcome, or in the top 8 in every one.
             const eliminated = out.count === result.total
             const clinched = !out.count && !out.maybe
+            const percents = rowPercents(result.teams[abbr], result.total)
             return (
               <Fragment key={abbr}>
                 <tr className={`${isFollowed(abbr) ? 'row-followed' : ''} ${eliminated ? 'row-elim' : ''}`}>
@@ -109,7 +109,7 @@ function Matrix({ result, selected, onSelect, onPickTeam }) {
                     const locked = count === result.total
                     // A lock on "Out" is elimination, not an achievement: an ✕, not a ✓.
                     const mark = s === OUT ? '✕' : '✓'
-                    const text = locked ? mark : count ? share(count, result.total) : ''
+                    const text = locked ? mark : count ? share(percents[s]) : ''
                     return (
                       <td key={s} className={`num sc-cell-td ${s === OUT ? 'sc-out-col' : ''}`}>
                         <button
@@ -413,11 +413,13 @@ export default function ScenariosView({ games, tz, onPick }) {
                 )}
                 <p className="legend">
                   <span className="legend-item">
-                    Each cell is the share of the {result.total.toLocaleString()} ways the open games
-                    can go, not a win probability. ✓ means the seed is locked, and ✕ under Out means
-                    eliminated. * means the seed is also possible in some outcomes depending on the
-                    final margins, since point differential is a tiebreaker. Teams are ordered by
-                    their average finish, so the playoff line falls after the eight best.
+                    Each cell is the share of the {result.total.toLocaleString()} ways the open
+                    games can go, not a win probability. Each row adds up to 100%, not counting
+                    outcomes marked *, whose seed depends on margins. ✓ means the seed is locked,
+                    and ✕ under Out means eliminated. * means the seed is also possible in some
+                    outcomes depending on the final margins, since point differential is a
+                    tiebreaker. Teams are ordered by their average finish, so the playoff line falls
+                    after the eight best.
                   </span>
                 </p>
               </div>

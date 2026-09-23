@@ -282,3 +282,30 @@ export function meanSeed(team) {
   }
   return sum / total
 }
+
+// Whole-number percentages for one team's row that add up exactly. Rounding each cell on
+// its own can leave a row at 99% or 101% (13 + 75 + 13 = 101). This uses the
+// largest-remainder method instead: every cell gets its floor, and the points still
+// missing go to the cells with the biggest fractional parts (the bigger count, then the
+// better seed, breaks a tie). The row sums to 100 unless some outcomes land only
+// depending on margins, whose seeds are uncertain and are left out of the percentages.
+// Returns { [seed]: percent } for the buckets with a certain count.
+export function rowPercents(team, total) {
+  const cells = []
+  let certain = 0
+  for (let s = 1; s <= OUT; s++) {
+    const { count } = team[s]
+    if (!count) continue
+    certain += count
+    const exact = (100 * count) / total
+    cells.push({ s, count, pct: Math.floor(exact), rest: exact - Math.floor(exact) })
+  }
+  let missing = Math.round((100 * certain) / total) - cells.reduce((n, c) => n + c.pct, 0)
+  const byRest = [...cells].sort((a, b) => b.rest - a.rest || b.count - a.count || a.s - b.s)
+  for (const c of byRest) {
+    if (missing <= 0) break
+    c.pct++
+    missing--
+  }
+  return Object.fromEntries(cells.map((c) => [c.s, c.pct]))
+}
