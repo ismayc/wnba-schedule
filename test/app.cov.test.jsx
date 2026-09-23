@@ -275,6 +275,14 @@ describe('the other views render', () => {
     expect(document.querySelector('main')).toBeInTheDocument()
   })
 
+  it('renders the Scenarios view from a shared link', async () => {
+    window.history.replaceState(null, '', '/?view=scenarios')
+    await mount()
+    expect(screen.getByRole('button', { name: /🔀 Scenarios/ })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('heading', { name: 'Scenarios' })).toBeInTheDocument()
+    expect(window.location.search).toBe('?view=scenarios')
+  })
+
   it('renders the Playoffs bracket', async () => {
     window.history.replaceState(null, '', '/?view=playoffs')
     await mount()

@@ -65,6 +65,12 @@ describe('isValidZone', () => {
   })
 })
 
+describe('the scenarios view', () => {
+  it('survives a round trip through the URL', () => {
+    expect(readState('?view=scenarios').view).toBe('scenarios')
+  })
+})
+
 describe('the history view and its season', () => {
   it('accepts the history view', () => {
     expect(readState('?view=history').view).toBe('history')

@@ -4,6 +4,32 @@ A dated changelog for The WNBA Schedule. Each heading is a calendar
 day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-09-22
+
+- **New Scenarios tab: how every playoff seed can still happen.** With two days of the
+  regular season left, the tab lists every open game as a pair of toggles (tap a team to
+  pick it, tap again to leave the game open). Every combination of the open games is
+  played out under the same official tiebreak chain the Regular Season table uses, and a
+  grid shows the share of outcomes that lands each team in each seed, 1 through 8 or
+  out. Tapping a cell names the results every one of those outcomes needs ("NY beats
+  ATL"), with buttons to pick those results or to jump to one complete season that gets
+  there. Once every game is picked, the tab shows the exact seeding, how each tie was
+  broken, and the first-round pairings. "Favorites win" and "Clear picks" are one tap
+  each. The grid reports a share of possible outcomes, not a win probability.
+- **Picked games have no score, and the tab says so.** Steps 3 and 4 of the tiebreak
+  chain are point differential, so a picked game counts as a one-point win. Any order
+  that a picked margin decides is flagged as one the real margins could change, instead
+  of being presented as settled.
+- **Engine.** `src/utils/scenarios.js` enumerates up to 13 open games (8,192 seasons,
+  about a third of a second). With more open games the tab asks for a few picks first.
+  It ranks each hypothetical table with the new `rankTable` in `standings.js`, which
+  `seedings` now uses too. `resolveTiedGroup` takes an optional trace of which step
+  broke each tie. The real standings are unchanged, and the existing standings tests
+  pass as before.
+- Tests: `test/scenarios.test.js` (engine), `test/scenariosview.cov.test.jsx` (view),
+  plus the URL round trip, an App mount, and the live smoke render of the new tab. The
+  gate stays at 100% on all four measures.
+
 ## 2026-09-18 (later)
 
 - **Player names in the Game leaders block are no longer cut on a phone.** The two teams

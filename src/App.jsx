@@ -19,6 +19,7 @@ import { useServices } from './context/services.jsx'
 import ScheduleView from './components/ScheduleView.jsx'
 import NextGame from './components/NextGame.jsx'
 import StandingsView from './components/StandingsView.jsx'
+import ScenariosView from './components/ScenariosView.jsx'
 import StatsView from './components/StatsView.jsx'
 import HistoryView from './components/HistoryView.jsx'
 import { HISTORY } from './data/history.js'
@@ -40,6 +41,7 @@ const VIEWS = [
   { id: 'schedule', label: '📋 Schedule' },
   { id: 'week', label: '📆 Week' },
   { id: 'standings', label: '📊 Regular Season' },
+  { id: 'scenarios', label: '🔀 Scenarios' },
   { id: 'playoffs', label: '🏆 Playoffs' },
   { id: 'radial', label: '🎯 Radial' },
   { id: 'stats', label: '📈 Stats' },
@@ -674,6 +676,7 @@ export default function App() {
           <WeekView games={scheduleGames} tz={tz} hideScores={hideScores} onOpen={setDetail} />
         )}
         {view === 'standings' && <StandingsView games={games} race={race} onPick={pickTeam} />}
+        {view === 'scenarios' && <ScenariosView games={games} tz={tz} onPick={pickTeam} />}
         {view === 'playoffs' && (
           <Bracket games={games} tz={tz} onPick={pickTeam} onOpen={setDetail} />
         )}

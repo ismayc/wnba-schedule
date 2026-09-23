@@ -23,6 +23,7 @@ snapshot of the season.
 | 📋 **Schedule** | Every game grouped by the calendar day *you* see, opening on today — previous days are hidden behind a toggle. Filter by team or by the teams you follow. |
 | 📆 **Week** | A Sun–Sat grid you can page through, collapsing to a two-column agenda on a phone. |
 | 📊 **Regular Season** | League seeding with the playoff cutline, or conference tables. W/L, PCT, GB, home/road splits, last-10, streak, net rating. |
+| 🔀 **Scenarios** | Pick winners for the games left and every combination of the rest is played out under the official tiebreakers. A grid shows each seed every team can still reach (as a share of the possible outcomes). Tap a cell to see the exact results that seed requires, lock them in, or jump to one full season that gets there. Once every game is picked, it shows the exact seeding, how each tie broke, and the first-round pairings. |
 | 🏆 **Playoffs** | The bracket, where each slot is a best-of series. Projected from current standings until the real field is set. |
 | 🎯 **Radial** | The same bracket as concentric rings — seeds outside, the title in the middle. |
 | 📈 **Stats** | Season totals, league leaders across 8 categories, scoring margin, and the playoff race with magic numbers. |

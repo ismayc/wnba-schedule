@@ -51,6 +51,7 @@ describe('every view renders the refreshed data', () => {
     ['schedule', /Schedule/],
     ['week', /Week/],
     ['standings', /Regular Season/],
+    ['scenarios', /Scenarios/],
     ['playoffs', /Playoffs/],
     ['radial', /Radial/],
     ['stats', /Stats/],
