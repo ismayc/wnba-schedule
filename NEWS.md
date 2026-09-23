@@ -6,6 +6,12 @@ data/source updates, deployment). Newest day on top.
 
 ## 2026-09-23
 
+- **Tapping a Scenarios percentage now opens its breakdown right under that team's
+  row.** The breakdown used to render below the whole grid. On a phone that was off
+  screen, so a tap looked like it did nothing (on an iPhone 13 the panel started 37px
+  below the screen for NY, the 8th row, and further down for higher rows). It now opens
+  as a row directly beneath the tapped team.
+
 - **Ties of three or more teams are now handled correctly all season.** The
   win-count method runs whenever more than 12 games are left. It had two flaws, and
   both went wrong about one time in five on random test boards:

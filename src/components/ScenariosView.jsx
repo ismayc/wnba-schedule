@@ -56,7 +56,9 @@ function GameRow({ game, pick, onPick, tz }) {
   )
 }
 
-function Matrix({ result, selected, onSelect, onPickTeam }) {
+// `detail` (what a tapped cell takes) opens as a row right under that team's row, so it
+// appears where the tap was. Below the grid it sat off screen on a phone.
+function Matrix({ result, selected, onSelect, onPickTeam, detail }) {
   const { isFollowed } = useFollow()
   const order = Object.keys(result.teams).sort(
     (a, b) => meanSeed(result.teams[a]) - meanSeed(result.teams[b]) || a.localeCompare(b)
@@ -130,6 +132,11 @@ function Matrix({ result, selected, onSelect, onPickTeam }) {
                     )
                   })}
                 </tr>
+                {selected?.abbr === abbr && (
+                  <tr className="sc-detail-row">
+                    <td colSpan={SEEDS.length + 1}>{detail}</td>
+                  </tr>
+                )}
                 {row + 1 === PLAYOFF_SPOTS && (
                   <tr className="cutline">
                     <td colSpan={SEEDS.length + 1}>
@@ -408,15 +415,22 @@ export default function ScenariosView({ games, tz, onPick }) {
                 <h3 className="card-title">
                   Where every team can finish · {result.total.toLocaleString()} outcomes
                 </h3>
-                <Matrix result={result} selected={selected} onSelect={setSelected} onPickTeam={onPick} />
-                {selected && (
-                  <Path
-                    result={result}
-                    selected={selected}
-                    picks={picks}
-                    onApply={(next) => (setPicks(next), setSelected(null))}
-                  />
-                )}
+                <Matrix
+                  result={result}
+                  selected={selected}
+                  onSelect={setSelected}
+                  onPickTeam={onPick}
+                  detail={
+                    selected && (
+                      <Path
+                        result={result}
+                        selected={selected}
+                        picks={picks}
+                        onApply={(next) => (setPicks(next), setSelected(null))}
+                      />
+                    )
+                  }
+                />
                 <p className="legend">
                   <span className="legend-item">
                     Each cell is the share of the {result.total.toLocaleString()} ways the open

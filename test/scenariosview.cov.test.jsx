@@ -94,6 +94,10 @@ describe('ScenariosView — what a seed takes', () => {
     mount(SMALL)
     await userEvent.click(cell('MIN the 1 seed'))
     expect(cell('MIN the 1 seed')).toHaveAttribute('aria-pressed', 'true')
+    // It opens as the row right under MIN's, where the tap was, not below the grid.
+    const minRow = cell('MIN the 1 seed').closest('tr')
+    expect(minRow.nextElementSibling).toHaveClass('sc-detail-row')
+    expect(minRow.nextElementSibling).toHaveTextContent('MIN beats LV')
     expect(screen.getByText(/in/, { selector: '.sc-path-lead' })).toHaveTextContent('2 of 4 outcomes, when')
     // One line: MIN beats LV; g2 can go either way.
     const line = screen.getByRole('button', { name: 'Pick MIN over LV' })

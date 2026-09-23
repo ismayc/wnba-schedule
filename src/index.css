@@ -4057,3 +4057,17 @@ button.drill-row:hover {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+
+/* The tapped cell's breakdown, opened inline under its team's row. */
+.sc-matrix .sc-detail-row td {
+  padding: 8px 6px 10px;
+  white-space: normal;
+  background: var(--bg-soft);
+  border-bottom: 2px solid var(--accent);
+}
+
+.sc-detail-row .sc-path {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
