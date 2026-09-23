@@ -82,6 +82,8 @@ describe('ScenariosView — what a seed takes', () => {
     expect(screen.getByText(/in/, { selector: '.sc-path-lead' })).toHaveTextContent('2 of 4')
     expect(screen.getByText('Every one of them needs:')).toBeInTheDocument()
     expect(screen.getByText(/combination of the other results/)).toBeInTheDocument()
+    expect(screen.getByText('Tiebreakers that decide it:')).toBeInTheDocument()
+    expect(screen.getByText(/overall point differential: in 1 of 2/)).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Pick the required results' }))
     expect(screen.getByText(/1 of 2 picked/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Minnesota Lynx win' })).toHaveAttribute('aria-pressed', 'true')
@@ -111,12 +113,34 @@ describe('ScenariosView — what a seed takes', () => {
     expect(screen.getByText(/can no longer finish as the 1 seed/)).toBeInTheDocument()
   })
 
-  it('warns when point differential decides the order', async () => {
-    // MIN beat SEA for real; LV/GS is open. Whoever wins it ties MIN at 1-0 without
-    // having met MIN, so step 4 settles the tie on a hypothetical margin.
+  it('shows a seed reachable only on point differential', async () => {
+    // MIN beat SEA by 10 for real; LV/GS is open. Whoever wins it ties MIN at 1-0
+    // without having met MIN, so step 4 (overall differential) decides: +10 against
+    // a picked margin of 1 to 10. Either order is possible.
     mount([game({ home: 'MIN', away: 'SEA' }), open('g', 'GS', 'LV')])
-    await userEvent.click(cell('LV the 2 seed'))
-    expect(screen.getByText(/comes down to point differential/)).toBeInTheDocument()
+    expect(cell('MIN the 1 seed')).toHaveTextContent(/^\*$/)
+    expect(cell('MIN the 1 seed')).toHaveAccessibleName(/0 of 2 outcomes, 2 more depending on margins/)
+    await userEvent.click(cell('MIN the 1 seed'))
+    expect(screen.getByText(/only on point differential/)).toBeInTheDocument()
+    expect(screen.getByText(/That depends on the final margins/)).toHaveTextContent('1 to 10 points')
+    expect(screen.getByText(/overall point differential: in 2 of 2/)).toBeInTheDocument()
+  })
+
+  it('separates certain outcomes from margin-dependent ones in the same seed', async () => {
+    mount([
+      game({ id: 'x0', home: 'MIN', away: 'SEA', score: [85, 80] }),
+      game({ id: 'x1', home: 'LV', away: 'GS', score: [83, 80] }),
+      open('x2', 'SEA', 'GS'),
+      open('x3', 'LV', 'MIN', { tip: '2026-09-21T23:00:00.000Z' }),
+    ])
+    expect(cell('GS the 3 seed')).toHaveAccessibleName(/1 of 4 outcomes, 1 more depending on margins/)
+    expect(cell('GS the 3 seed')).toHaveTextContent('25%*')
+    await userEvent.click(cell('GS the 3 seed'))
+    expect(screen.getByText(/In 1 more outcomes they could/)).toBeInTheDocument()
+    // The example prefers an outcome that holds at any margin.
+    await userEvent.click(screen.getByRole('button', { name: 'Show one way it happens' }))
+    expect(screen.getByText('Seeding with your picks')).toBeInTheDocument()
+    expect(screen.queryByText(/could land anywhere in it/)).toBeNull()
   })
 
   it('shows a share under 1% as <1%', () => {
@@ -140,7 +164,7 @@ describe('ScenariosView — edge states', () => {
       ['PHX', 'POR'], ['DAL', 'ATL'], ['NY', 'IND'], ['CHI', 'CON'],
     ]
     mount(pairs.map(([a, h], i) => open(`t${i}`, a, h)))
-    expect(screen.getByText(/14 games are still open/)).toHaveTextContent('Pick 1 more')
+    expect(screen.getByText(/14 games are still open/)).toHaveTextContent('Pick 2 more')
     await userEvent.click(screen.getByRole('button', { name: 'Favorites win' }))
     expect(screen.getByText('Seeding with your picks')).toBeInTheDocument()
   })
@@ -159,7 +183,7 @@ describe('ScenariosView — edge states', () => {
     expect(screen.getByText('Final seeding')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Favorites win' })).toBeNull()
     expect(screen.getByText(/head-to-head point differential/)).toBeInTheDocument()
-    expect(screen.queryByText(/real margins could change/)).toBeNull()
+    expect(screen.queryByText(/could land anywhere in it/)).toBeNull()
     expect(screen.getByText('First round:').nextSibling.children).toHaveLength(4)
     await userEvent.click(screen.getAllByRole('button', { name: /Las Vegas/ })[0])
     expect(onPick).toHaveBeenCalledWith('LV')
@@ -178,6 +202,9 @@ describe('ScenariosView — edge states', () => {
   it('flags a fully picked order that hinges on a picked margin', async () => {
     mount([game({ home: 'MIN', away: 'SEA' }), open('g', 'GS', 'LV')])
     await userEvent.click(screen.getByRole('button', { name: 'Las Vegas Aces win' }))
-    expect(screen.getByText(/real margins could change this order/)).toBeInTheDocument()
+    expect(screen.getByText(/could land anywhere in it/)).toHaveTextContent('1 to 10')
+    expect(screen.getAllByText('1–2')).toHaveLength(2)
+    expect(screen.getAllByTitle('Depends on the final margins').length).toBeGreaterThan(1)
+    expect(screen.getAllByText(/the final margins could change this/).length).toBeGreaterThan(0)
   })
 })

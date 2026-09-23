@@ -84,20 +84,24 @@ function Matrix({ result, selected, onSelect, onPickTeam }) {
                 </button>
               </td>
               {SEEDS.map((s) => {
-                const { count } = result.teams[abbr][s]
+                const { count, maybe } = result.teams[abbr][s]
                 const on = selected?.abbr === abbr && selected.seed === s
                 const locked = count === result.total
+                const text = locked ? '✓' : count ? share(count, result.total) : ''
                 return (
                   <td key={s} className="num sc-cell-td">
                     <button
-                      className={`sc-cell ${on ? 'on' : ''} ${locked ? 'locked' : ''} ${s === OUT ? 'out' : ''}`}
-                      style={{ '--share': count / result.total }}
-                      disabled={!count}
+                      className={`sc-cell ${on ? 'on' : ''} ${locked ? 'locked' : ''} ${s === OUT ? 'out' : ''} ${maybe ? 'maybe' : ''}`}
+                      style={{ '--share': (count + maybe / 2) / result.total }}
+                      disabled={!count && !maybe}
                       aria-pressed={on}
-                      aria-label={`${abbr} ${seedName(s)}: ${count} of ${result.total} outcomes`}
+                      aria-label={`${abbr} ${seedName(s)}: ${count} of ${result.total} outcomes${
+                        maybe ? `, ${maybe} more depending on margins` : ''
+                      }`}
                       onClick={() => onSelect(on ? null : { abbr, seed: s })}
                     >
-                      {!count ? '' : locked ? '✓' : share(count, result.total)}
+                      {text}
+                      {maybe > 0 && <sup>*</sup>}
                     </button>
                   </td>
                 )
@@ -110,37 +114,71 @@ function Matrix({ result, selected, onSelect, onPickTeam }) {
   )
 }
 
+// Which tiebreak steps helped place the team, in how many of the outcomes.
+function Tiebreaks({ tally, of }) {
+  const steps = Object.keys(tally).sort()
+  if (!steps.length) return null
+  return (
+    <>
+      <p className="sc-path-sub">Tiebreakers that decide it:</p>
+      <ul className="sc-ties">
+        {steps.map((step) => (
+          <li key={step}>
+            {TIEBREAK_STEPS[step]}: in {tally[step].toLocaleString()} of {of.toLocaleString()}
+          </li>
+        ))}
+      </ul>
+    </>
+  )
+}
+
 // What it takes for one team to land in one seed bucket.
 function Path({ result, selected, picks, onApply, tz }) {
   const { abbr, seed } = selected
   const cell = result.teams[abbr][seed]
   const team = TEAM_BY_ABBR[abbr]
-  if (!cell.count) {
+  const possible = cell.count + cell.maybe
+  if (!possible) {
     return (
       <p className="sc-path-lead">
         With these picks, the {team.name} can no longer finish as {seedName(seed)}.
       </p>
     )
   }
+  const locked = cell.count === result.total
   const needs = requirements(cell, result.undecided)
   const lockPicks = { ...picks }
   for (const { game, side } of needs) lockPicks[game.id] = side
   return (
     <div className="sc-path">
       <p className="sc-path-lead">
-        {cell.count === result.total ? (
+        {locked ? (
           <>
             <strong>Locked.</strong> The {team.name} finish as {seedName(seed)} in every remaining
             outcome.
           </>
+        ) : cell.count ? (
+          <>
+            The {team.name} finish as {seedName(seed)} in <strong>{cell.count.toLocaleString()}</strong>{' '}
+            of {result.total.toLocaleString()} possible outcomes.
+          </>
         ) : (
           <>
-            The {team.name} finish as {seedName(seed)} in <strong>{cell.count}</strong> of{' '}
-            {result.total} possible outcomes.
+            The {team.name} can finish as {seedName(seed)} only on point differential, in{' '}
+            <strong>{cell.maybe.toLocaleString()}</strong> of {result.total.toLocaleString()} outcomes.
           </>
         )}
       </p>
-      {cell.count < result.total &&
+      {cell.maybe > 0 && (
+        <p className="sc-path-sub sc-margin">
+          {cell.count
+            ? `In ${cell.maybe.toLocaleString()} more outcomes they could, depending on the final margins.`
+            : 'That depends on the final margins.'}{' '}
+          A tie there comes down to point differential, and a picked game could finish by
+          anywhere from 1 to {result.margin} points (this season's biggest win).
+        </p>
+      )}
+      {!locked &&
         (needs.length ? (
           <>
             <p className="sc-path-sub">Every one of them needs:</p>
@@ -164,13 +202,8 @@ function Path({ result, selected, picks, onApply, tz }) {
             No single result is required. It comes down to a combination of results.
           </p>
         ))}
-      {cell.margin > 0 && (
-        <p className="sc-path-sub sc-margin">
-          In {cell.margin} of these outcomes the order comes down to point differential, so the
-          final margins could change it.
-        </p>
-      )}
-      {cell.count < result.total && (
+      <Tiebreaks tally={cell.tiebreaks} of={possible} />
+      {!locked && (
         <div className="sc-actions">
           <button className="chip" disabled={!needs.length} onClick={() => onApply(lockPicks)}>
             Pick the required results
@@ -186,7 +219,7 @@ function Path({ result, selected, picks, onApply, tz }) {
 
 // A fully decided season: the exact seeding, how ties broke, and the first round.
 function Final({ scenario, complete, onPickTeam }) {
-  const { rows, trace, marginDependent } = scenario
+  const { rows, trace, ranges, margin, marginDependent } = scenario
   const seeds = rows.slice(0, PLAYOFF_SPOTS)
   return (
     <div className="card">
@@ -194,7 +227,11 @@ function Final({ scenario, complete, onPickTeam }) {
       <ol className="sc-final">
         {rows.map((row, i) => (
           <li key={row.abbr} className={i < PLAYOFF_SPOTS ? '' : 'sc-final-out'}>
-            <span className="rank">{i + 1}</span>
+            <span className="rank" title={ranges[row.abbr][0] === ranges[row.abbr][1] ? undefined : 'Depends on the final margins'}>
+              {ranges[row.abbr][0] === ranges[row.abbr][1]
+                ? i + 1
+                : `${ranges[row.abbr][0]}–${ranges[row.abbr][1]}`}
+            </span>
             <button className="team-btn" onClick={() => onPickTeam?.(row.abbr)}>
               <TeamLogo abbr={row.abbr} size={22} />
               <span className="team-name">
@@ -215,6 +252,7 @@ function Final({ scenario, complete, onPickTeam }) {
             {trace.map((t, i) => (
               <li key={i}>
                 {t.teams.join(' / ')}: {TIEBREAK_STEPS[t.step]}
+                {t.margin && <span className="sc-margin"> (the final margins could change this)</span>}
               </li>
             ))}
           </ul>
@@ -222,8 +260,10 @@ function Final({ scenario, complete, onPickTeam }) {
       )}
       {marginDependent && (
         <p className="sc-path-sub sc-margin">
-          Picked games count as one-point wins, and point differential decides a tie here, so the
-          real margins could change this order.
+          A picked game has no score, and point differential decides a tie here. A seed shown
+          as a range could land anywhere in it, depending on the final margins (1 to {margin}{' '}
+          points, this season's biggest win). The list and first round below book every picked
+          game as a one-point win.
         </p>
       )}
       <p className="sc-path-sub">First round:</p>
@@ -343,7 +383,9 @@ export default function ScenariosView({ games, tz, onPick }) {
                 <p className="legend">
                   <span className="legend-item">
                     Each cell is the share of the {result.total.toLocaleString()} ways the open games
-                    can go, not a win probability. ✓ means locked.
+                    can go, not a win probability. ✓ means locked. * means the seed is also possible in
+                    some outcomes depending on the final margins, since point differential is a
+                    tiebreaker.
                   </span>
                 </p>
               </div>

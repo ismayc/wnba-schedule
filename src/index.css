@@ -4000,3 +4000,9 @@ button.drill-row:hover {
 .sc-matrix th.num {
   text-align: center;
 }
+
+.sc-cell sup {
+  color: var(--gold);
+  font-weight: 700;
+  margin-left: 1px;
+}

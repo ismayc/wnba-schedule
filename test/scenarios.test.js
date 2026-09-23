@@ -10,6 +10,7 @@ import {
   picksFromMask,
   requirements,
   meanSeed,
+  maxMargin,
 } from '../src/utils/scenarios.js'
 import { computeStandings, rankTable, seedings, PLAYOFF_SPOTS } from '../src/utils/standings.js'
 
@@ -141,8 +142,16 @@ describe('enumerateScenarios', () => {
 
   it('counts margin-dependent outcomes per bucket', () => {
     const r = enumerateScenarios(games)
-    const flagged = Object.values(r.teams).some((t) => Object.values(t).some((c) => c.margin > 0))
-    expect(flagged).toBe(true)
+    // MIN (+10 real) vs a picked GS or LV win (+1 to +10): either could lead.
+    const g = [game({ home: 'MIN', away: 'SEA' }), open({ id: 'g', home: 'LV', away: 'GS' })]
+    const m = enumerateScenarios(g)
+    expect(m.margin).toBe(10)
+    expect([m.teams.MIN[1].count, m.teams.MIN[1].maybe]).toEqual([0, 2])
+    expect([m.teams.MIN[2].count, m.teams.MIN[2].maybe]).toEqual([0, 2])
+    expect(m.teams.MIN[1].tiebreaks).toEqual({ 4: 2 })
+    // A margin-dependent outcome still counts toward what the seed requires.
+    expect(requirements(m.teams.LV[1], m.undecided).map(({ side }) => side)).toEqual(['home'])
+    expect(r.teams.MIN[1].maybe).toBe(0)
   })
 
   it('refuses to enumerate past the cap', () => {
@@ -194,6 +203,115 @@ describe('picksFromMask, requirements, meanSeed', () => {
   it('names every tiebreak step', () => {
     expect(Object.keys(TIEBREAK_STEPS)).toEqual(['1', '2', '3', '4', '5'])
     expect(OUT).toBe(PLAYOFF_SPOTS + 1)
+  })
+})
+
+describe('maxMargin', () => {
+  it('is the biggest real winning margin, and at least 1', () => {
+    expect(maxMargin([game({ score: [100, 52] }), game({ score: [80, 90] }), open({})])).toBe(48)
+    expect(maxMargin([open({})])).toBe(1)
+  })
+})
+
+describe('seed ranges under every margin', () => {
+  it('spans the tied block when a picked margin can reorder it (step 4)', () => {
+    const games = [game({ home: 'MIN', away: 'SEA' }), open({ id: 'g', home: 'LV', away: 'GS' })]
+    const sc = rankScenario(games, { g: 'home' })
+    expect(sc.margin).toBe(10)
+    expect(sc.ranges.MIN).toEqual([1, 2])
+    expect(sc.ranges.LV).toEqual([1, 2])
+    expect(sc.trace.find((t) => t.teams.includes('MIN')).margin).toBe(true)
+    // Teams no picked game touches keep their exact place.
+    expect(sc.ranges.ATL).toEqual([3, 3])
+  })
+
+  it('keeps an order that no margin can overturn (step 3 is decisive)', () => {
+    // MIN and LV split four meetings 2-2, MIN +19 in the real ones; the picked LV win
+    // takes back at most 10, so MIN stays ahead at any margin.
+    const games = [
+      game({ home: 'MIN', away: 'LV', score: [90, 80] }),
+      game({ home: 'LV', away: 'MIN', score: [80, 90] }),
+      game({ home: 'LV', away: 'MIN', score: [81, 80] }),
+      open({ id: 'p', home: 'LV', away: 'MIN' }),
+    ]
+    const sc = rankScenario(games, { p: 'home' })
+    expect(sc.trace.find((t) => t.teams.includes('MIN')).step).toBe(3)
+    expect(sc.ranges.MIN).toEqual([1, 1])
+    expect(sc.ranges.LV).toEqual([2, 2])
+    expect(sc.marginDependent).toBe(false)
+  })
+
+  it('falls through a head-to-head that is level at any margin to overall differential', () => {
+    // MIN and LV split two real games by the same score; each also has a picked win
+    // over an outsider, so step 4 is open.
+    const games = [
+      game({ home: 'MIN', away: 'LV', score: [90, 80] }),
+      game({ home: 'LV', away: 'MIN', score: [90, 80] }),
+      open({ id: 'a', home: 'MIN', away: 'SEA' }),
+      open({ id: 'b', home: 'LV', away: 'GS' }),
+    ]
+    const sc = rankScenario(games, { a: 'home', b: 'home' })
+    expect(sc.ranges.MIN).toEqual([1, 2])
+    expect(sc.ranges.LV).toEqual([1, 2])
+    expect(sc.marginDependent).toBe(true)
+  })
+
+  it('never reports a seed outside the range, whatever the margins (brute force)', () => {
+    // Four teams, one-to-five-point games, three of them picked: found by search as a
+    // board where picked margins genuinely reorder the tied teams.
+    const base = [
+      game({ id: 'r0', home: 'GS', away: 'LV', score: [80, 81] }),
+      game({ id: 'r1', home: 'GS', away: 'SEA', score: [80, 81] }),
+      game({ id: 'r2', home: 'GS', away: 'SEA', score: [81, 80] }),
+      game({ id: 'r3', home: 'MIN', away: 'GS', score: [85, 80] }),
+    ]
+    const picked = [
+      open({ id: 'p1', home: 'GS', away: 'MIN' }),
+      open({ id: 'p2', home: 'MIN', away: 'GS', tip: '2026-09-21T00:00:00.000Z' }),
+      open({ id: 'p3', home: 'LV', away: 'MIN', tip: '2026-09-22T00:00:00.000Z' }),
+    ]
+    const games = [...base, ...picked]
+    const M = maxMargin(games)
+    let checked = 0
+    let reordered = 0
+    let wide = 0
+    for (let mask = 0; mask < 8; mask++) {
+      const picks = picksFromMask(picked, mask)
+      const sc = rankScenario(games, picks)
+      const orders = new Set()
+      if (sc.marginDependent) wide++
+      // Every margin from 1 to M for every picked game.
+      for (let a = 1; a <= M; a++)
+        for (let b = 1; b <= M; b++)
+          for (let c = 1; c <= M; c++) {
+            const ms = { p1: a, p2: b, p3: c }
+            const scored = games.map((g) =>
+              ms[g.id] ? { ...g, score: picks[g.id] === 'home' ? [100 + ms[g.id], 100] : [100, 100 + ms[g.id]] } : g
+            )
+            const seeded = seedings(scored)
+            orders.add(seeded.map((r) => r.abbr).join())
+            seeded.forEach((row, i) => {
+              const [lo, hi] = sc.ranges[row.abbr]
+              expect(i + 1).toBeGreaterThanOrEqual(lo)
+              expect(i + 1).toBeLessThanOrEqual(hi)
+              checked++
+            })
+          }
+      // One-point margins reproduce the engine's own order exactly.
+      const one = games.map((g) =>
+        picks[g.id] ? { ...g, score: picks[g.id] === 'home' ? [101, 100] : [100, 101] } : g
+      )
+      expect(seedings(one).map((r) => r.abbr)).toEqual(sc.rows.map((r) => r.abbr))
+      if (orders.size > 1) {
+        reordered++
+        // Margins reordered this season, so the engine must have said so.
+        expect(sc.marginDependent).toBe(true)
+      }
+    }
+    expect(checked).toBe(8 * M ** 3 * 15)
+    // The board really exercises the margin path.
+    expect(reordered).toBeGreaterThan(0)
+    expect(wide).toBeGreaterThanOrEqual(reordered)
   })
 })
 
