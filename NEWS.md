@@ -4,6 +4,21 @@ A dated changelog for The WNBA Schedule. Each heading is a calendar
 day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-09-25
+
+- **Playoff games now reach the schedule.** ESPN posted the first round
+  (NY @ MIN, IND @ LV, WSH @ ATL, DAL @ GS, from Sunday), but two refreshes committed
+  no playoff games. The fetch read playoffs only from the per-team schedule feed
+  (`seasontype=3`), which is still empty for every team while ESPN's scoreboard already
+  lists the games. `scripts/fetch-schedule.mjs` now also reads the scoreboard from the
+  last regular-season day through the next seven weeks. A scoreboard event keeps its
+  season type on `season.type`, and its competition `type` is a round code ("RD16"),
+  so the normal parser would have dropped every one. Those games are now read as
+  playoffs explicitly. Slots with "TBD" teams (a Game 2 or 3 not yet scheduled) are
+  skipped until a later refresh finds them filled in. This run adds 7 games: four Game
+  1s and three Game 2s. The team feeds still win for any game both sources have.
+  Tests are in `test/playoffs-feed.test.js`.
+
 ## 2026-09-23
 
 - **Tapping a Scenarios percentage now opens its breakdown right under that team's

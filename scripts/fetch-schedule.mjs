@@ -243,11 +243,13 @@ function broadcastNames(c) {
   return [...new Set(names.filter(Boolean))]
 }
 
-function normalizeEvent(ev) {
+// `forcedType` is for events whose type sits somewhere else: a scoreboard event carries
+// it as `season.type`, and its competition `type` is a round code ("RD16"), not a type.
+function normalizeEvent(ev, forcedType) {
   const c = ev.competitions?.[0]
   if (!c) return null
 
-  let seasonType = SEASON_TYPE[ev.seasonType?.id ?? c.type?.id]
+  let seasonType = forcedType ?? SEASON_TYPE[ev.seasonType?.id ?? c.type?.id]
   if (!seasonType) return null // drops preseason
 
   const home = c.competitors.find((t) => t.homeAway === 'home')
@@ -371,6 +373,32 @@ async function scoreboardSpan(from, to, limit) {
   const byId = new Map()
   for (const d of pages) for (const ev of d.events || []) byId.set(ev.id, ev)
   return [...byId.values()]
+}
+
+// Playoff games from the scoreboard. The per-team schedule feed (seasontype=3) stays
+// empty for days after ESPN posts the bracket: on 2026-09-25 it returned nothing for
+// every team while the scoreboard already listed four first-round Game 1s. So the
+// scoreboard is read too, from the last regular-season day through the next seven
+// weeks. Slots whose teams are still "TBD" (a Game 2 or 3 with no matchup or time yet)
+// are skipped; a later refresh picks them up once ESPN fills them in. Pure, for tests.
+export function playoffsFromScoreboard(events, knownAbbrs) {
+  const real = (t) => Number(t.team?.id) > 0 && knownAbbrs.has(t.team?.abbreviation)
+  return events
+    .filter((ev) => Number(ev.season?.type) === 3)
+    .filter((ev) => (ev.competitions?.[0]?.competitors || []).every(real))
+    .map((ev) => normalizeEvent(ev, 'playoffs'))
+    .filter(Boolean)
+}
+
+const ymd = (iso) => iso.slice(0, 10).replaceAll('-', '')
+
+async function fetchPlayoffs(games, teams) {
+  const regular = games.filter((g) => g.seasonType === 'regular').map((g) => g.tip).sort()
+  if (!regular.length) return []
+  const last = regular.at(-1)
+  const end = new Date(Date.parse(last) + 49 * 86400000).toISOString()
+  const events = await scoreboardSpan(ymd(last), ymd(end), 100)
+  return playoffsFromScoreboard(events, new Set(teams.map((t) => t.abbr)))
 }
 
 // The three categories ESPN reports per game. "rating" is a composite summary line and
@@ -608,8 +636,11 @@ async function main() {
   console.log('Fetching schedules…')
   const games = await fetchSchedule(teams)
   const allStar = await fetchAllStar()
-  if (allStar.length) {
-    games.push(...allStar)
+  // The team feeds win where both have a game; the scoreboard only adds what they lack.
+  const have = new Set(games.map((g) => g.id))
+  const playoffs = (await fetchPlayoffs(games, teams)).filter((g) => !have.has(g.id))
+  if (allStar.length || playoffs.length) {
+    games.push(...allStar, ...playoffs)
     games.sort((a, b) => a.tip.localeCompare(b.tip) || a.id.localeCompare(b.id))
   }
   const counts = games.reduce((a, g) => ({ ...a, [g.seasonType]: (a[g.seasonType] || 0) + 1 }), {})
