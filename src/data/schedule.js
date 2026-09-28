@@ -343,10 +343,10 @@ export const GAMES = [
   {"id":"401918017","tip":"2026-09-30T00:30:00.000Z","seasonType":"playoffs","home":"NY","away":"MIN","venue":"Barclays Center","city":"Brooklyn","state":"NY","broadcast":["USA Net","CNBC"],"round":"R1","game":2,"note":"First Round - Game 2"},
   {"id":"401918019","tip":"2026-09-30T23:00:00.000Z","seasonType":"playoffs","home":"WSH","away":"ATL","venue":"CareFirst Arena","city":"Washington","state":"DC","broadcast":["ESPN"],"round":"R1","game":2,"note":"First Round - Game 2"},
   {"id":"401918020","tip":"2026-10-01T01:00:00.000Z","seasonType":"playoffs","home":"DAL","away":"GS","venue":"College Park Center","city":"Arlington","state":"TX","broadcast":["ESPN"],"round":"R1","game":2,"note":"First Round - Game 2"},
-  {"id":"401918021","tip":"2026-10-01T04:00:00.000Z","seasonType":"playoffs","home":"MIN","away":"NY","venue":"Target Center","city":"Minneapolis","state":"MN","round":"R1","game":3,"note":"First Round - Game 3 If Necessary"},
-  {"id":"401918022","tip":"2026-10-01T04:00:00.000Z","seasonType":"playoffs","home":"LV","away":"IND","venue":"Michelob ULTRA Arena","city":"Las Vegas","state":"NV","round":"R1","game":3,"note":"First Round - Game 3 If Necessary"},
+  {"id":"401918021","tip":"2026-10-01T23:00:00.000Z","seasonType":"playoffs","home":"MIN","away":"NY","venue":"Target Center","city":"Minneapolis","state":"MN","round":"R1","game":3,"note":"First Round - Game 3 If Necessary"},
+  {"id":"401918022","tip":"2026-10-02T01:00:00.000Z","seasonType":"playoffs","home":"LV","away":"IND","venue":"Michelob ULTRA Arena","city":"Las Vegas","state":"NV","broadcast":["USA Net","CNBC"],"round":"R1","game":3,"note":"First Round - Game 3 If Necessary"},
   {"id":"401918293","tip":"2026-10-02T04:00:00.000Z","seasonType":"playoffs","home":"ATL","away":"WSH","venue":"State Farm Arena","city":"Atlanta","state":"GA","round":"R1","game":3,"note":"First Round - Game 3 If Necessary"},
-  {"id":"401918294","tip":"2026-10-02T04:00:00.000Z","seasonType":"playoffs","home":"GS","away":"DAL","venue":"Chase Center","city":"San Francisco","state":"CA","round":"R1","game":3,"note":"First Round - Game 3 If Necessary"},
+  {"id":"401918294","tip":"2026-10-02T04:00:00.000Z","seasonType":"playoffs","home":"GS","away":"DAL","venue":"Chase Center","city":"San Francisco","state":"CA","broadcast":["ESPN2"],"round":"R1","game":3,"note":"First Round - Game 3 If Necessary"},
 ]
 
 export const SEASON_TYPES = ['regular', 'allstar', 'playoffs']
