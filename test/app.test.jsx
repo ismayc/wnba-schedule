@@ -49,6 +49,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  vi.useRealTimers()
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
 })
@@ -317,6 +318,12 @@ describe('filter panel', () => {
   })
 
   it('narrows the schedule as you type a scoped query', async () => {
+    // Read the frozen September 4 board on September 4. At the real clock the default
+    // window slides past the board: on October 2, 2026 it holds one game day (three
+    // games), a team that did not play that day falls back to its final seven, and
+    // "narrows" compares 7 against 3. The clock rehearsal found this on September 29.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-09-04T16:00:00Z'))
     await mount()
     const before = document.querySelectorAll('.game').length
     await userEvent.click(toggle())

@@ -202,6 +202,12 @@ describe('live alerts fire toasts', () => {
 
 describe('followed team filter', () => {
   it('shows the My teams chip and narrows the schedule when toggled', async () => {
+    // Read the frozen September 4 board on September 4. At the real clock the default
+    // window slides past the board: on October 2, 2026 it holds one game day (three
+    // games), a team that did not play that day falls back to its final seven, and
+    // "narrows" compares 7 against 3. The clock rehearsal found this on September 29.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-09-04T16:00:00Z'))
     localStorage.setItem('wnba:followed', JSON.stringify([HOME]))
     await mount()
     const before = document.querySelectorAll('.game').length

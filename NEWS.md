@@ -6,6 +6,16 @@ data/source updates, deployment). Newest day on top.
 
 ## 2026-09-29
 
+- **Two schedule filter tests no longer depend on the calendar.** The clock rehearsal
+  on today's push failed at October 2, 2026: `filter panel > narrows the schedule as you
+  type a scoped query` and `followed team filter > shows the My teams chip and narrows
+  the schedule when toggled` both reported `expected 7 to be less than 3`. Both read the
+  frozen September 4 board at the real clock. On October 2 the default window holds one
+  game day (September 25, three games), and a team that did not play that day falls
+  back to its final seven games, so filtering showed more games, not fewer. Every other
+  day from September 29 to October 7 passed, so the suite would have been red for one
+  day with nothing committed. Both tests now pin the clock to September 4, the board's
+  own day. The app's behavior is unchanged.
 - **The data-freshness monitor no longer goes red on one bad read of the run history.**
   The NBA sibling's monitor failed at 13:18 UTC today and filed an issue reporting a
   207 hour old fetch, while its Refresh was healthy. GitHub's runs listing had returned
