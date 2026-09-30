@@ -7,6 +7,10 @@
 // the live module grows an export this file lacks.
 export { GAMES_2026 as GAMES } from '../season-2026.js'
 
+// No playoff slot was waiting on an opponent on September 4. Tests that render pending
+// slots pass their own rows in as props.
+export const PENDING = []
+
 export const SEASON_TYPES = ['regular', 'allstar', 'playoffs']
 
 export const PLAYOFF_ROUNDS = { R1: 'First Round', SF: 'Semifinals', Final: 'WNBA Finals' }

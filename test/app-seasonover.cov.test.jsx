@@ -6,6 +6,7 @@ vi.mock('../src/services/summary.js', () => ({ fetchGameSummary: () => Promise.r
 // A fully-decided season: every game already carries a final score. The poll effect
 // must short-circuit (seasonOver === true) and never touch the network.
 vi.mock('../src/data/schedule.js', () => ({
+  PENDING: [],
   GAMES: [
     {
       id: '900001',

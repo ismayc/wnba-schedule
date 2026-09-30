@@ -26,9 +26,10 @@ describe('frozen stand-ins keep the shape of the live modules', () => {
     expect(Object.keys(frozen).sort()).toEqual(Object.keys(live).sort())
   })
 
+  // GAMES and PENDING are refreshed data, not constants; only their export names count.
   it('schedule.js constants are identical', () => {
-    const { GAMES: _live, ...liveConsts } = liveSchedule
-    const { GAMES: _frozen, ...frozenConsts } = frozenSchedule
+    const { GAMES: _live, PENDING: _livePending, ...liveConsts } = liveSchedule
+    const { GAMES: _frozen, PENDING: _frozenPending, ...frozenConsts } = frozenSchedule
     expect(frozenConsts).toEqual(liveConsts)
   })
 

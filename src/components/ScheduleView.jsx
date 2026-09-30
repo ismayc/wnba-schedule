@@ -1,6 +1,6 @@
 import { useMemo, useRef, useEffect, useState } from 'react'
 import { dayKey, dayLabel, todayKey } from '../utils/time.js'
-import GameCard from './GameCard.jsx'
+import GameCard, { PendingCard } from './GameCard.jsx'
 import { LEAGUE } from '../config/league.js'
 
 // How many days back the default ("recent") view reaches — a week of results, so
@@ -24,7 +24,11 @@ const monthLabel = (mk) =>
 const monthShort = (mk) =>
   new Date(`${mk}-01T12:00:00.000Z`).toLocaleDateString(LEAGUE.locale, { month: 'short', timeZone: 'UTC' })
 
-export default function ScheduleView({ games, tz, hideScores, showPast = false, onOpen }) {
+// A date-only slot's tip is ESPN's midnight-ET placeholder, so its day is the ET date
+// wherever the viewer is; read in Pacific time it would land on the evening before.
+const slotDay = (p, tz) => dayKey(p.tip, p.timeTbd ? 'America/New_York' : tz)
+
+export default function ScheduleView({ games, pending = [], tz, hideScores, showPast = false, onOpen }) {
   const today = todayKey(tz)
   const thisMonth = today.slice(0, 7)
 
@@ -34,16 +38,18 @@ export default function ScheduleView({ games, tz, hideScores, showPast = false, 
     return new Date(Date.UTC(y, m - 1, d - RECENT_LOOKBACK_DAYS)).toISOString().slice(0, 10)
   }, [today])
 
-  // Bucket by the calendar day the viewer sees, not by UTC date.
+  // Bucket by the calendar day the viewer sees, not by UTC date. Pending playoff slots
+  // share the day list, after that day's real games.
   const allDays = useMemo(() => {
     const map = new Map()
-    for (const g of games) {
-      const key = dayKey(g.tip, tz)
+    const add = (key, item) => {
       if (!map.has(key)) map.set(key, [])
-      map.get(key).push(g)
+      map.get(key).push(item)
     }
+    for (const g of games) add(dayKey(g.tip, tz), g)
+    for (const p of pending) add(slotDay(p, tz), p)
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b))
-  }, [games, tz])
+  }, [games, pending, tz])
 
   // The "Later games" collapse is deliberately component-local, like search and the
   // phase chips: it is never written to the URL or localStorage, so it can't add a
@@ -209,9 +215,13 @@ export default function ScheduleView({ games, tz, hideScores, showPast = false, 
       </h3>
       {!folded && (
         <div className="day-games">
-          {dayGames.map((g) => (
-            <GameCard key={g.id} game={g} tz={tz} hideScores={hidden} onOpen={onOpen} />
-          ))}
+          {dayGames.map((g) =>
+            g.slot ? (
+              <PendingCard key={g.slot} slot={g} tz={tz} />
+            ) : (
+              <GameCard key={g.id} game={g} tz={tz} hideScores={hidden} onOpen={onOpen} />
+            )
+          )}
         </div>
       )}
     </div>

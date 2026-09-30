@@ -1137,6 +1137,23 @@ select:hover,
   opacity: 0.6;
 }
 
+/* A playoff slot still waiting on an opponent: nothing to open, so no pointer or hover. */
+.game.pending {
+  cursor: default;
+}
+.game.pending:hover {
+  background: transparent;
+}
+/* "Time TBD" at the 20px tip size overflows the 96px when-column. */
+.time.time-tbd {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.side-tbd .side-nick {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
 .game-when {
   display: flex;
   flex-direction: column;

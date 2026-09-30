@@ -116,6 +116,46 @@ function Meta({ game, watch, lead, extra }) {
   )
 }
 
+// The undecided side of a pending slot. ESPN names the series that will fill it
+// ("Dream/Mystics"), so it reads "Dream/Mystics winner"; with no name, "To be decided".
+// The word lives in the name line, not in .side-loc, because phones hide .side-loc.
+function TbdSide({ opponent }) {
+  return (
+    <div className="side side-tbd">
+      <span className="side-name">
+        <span className="side-nick">{opponent === 'TBD' ? 'To be decided' : `${opponent} winner`}</span>
+      </span>
+    </div>
+  )
+}
+
+// A playoff game with one team set and the other still being decided (PENDING in
+// schedule.js). Not a button: there is no game to open yet, and it carries no score,
+// venue, or broadcast. When ESPN has only set the date (`timeTbd`), the when-column
+// says so instead of printing its midnight-ET placeholder as a tip time.
+export function PendingCard({ slot, tz }) {
+  return (
+    <article className="game pending" aria-label={`${slot.note}, opponent to be decided`}>
+      <div className="game-when">
+        {slot.timeTbd ? (
+          <span className="time time-tbd">Time TBD</span>
+        ) : (
+          <>
+            <span className="time">{formatTime(slot.tip, tz)}</span>
+            <span className="zone">{formatZoneAbbr(slot.tip, tz)}</span>
+          </>
+        )}
+      </div>
+      <div className="game-teams">
+        {slot.away ? <Side abbr={slot.away} /> : <TbdSide opponent={slot.opponent} />}
+        <span className="at">@</span>
+        {slot.home ? <Side abbr={slot.home} /> : <TbdSide opponent={slot.opponent} />}
+      </div>
+      <Meta game={slot} watch={[]} lead={<span className="note">{slot.note}</span>} />
+    </article>
+  )
+}
+
 export default function GameCard({ game, tz, hideScores, onOpen }) {
   const { services } = useServices()
   const state = liveState(game)

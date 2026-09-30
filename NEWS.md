@@ -4,6 +4,28 @@ A dated changelog for The WNBA Schedule. Each heading is a calendar
 day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-09-30
+
+- **Fixed the red refresh caused by semifinal games against "TBD".** Once New York won
+  its first-round series, ESPN listed its five semifinal games in the Liberty's team
+  feed with the opponent "TBD" (team id -1 or -2). `fetchSchedule` passed them straight
+  into `GAMES`, so the live suite's known-team check failed and the game dialog crashed
+  on the missing team (refresh run 36740376504, issue #7). The scoreboard path already
+  skipped these slots; the team-feed path now does too, through one shared
+  `isRealSide` check. `scripts/check-schedule.mjs` skips them as well, so it no longer
+  reports them as new games.
+- **Playoff games waiting on an opponent now show on the schedule.** They are written
+  to a new `PENDING` export in `src/data/schedule.js`, kept out of `GAMES` so standings,
+  the bracket, and the game dialog never see a half-set matchup. The schedule board
+  shows each one as an inert card: "Liberty @ Dream/Mystics winner", using ESPN's own
+  label for the series that decides it, and "Time TBD" while ESPN has set only the
+  date. That date is read in Eastern time, since ESPN's placeholder is midnight ET and
+  would land a day early in Pacific time. The team, "My teams", phase, when, and search
+  filters all apply; "On my services" hides them until a broadcast is listed. When
+  ESPN fills in the opponent, the game moves into `GAMES` under the same event id.
+  Pending rows are keyed `slot` rather than `id` so the scripts that count committed
+  games by `{"id"` lines never count them.
+
 ## 2026-09-29
 
 - **The footer now shows when the committed data last changed.** It reads "Data as of

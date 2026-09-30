@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { GAMES } from './data/schedule.js'
+import { GAMES, PENDING } from './data/schedule.js'
 import { SEASON, TEAMS } from './data/teams.js'
 import { DATA_UPDATED_AT } from './data/meta.js'
 import {
@@ -320,6 +320,22 @@ export default function App() {
       return true
     })
   }, [games, team, onlyFollowed, followed, followedCount, watchOnly, services, serviceCount, phases, when, parsedSearch])
+
+  // Playoff slots still waiting on an opponent, through the same filters. Their one real
+  // team stands in for both sides of the team filters; the undecided side searches as
+  // ESPN's "Dream/Mystics" label. They have no broadcast yet, so "on my services" drops
+  // them, and they are always upcoming.
+  const scheduleSlots = useMemo(() => {
+    return PENDING.filter((p) => {
+      const side = p.home || p.away
+      if (team && side !== team) return false
+      if (onlyFollowed && followedCount && !followed.has(side)) return false
+      if (watchOnly && serviceCount) return false
+      if (phases.length && !phases.includes(p.seasonType)) return false
+      if (when && when !== 'upcoming') return false
+      return matchesSearch({ ...p, home: p.home || p.opponent, away: p.away || p.opponent }, parsedSearch)
+    })
+  }, [team, onlyFollowed, followed, followedCount, watchOnly, serviceCount, phases, when, parsedSearch])
 
   // How many filters are actively narrowing the schedule — drives the toggle badge and
   // the auto-open. Mirrors exactly what scheduleGames applies (a followed/service toggle
@@ -670,6 +686,7 @@ export default function App() {
         {view === 'schedule' && (
           <ScheduleView
             games={scheduleGames}
+            pending={scheduleSlots}
             tz={tz}
             hideScores={hideScores}
             showPast={showPast}

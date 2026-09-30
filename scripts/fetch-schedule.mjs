@@ -301,10 +301,68 @@ function normalizeEvent(ev, forcedType) {
   }
 }
 
+// A side is a franchise when ESPN gives it a positive id we know. Unset playoff slots
+// carry `{ id: '-1', abbreviation: 'TBD' }` instead.
+const isRealSide = (t, knownAbbrs) => Number(t.team?.id) > 0 && knownAbbrs.has(t.team?.abbreviation)
+
+// A playoff game with one team known and the other still "TBD". ESPN puts these in the
+// advancing team's feed as soon as it wins its series: on 2026-09-30 New York's listed
+// five semifinal games against "TBD" (id -1/-2) while Atlanta and Washington were still
+// playing for the other spot. The event `name` still names the candidates ("New York
+// Liberty at Dream/Mystics"), and `timeValid: false` marks the 04:00Z tip as a
+// placeholder for "midnight ET on this date", not a real time.
+//
+// Keyed `slot`, not `id`, on purpose: every reader of the committed schedule
+// (readCommittedGames, guardAgainstShrink, check-schedule.mjs) counts lines that open
+// with `{"id"` as games, and these must never be counted as one.
+function pendingSlot(ev, side) {
+  const c = ev.competitions[0]
+  if (SEASON_TYPE[ev.seasonType?.id ?? c.type?.id] !== 'playoffs') return null
+  const [awayName, homeName] = (ev.name || '').split(' at ')
+  const home = side.homeAway === 'home'
+  const { round, game, note } = parseSeriesNote(c.notes)
+  return {
+    slot: ev.id,
+    tip: new Date(ev.date).toISOString(),
+    timeTbd: c.timeValid === false || undefined,
+    seasonType: 'playoffs',
+    home: home ? side.team.abbreviation : null,
+    away: home ? null : side.team.abbreviation,
+    opponent: (home ? awayName : homeName)?.trim() || 'TBD',
+    round,
+    game,
+    note,
+  }
+}
+
+// Splits the team-schedule feed into games (both sides real franchises) and pending
+// slots (exactly one side real). Before this split the TBD slots went straight into
+// GAMES and failed the live suite's known-team check (refresh run 36740376504). Pure,
+// for tests.
+export function splitTeamFeed(events, knownAbbrs) {
+  const games = new Map()
+  const pending = new Map()
+  for (const ev of events) {
+    const sides = ev.competitions?.[0]?.competitors || []
+    const real = sides.filter((t) => isRealSide(t, knownAbbrs))
+    if (real.length === sides.length) {
+      const game = normalizeEvent(ev)
+      if (game) games.set(game.id, game)
+    } else if (sides.length === 2 && real.length === 1) {
+      const slot = pendingSlot(ev, real[0])
+      if (slot) pending.set(slot.slot, slot)
+    }
+  }
+  const byTip = (a, b) => a.tip.localeCompare(b.tip)
+  return {
+    games: [...games.values()].sort((a, b) => byTip(a, b) || a.id.localeCompare(b.id)),
+    pending: [...pending.values()].sort((a, b) => byTip(a, b) || a.slot.localeCompare(b.slot)),
+  }
+}
+
 export async function fetchSchedule(teams, season = SEASON) {
-  const byId = new Map()
   // 15 team-schedule calls cover the whole season; each game appears twice (once per
-  // team), so dedupe by event id.
+  // team), so splitTeamFeed dedupes by event id.
   const results = await mapLimit(teams, CONCURRENCY, async (t) => {
     const seen = []
     for (const type of [2, 3]) {
@@ -315,11 +373,7 @@ export async function fetchSchedule(teams, season = SEASON) {
     }
     return seen
   })
-  for (const ev of results.flat()) {
-    const game = normalizeEvent(ev)
-    if (game) byId.set(game.id, game)
-  }
-  return [...byId.values()].sort((a, b) => a.tip.localeCompare(b.tip) || a.id.localeCompare(b.id))
+  return splitTeamFeed(results.flat(), new Set(teams.map((t) => t.abbr)))
 }
 
 // The All-Star Game lives on the scoreboard, not in any team's schedule — its
@@ -387,12 +441,12 @@ async function scoreboardSpan(from, to, limit) {
 // every team while the scoreboard already listed four first-round Game 1s. So the
 // scoreboard is read too, from the last regular-season day through the next seven
 // weeks. Slots whose teams are still "TBD" (a Game 2 or 3 with no matchup or time yet)
-// are skipped; a later refresh picks them up once ESPN fills them in. Pure, for tests.
+// are skipped; a later refresh picks them up once ESPN fills them in (the team feed is
+// what records them as PENDING). Pure, for tests.
 export function playoffsFromScoreboard(events, knownAbbrs) {
-  const real = (t) => Number(t.team?.id) > 0 && knownAbbrs.has(t.team?.abbreviation)
   return events
     .filter((ev) => Number(ev.season?.type) === 3)
-    .filter((ev) => (ev.competitions?.[0]?.competitors || []).every(real))
+    .filter((ev) => (ev.competitions?.[0]?.competitors || []).every((t) => isRealSide(t, knownAbbrs)))
     .map((ev) => normalizeEvent(ev, 'playoffs'))
     .filter(Boolean)
 }
@@ -641,7 +695,7 @@ async function main() {
   guardAgainstRosterChange(teams)
 
   console.log('Fetching schedules…')
-  const games = await fetchSchedule(teams)
+  const { games, pending: slots } = await fetchSchedule(teams)
   const allStar = await fetchAllStar()
   // The team feeds win where both have a game; the scoreboard only adds what they lack.
   const have = new Set(games.map((g) => g.id))
@@ -652,6 +706,10 @@ async function main() {
   }
   const counts = games.reduce((a, g) => ({ ...a, [g.seasonType]: (a[g.seasonType] || 0) + 1 }), {})
   console.log(`  ${games.length} games`, counts)
+  // A slot the scoreboard already filled in is a game now, not a placeholder.
+  const scheduled = new Set(games.map((g) => g.id))
+  const pending = slots.filter((p) => !scheduled.has(p.slot))
+  if (pending.length) console.log(`  ${pending.length} playoff slot(s) still waiting on an opponent`)
 
   // Must run before the schedule is written — these enrich `games` in place.
   const committed = await readCommittedGames('src/data/schedule.js')
@@ -688,6 +746,11 @@ async function main() {
     banner(`${SITE}/teams/{abbr}/schedule?season=${SEASON}`) +
       `export const GAMES = [\n` +
       games.map((g) => `  ${JSON.stringify(g)},`).join('\n') +
+      `\n]\n\n` +
+      `// Playoff games with one team set and the other still to be decided. Kept out of\n` +
+      `// GAMES so standings, the bracket, and the game dialog only ever see real matchups.\n` +
+      `export const PENDING = [\n` +
+      pending.map((p) => `  ${JSON.stringify(p)},`).join('\n') +
       `\n]\n\n` +
       `export const SEASON_TYPES = ['regular', 'allstar', 'playoffs']\n\n` +
       `export const PLAYOFF_ROUNDS = { R1: 'First Round', SF: 'Semifinals', Final: 'WNBA Finals' }\n\n` +

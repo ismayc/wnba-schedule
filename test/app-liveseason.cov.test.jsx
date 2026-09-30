@@ -8,6 +8,7 @@ vi.mock('../src/services/summary.js', () => ({ fetchGameSummary: () => Promise.r
 // keep running until the game is actually final. (Pre-fix, the provisional score
 // flipped seasonOver mid-game and killed the live polling exactly when it mattered.)
 vi.mock('../src/data/schedule.js', () => ({
+  PENDING: [],
   GAMES: [
     {
       id: '910001',
