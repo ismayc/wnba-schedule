@@ -94,7 +94,9 @@ async function main() {
     if (c.tip !== l.tip) moved.push({ id, from: c.tip, to: l.tip })
     if (!sameScore(c.score, l.score)) rescored.push({ id, from: c.score, to: l.score })
   }
-  for (const [id, c] of byId) if (!live.has(id)) removed.push(c)
+  // The All-Star Game is a deliberate one-off from the scoreboard (fetchAllStar); no
+  // team feed lists it, so its absence here is expected, not a removal.
+  for (const [id, c] of byId) if (!live.has(id) && c.seasonType !== 'allstar') removed.push(c)
 
   const total = added.length + removed.length + moved.length + rescored.length
 

@@ -6,6 +6,10 @@ data/source updates, deployment). Newest day on top.
 
 ## 2026-09-30
 
+- **`npm run check:schedule` no longer reports the All-Star Game as removed.** The game
+  is a deliberate one-off for this season, fetched from the scoreboard, and no team feed
+  lists it, so the check flagged it on every run and exited 1. It now skips All-Star
+  games and reports a match.
 - **Fixed the red refresh caused by semifinal games against "TBD".** Once New York won
   its first-round series, ESPN listed its five semifinal games in the Liberty's team
   feed with the opponent "TBD" (team id -1 or -2). `fetchSchedule` passed them straight
