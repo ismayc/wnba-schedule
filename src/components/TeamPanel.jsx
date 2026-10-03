@@ -4,7 +4,7 @@ import { CONFERENCE_BY_ABBR, CONFERENCES } from '../utils/standings.js'
 import { playoffRaceExact } from '../utils/scenarios.js'
 import { playersByTeam } from '../utils/stats.js'
 import { seasonTeamRow, seasonPlayers } from '../utils/history.js'
-import { formatDate, formatTime, liveState } from '../utils/time.js'
+import { formatDate, gameTime, liveState } from '../utils/time.js'
 import { useModalA11y } from '../hooks/useModalA11y.js'
 import { useFollow } from '../context/follow.jsx'
 import TeamLogo from './TeamLogo.jsx'
@@ -161,7 +161,7 @@ export default function TeamPanel({
                   <TeamLogo abbr={homeAway(g)} size={18} />
                   <span className="drill-team">{TEAM_BY_ABBR[homeAway(g)]?.name}</span>
                   <span className="drill-note">
-                    {liveState(g) === 'live' ? 'Live' : formatTime(g.tip, tz)}
+                    {liveState(g) === 'live' ? 'Live' : gameTime(g, tz)}
                   </span>
                 </li>
               ))}

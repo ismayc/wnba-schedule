@@ -6,7 +6,7 @@ import {
   detectTimezone,
   timezoneOptions,
   formatZoneAbbr,
-  dayKey,
+  gameDayKey,
   todayKey,
   anyImminent,
   whenBucket,
@@ -369,7 +369,7 @@ export default function App() {
     const today = todayKey(tz)
     const keys = new Set()
     for (const g of scheduleGames) {
-      const key = dayKey(g.tip, tz)
+      const key = gameDayKey(g, tz)
       if (key < today) keys.add(key)
     }
     return keys.size

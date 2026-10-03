@@ -1,5 +1,5 @@
 import { useMemo, useRef, useEffect, useState } from 'react'
-import { dayKey, dayLabel, todayKey } from '../utils/time.js'
+import { dayLabel, gameDayKey, todayKey } from '../utils/time.js'
 import GameCard, { PendingCard } from './GameCard.jsx'
 import { LEAGUE } from '../config/league.js'
 
@@ -24,9 +24,12 @@ const monthLabel = (mk) =>
 const monthShort = (mk) =>
   new Date(`${mk}-01T12:00:00.000Z`).toLocaleDateString(LEAGUE.locale, { month: 'short', timeZone: 'UTC' })
 
-// A date-only slot's tip is ESPN's midnight-ET placeholder, so its day is the ET date
-// wherever the viewer is; read in Pacific time it would land on the evening before.
-const slotDay = (p, tz) => dayKey(p.tip, p.timeTbd ? 'America/New_York' : tz)
+// A date-only tip is ESPN's midnight-ET placeholder, so its day is the ET date wherever
+// the viewer is; read in Pacific time it would land on the evening before. This was only
+// ever applied to pending slots, which is why a REAL game with no announced time — a
+// playoff game whose matchup is set but whose tip is not — grouped a day early. Both now
+// go through the one helper; see gameDayKey in utils/time.
+const slotDay = (p, tz) => gameDayKey(p, tz)
 
 export default function ScheduleView({ games, pending = [], tz, hideScores, showPast = false, onOpen }) {
   const today = todayKey(tz)
@@ -46,7 +49,7 @@ export default function ScheduleView({ games, pending = [], tz, hideScores, show
       if (!map.has(key)) map.set(key, [])
       map.get(key).push(item)
     }
-    for (const g of games) add(dayKey(g.tip, tz), g)
+    for (const g of games) add(gameDayKey(g, tz), g)
     for (const p of pending) add(slotDay(p, tz), p)
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b))
   }, [games, pending, tz])

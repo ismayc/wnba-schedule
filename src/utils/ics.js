@@ -2,9 +2,12 @@
 //
 // Games carry an absolute instant, so every event is emitted in UTC with a trailing Z
 // and the calendar app renders it in the subscriber's own zone. No VTIMEZONE needed.
+// The exception is a game whose tip time ESPN has not announced: it has a date and no
+// instant, and goes out as an all-day event (see below).
 
 import { TEAM_BY_ABBR } from '../data/teams.js'
 import { LEAGUE } from '../config/league.js'
+import { ESPN_DAY_TZ, gameDayKey, timeTbd } from './time.js'
 
 // A WNBA game runs about two hours.
 const DURATION = LEAGUE.ics.durationIso
@@ -64,8 +67,12 @@ function vevent(game, { now }) {
     // Stable UID so re-importing updates events rather than duplicating them.
     `UID:${game.id}@${LEAGUE.ics.domain}`,
     `DTSTAMP:${toIcsDate(now)}`,
-    `DTSTART:${toIcsDate(game.tip)}`,
-    `DURATION:${DURATION}`,
+    // A game with no announced tip is an ALL-DAY event, not a timed one. Writing the
+    // placeholder as DTSTART puts a confident midnight-ET entry in the subscriber's
+    // calendar — in Mountain time, 9pm the evening before the game.
+    ...(timeTbd(game)
+      ? [`DTSTART;VALUE=DATE:${gameDayKey(game, ESPN_DAY_TZ).replace(/-/g, '')}`]
+      : [`DTSTART:${toIcsDate(game.tip)}`, `DURATION:${DURATION}`]),
     `SUMMARY:${escapeText(summary)}`,
   ]
   if (where) lines.push(`LOCATION:${escapeText(where)}`)

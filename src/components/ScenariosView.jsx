@@ -11,7 +11,7 @@ import {
   rowPercents,
   rankScenario,
 } from '../utils/scenarios.js'
-import { formatDate, formatTime } from '../utils/time.js'
+import { formatDate, gameTime } from '../utils/time.js'
 import { useFollow } from '../context/follow.jsx'
 import { TEAM_BY_ABBR } from '../data/teams.js'
 import TeamLogo from './TeamLogo.jsx'
@@ -45,7 +45,7 @@ function GameRow({ game, pick, onPick, tz }) {
   return (
     <li className="sc-game">
       <span className="sc-when">
-        {formatDate(game.tip, tz)} · {game.live ? <span className="sc-live">Live</span> : formatTime(game.tip, tz)}
+        {formatDate(game.tip, tz)} · {game.live ? <span className="sc-live">Live</span> : gameTime(game, tz)}
       </span>
       <span className="sc-pick">
         {side('away')}

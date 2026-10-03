@@ -1,5 +1,5 @@
 import { TEAM_BY_ABBR } from '../data/teams.js'
-import { formatTime, formatZoneAbbr, liveState, countdown, isImminent } from '../utils/time.js'
+import { formatTime, formatZoneAbbr, liveState, gameTime, gameCountdown, isImminent } from '../utils/time.js'
 import { watchableServices, broadcastNotBadged } from '../utils/watch.js'
 import { useFollow } from '../context/follow.jsx'
 import { useServices } from '../context/services.jsx'
@@ -68,7 +68,7 @@ function Timing({ game, tz, state }) {
         <span className="final-badge">Final{game.ot ? (game.ot > 1 ? `/${game.ot}OT` : '/OT') : ''}</span>
       ) : (
         <>
-          <span className="time">{formatTime(game.tip, tz)}</span>
+          <span className="time">{gameTime(game, tz)}</span>
           <span className="zone">{formatZoneAbbr(game.tip, tz)}</span>
           {isImminent(game) && (
             // Near tip but the feed still says pre — make it clear the app is watching
@@ -196,7 +196,7 @@ export default function GameCard({ game, tz, hideScores, onOpen }) {
           watch={watch}
           extra={
             state === 'upcoming' &&
-            countdown(game.tip) && <span className="countdown">in {countdown(game.tip)}</span>
+            gameCountdown(game) && <span className="countdown">in {gameCountdown(game)}</span>
           }
         />
       </article>
@@ -219,7 +219,7 @@ export default function GameCard({ game, tz, hideScores, onOpen }) {
         lead={game.note && <span className="note">{game.note}</span>}
         extra={
           state === 'upcoming' &&
-          countdown(game.tip) && <span className="countdown">in {countdown(game.tip)}</span>
+          gameCountdown(game) && <span className="countdown">in {gameCountdown(game)}</span>
         }
       />
     </article>

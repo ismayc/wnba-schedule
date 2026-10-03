@@ -68,6 +68,37 @@ export function dayKey(iso, tz) {
 
 export const todayKey = (tz, now = new Date()) => dayKey(now.toISOString(), tz)
 
+// ── A TIP TIME ESPN HAS NOT ANNOUNCED ───────────────────────────────────────────────
+// `timeTbd` (set in scripts/fetch-schedule.mjs from ESPN's `timeValid: false`) marks a
+// game whose `tip` is a PLACEHOLDER — midnight US EASTERN on the day of the game, which
+// is a date wearing the costume of an instant. Read as a real tip it does three separate
+// kinds of damage, and every one of them shipped:
+//
+//   1. It prints a time nobody announced: "9:00 PM" in Phoenix, for 04:00Z.
+//   2. It prints it on the WRONG DAY. West of Eastern that midnight is the evening
+//      before, so the game is listed, grouped and sorted a day early.
+//   3. It makes the game look PLAYED. liveState reads "likely-live" from 00:00 ET and
+//      "past" two hours later — so by breakfast on game day the app has quietly buried
+//      a game that tips in the afternoon, and isImminent has already burned its
+//      live-polling window at 11:45 the night before.
+//
+// So: bucket these on their Eastern day, never format the clock, and never let the
+// placeholder answer a question about whether the game has started.
+export const ESPN_DAY_TZ = 'America/New_York'
+
+export const timeTbd = (game) => game?.timeTbd === true
+
+// The day a game belongs to: the viewer's own zone for a real tip, the Eastern date for
+// a placeholder (which is the only thing it actually encodes).
+export const gameDayKey = (game, tz) => dayKey(game.tip, timeTbd(game) ? ESPN_DAY_TZ : tz)
+
+// The clock a game shows, or that there isn't one yet.
+export const gameTime = (game, tz) => (timeTbd(game) ? 'Time TBD' : formatTime(game.tip, tz))
+
+// A countdown to a time nobody has set is not a countdown.
+export const gameCountdown = (game, now = Date.now()) =>
+  timeTbd(game) ? null : countdown(game.tip, now)
+
 export function dayLabel(key, tz, now = new Date()) {
   const today = todayKey(tz, now)
   if (key === today) return 'Today'
@@ -95,6 +126,10 @@ export function liveState(game, now = Date.now()) {
   if (game.postponed || game.canceled) return 'void'
   if (game.live) return 'live'
   if (game.score) return 'final'
+  // No announced time: the placeholder would call the game live in the small hours and
+  // over by breakfast. A score or a live feed can still prove it has been played — both
+  // are checked above — so until one of them lands, all that is known is "upcoming".
+  if (timeTbd(game)) return 'upcoming'
   const start = new Date(game.tip).getTime()
   if (now < start) return 'upcoming'
   return now < start + GAME_MS ? 'likely-live' : 'past'
@@ -154,6 +189,9 @@ export const IMMINENT_MS = 15 * 60 * 1000
 // ~game-length fallback expires.
 export function isImminent(game, now = Date.now()) {
   if (game.postponed || game.canceled || game.live || game.score) return false
+  // Nothing to be imminent about: the window would open 15 minutes before a midnight
+  // that is not the tip, and close long before the game is actually played.
+  if (timeTbd(game)) return false
   const start = new Date(game.tip).getTime()
   return now >= start - IMMINENT_MS && now < start + GAME_MS
 }

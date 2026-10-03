@@ -281,6 +281,16 @@ function normalizeEvent(ev, forcedType) {
     // ESPN emits UTC ("2026-07-19T17:00Z"). Kept as an absolute instant so it can be
     // rendered into any IANA zone — same contract as world-cup-viewer's `ko`.
     tip: new Date(ev.date).toISOString(),
+    // ... EXCEPT when there is no time to emit. `timeValid: false` means ESPN has only
+    // set the DATE, and `tip` is its placeholder for it: midnight ET that day.
+    //
+    // `pendingSlot` below has flagged this since the start, which hid the gap: a playoff
+    // game is a pending slot only while one side is still "TBD". The moment the matchup
+    // is decided it becomes a real game and arrives HERE instead — still without a time.
+    // That is how the semifinals of 2026-10-11 and 10-14 were committed with a bare
+    // 04:00Z tip and rendered as "9:00 PM" on the evening BEFORE, in Mountain time, for
+    // games whose own status line still read "TBD".
+    timeTbd: c.timeValid === false || undefined,
     seasonType,
     home: home.team.abbreviation,
     away: away.team.abbreviation,

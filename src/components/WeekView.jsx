@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { dayKey, todayKey, formatTime } from '../utils/time.js'
+import { todayKey, gameDayKey, gameTime } from '../utils/time.js'
 import { TEAM_BY_ABBR } from '../data/teams.js'
 import { useFollow } from '../context/follow.jsx'
 import TeamLogo from './TeamLogo.jsx'
@@ -51,7 +51,7 @@ function Cell({ dayGames, tz, isToday, hideScores, onOpen }) {
               <span className="wk-allstar-teams">
                 {g.awayName || g.away} · {g.homeName || g.home}
               </span>
-              {!g.score && <span className="wk-time">{formatTime(g.tip, tz)}</span>}
+              {!g.score && <span className="wk-time">{gameTime(g, tz)}</span>}
               {done && <span className="wk-pts">{as} – {hs}</span>}
             </button>
           )
@@ -74,7 +74,7 @@ function Cell({ dayGames, tz, isToday, hideScores, onOpen }) {
               <span className="wk-abbr">{g.home}</span>
               {done && <span className={`wk-pts ${hs > as ? 'won' : ''}`}>{hs}</span>}
             </span>
-            {!g.score && <span className="wk-time">{formatTime(g.tip, tz)}</span>}
+            {!g.score && <span className="wk-time">{gameTime(g, tz)}</span>}
           </button>
         )
       })}
@@ -90,7 +90,7 @@ export default function WeekView({ games, tz, hideScores, onOpen }) {
   const byDay = useMemo(() => {
     const map = new Map()
     for (const g of games) {
-      const key = dayKey(g.tip, tz)
+      const key = gameDayKey(g, tz)
       if (!map.has(key)) map.set(key, [])
       map.get(key).push(g)
     }
