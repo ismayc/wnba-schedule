@@ -130,9 +130,15 @@ describe('the schedule list', () => {
   it('groups the game under its own date and says the time is unknown', () => {
     render(<ScheduleView games={[TBD]} tz={PHX} showPast onOpen={() => {}} />)
     expect(screen.getByText('Time TBD')).toBeInTheDocument()
-    // The day heading is rendered from the bucket key; Oct 10 would be the bug.
-    const headings = document.body.textContent
-    expect(headings).toMatch(/Oct(ober)? 11/)
-    expect(headings).not.toMatch(/Oct(ober)? 10/)
+    // Asserted on the day section's own anchor, not its heading: the heading reads
+    // "Today" when the clock happens to be on the game's date, which is precisely the
+    // kind of clock-dependent assertion rehearse-clock.mjs exists to catch — it caught
+    // this one, on 2026-10-11.
+    const own = document.getElementById('day-2026-10-11')
+    expect(own).toBeTruthy()
+    expect(own.textContent).toContain('Time TBD')
+    // The bug put it here, the evening before, in a zone seven hours behind Eastern.
+    expect(document.getElementById('day-2026-10-10')).toBeNull()
   })
 })
+
