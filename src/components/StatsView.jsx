@@ -137,8 +137,8 @@ function SeasonTeams({ teams, onPickTeam }) {
 export function Leaders({ getRows, onPickTeam, onPickPlayer }) {
   const [cat, setCat] = useState(LEADER_CATEGORIES[0])
   const rows = useMemo(() => getRows(cat), [getRows, cat])
-  // rows is always non-empty with a positive top value for every committed category, so
-  // this empty/zero guard can't fire.
+  // rows is empty only before a season's first stats are posted (fetchLeaders commits no
+  // players then); a zero top value can't happen, so the `|| 1` is just a divide guard.
   /* v8 ignore next */
   const max = rows[0]?.value || 1
   const isPct = cat.key.endsWith('Pct')
@@ -164,6 +164,9 @@ export function Leaders({ getRows, onPickTeam, onPickPlayer }) {
         </div>
       </div>
 
+      {rows.length === 0 && (
+        <p className="empty">No player stats yet this season. Leaders appear once ESPN posts them.</p>
+      )}
       <table className="leaders">
         <tbody>
           {rows.map((p) => (

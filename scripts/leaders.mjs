@@ -51,6 +51,14 @@ const round = (v, p = 1) =>
 const precisionFor = (key) =>
   key === 'points' || key === 'doubleDouble' || key === 'tripleDouble' ? 0 : 4
 
+// True unless the byathlete payload names a different season than the one requested.
+// Before a season's first stats are posted, ESPN can answer the new season with the
+// PREVIOUS one's board, flagged only in `requestedSeason` (seen on the NBA sibling's
+// opening night, 2026-10-20). A payload without `requestedSeason` is taken at its word:
+// for a season ESPN has not opened yet it carries no athletes at all.
+export const servesSeason = (data, season) =>
+  data?.requestedSeason?.year == null || String(data.requestedSeason.year) === String(season)
+
 // Turn the byathlete response into the committed PLAYERS array.
 export function parseLeaders(data) {
   // The feed's authoritative column order, per category: name → index.

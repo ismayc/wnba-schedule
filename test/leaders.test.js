@@ -4,6 +4,7 @@ import {
   parseAthleteSeason,
   parseSeasonTeams,
   resolveSeasonTeams,
+  servesSeason,
 } from '../scripts/leaders.mjs'
 
 // ESPN's published column order (data.categories[].names) for each category.
@@ -228,5 +229,20 @@ describe('resolveSeasonTeams', () => {
     const p = resolveSeasonTeams({ teams: [], current: 'SEA', gamesPlayed: 5 }, undefined)
     expect(p.teams).toEqual([{ abbr: 'SEA', gp: 5 }])
     expect(p.team).toBe('SEA')
+  })
+})
+
+// On the NBA sibling's opening night (2026-10-20) byathlete?season=2027 returned the
+// 2025-26 board, flagged only by requestedSeason.year 2026 while currentSeason read 2027.
+describe('servesSeason', () => {
+  it('rejects a payload that answers with another season', () => {
+    expect(servesSeason({ requestedSeason: { year: 2026 }, currentSeason: { year: 2027 } }, 2027)).toBe(false)
+  })
+  it('accepts the season asked for, number or string', () => {
+    expect(servesSeason({ requestedSeason: { year: 2027 } }, 2027)).toBe(true)
+    expect(servesSeason({ requestedSeason: { year: 2026 } }, '2026')).toBe(true)
+  })
+  it('takes a payload without requestedSeason at its word', () => {
+    expect(servesSeason({}, 2027)).toBe(true)
   })
 })

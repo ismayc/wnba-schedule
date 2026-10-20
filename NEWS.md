@@ -4,6 +4,15 @@ A dated changelog for The WNBA Schedule. Each heading is a calendar
 day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-10-20
+
+- **A new season's stats can no longer show last season's leaders.** On the NBA
+  sibling's opening night, ESPN's player-stats feed answered season 2027 with the
+  2025-26 board, flagged only in `requestedSeason.year`. The WNBA fetcher now skips the
+  feed's players when it names a different season (the roster walk still adds anyone with
+  games this season), and the League leaders card says "No player stats yet this season"
+  when the board is empty. No change to today's data: the 2026 feed answers 2026.
+
 ## 2026-10-03
 
 - **A failed issue call no longer turns a fresh data-freshness run red.** At 21:47 UTC

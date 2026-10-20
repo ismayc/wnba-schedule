@@ -158,3 +158,13 @@ describe('StatsView coverage', () => {
     expect(container.querySelector('.race tr.row-elim')).toBeInTheDocument()
   })
 })
+
+// Before a season's first stats are posted fetchLeaders commits no players, so the card
+// says so instead of rendering an empty table.
+describe('Leaders before the season has stats', () => {
+  it('says there are no stats yet', () => {
+    const { container } = render(<Leaders getRows={() => []} />)
+    expect(screen.getByText(/No player stats yet this season/)).toBeInTheDocument()
+    expect(container.querySelectorAll('.leaders tr')).toHaveLength(0)
+  })
+})

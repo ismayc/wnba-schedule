@@ -15,6 +15,7 @@ import {
   parseAthleteSeason,
   parseSeasonTeams,
   resolveSeasonTeams,
+  servesSeason,
 } from './leaders.mjs'
 import { CONCURRENCY, mapLimit, fetchRetry, getJson } from './lib/fetch.mjs'
 import { createDataWriter } from './lib/stamp.mjs'
@@ -602,7 +603,11 @@ export async function fetchLeaders(season = SEASON, teams) {
   const d = await getJson(
     `${WEB}/statistics/byathlete?region=us&lang=en&season=${season}&seasontype=2&limit=300`
   )
-  const byId = new Map(parseLeaders(d).map((p) => [String(p.id), p]))
+  // An off-season answer yields no feed players; the roster walk below still finds anyone
+  // with games this season, because the per-athlete rows are filtered by season year.
+  if (!servesSeason(d, season))
+    console.warn(`  byathlete answered season ${d.requestedSeason.year}, not ${season}; skipping its players`)
+  const byId = new Map((servesSeason(d, season) ? parseLeaders(d) : []).map((p) => [String(p.id), p]))
 
   // byathlete alone is not the league. It answered with 128 of 207 rostered players in
   // 2026 — no Ionescu, Plum, Collier or Sabally — and in 2025 it omitted Angel Reese, the
