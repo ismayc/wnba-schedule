@@ -27,11 +27,17 @@ const ION = 'ION'
 const CNBC = 'CNBC'
 const NBATV = 'NBA TV'
 
+// Matching is case-insensitive because ESPN changes the case of a network's name
+// without notice (the NFL feed turned "FOX" into "Fox" on October 5, 2026, and exact
+// matching then read every Fox game as on no service).
+const nameKey = (n) => String(n).toLowerCase()
+const nameSet = (names) => new Set(names.map(nameKey))
+
 // carries(...names) → a matcher that's true when a game's broadcast list names any
 // of them.
 const carries = (...names) => {
-  const set = new Set(names)
-  return (broadcast) => broadcast.some((n) => set.has(n))
+  const set = nameSet(names)
+  return (broadcast) => broadcast.some((n) => set.has(nameKey(n)))
 }
 
 // Ordered streaming-first, then live-TV bundles. This is also the display order for
@@ -55,7 +61,7 @@ export const SERVICE_CATALOG = [
 // service matches it (it's US-national cable, not a local feed); TSN is deliberately
 // NOT here, so it stays pickable — that's the only way a Canadian viewer can mark
 // Tempo games watchable.
-const NATIONAL_NAMES = new Set([
+const NATIONAL_NAMES = nameSet([
   ESPN,
   ABC,
   CBS,
@@ -83,7 +89,7 @@ export function localChannelCatalog(games) {
   const teamsByName = new Map()
   for (const g of games) {
     for (const b of g.broadcast || []) {
-      if (NATIONAL_NAMES.has(b)) continue
+      if (NATIONAL_NAMES.has(nameKey(b))) continue
       const prev = teamsByName.get(b)
       const pair = [g.home, g.away]
       teamsByName.set(b, new Set(prev ? pair.filter((t) => prev.has(t)) : pair))
@@ -116,8 +122,8 @@ export const SERVICE_BY_KEY = Object.fromEntries(SERVICE_CATALOG.map((s) => [s.k
 // broadcast name, so their underlying network (ESPN, NBC, …) is left in place.
 export function broadcastNotBadged(broadcast, watched) {
   if (!broadcast?.length) return []
-  const shown = new Set((watched || []).map((s) => s.label))
-  return broadcast.filter((b) => !shown.has(b))
+  const shown = nameSet((watched || []).map((s) => s.label))
+  return broadcast.filter((b) => !shown.has(nameKey(b)))
 }
 
 // The viewer's selected services (by key) that carry this game, in catalog order.

@@ -22,6 +22,17 @@ describe('watchableServices', () => {
     expect(labels(['Paramount+', 'CBS'], ['paramount'])).toEqual(['Paramount+'])
   })
 
+  it('matches a network whatever case ESPN spells it in', () => {
+    const keys = ['youtubetv', 'disney']
+    const asWritten = labels(['ESPN'], keys)
+    expect(asWritten).toEqual(['Disney+ / ESPN+', 'YouTube TV'])
+    expect(labels(['espn'], keys)).toEqual(asWritten)
+    expect(labels(['Espn'], keys)).toEqual(asWritten)
+    // A different-case national name is still national, and still counts as badged.
+    expect(localChannelCatalog([{ home: 'A', away: 'B', broadcast: ['espn'] }])).toEqual([])
+    expect(broadcastNotBadged(['PEACOCK'], [{ label: 'Peacock' }])).toEqual([])
+  })
+
   it('only reports services the viewer has selected', () => {
     // The game is on ESPN, but the viewer only has Peacock.
     expect(labels(['ESPN'], ['peacock'])).toEqual([])
