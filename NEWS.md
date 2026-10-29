@@ -4,6 +4,15 @@ A dated changelog for The WNBA Schedule. Each heading is a calendar
 day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-10-29
+
+- **Spoiler-free mode no longer gives away overtime** (reported on the NFL sibling as
+  issue #1). With scores hidden, a final still read "Final/OT", which says the game was
+  tied after regulation. Finals now read only "Final" on the game cards. A live game
+  reads only "LIVE" on the card and the next-game banner, since an "OT" badge (or a "Q4"
+  badge that later changes) tells the same story; the badge tooltip drops ESPN's clock
+  too. The game popout already hid all of this until "Reveal score".
+
 ## 2026-10-20
 
 - **A new season's stats can no longer show last season's leaders.** On the NBA

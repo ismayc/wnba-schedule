@@ -39,6 +39,29 @@ describe('GameCard coverage', () => {
     expect(c2.querySelector('.live-badge').getAttribute('title')).toContain('Live —')
   })
 
+  // Spoiler-free: an OT tag, final or live, says the game was tied after regulation.
+  it('shows no overtime and no live period in spoiler-free mode', () => {
+    const { container, unmount } = render(
+      <GameCard game={{ ...base, score: [90, 82], ot: 2 }} tz={TZ} hideScores />
+    )
+    expect(container.querySelector('.final-badge').textContent).toBe('Final')
+    unmount()
+    // With scores shown, the suffix reads as before.
+    const { container: c0, unmount: u0 } = render(<GameCard game={{ ...base, score: [90, 82], ot: 1 }} tz={TZ} />)
+    expect(c0.querySelector('.final-badge').textContent).toBe('Final/OT')
+    u0()
+    const { container: c1 } = render(
+      <GameCard
+        game={{ ...base, score: undefined, live: true, period: 5, statusLabel: 'OT 5:12' }}
+        tz={TZ}
+        hideScores
+      />
+    )
+    const badge = c1.querySelector('.live-badge')
+    expect(badge.textContent.trim()).toBe('● LIVE')
+    expect(badge.getAttribute('title')).not.toMatch(/OT/)
+  })
+
   it('labels a canceled game distinctly from a postponed one', () => {
     render(<GameCard game={{ ...base, score: undefined, canceled: true }} tz={TZ} />)
     expect(screen.getByText('Canceled')).toBeInTheDocument()

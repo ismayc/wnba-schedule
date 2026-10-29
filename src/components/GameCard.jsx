@@ -8,7 +8,10 @@ import { LEAGUE } from '../config/league.js'
 
 // Halftime and end-of-quarter are stable states; a running clock is not. Falls back
 // to ESPN's own label when the period is unknown.
-export function livePeriod(game) {
+// Spoiler-free mode shows only LIVE: an OT label says the game was tied after
+// regulation, and a badge that kept Q1-Q4 would give that away when it switched.
+export function livePeriod(game, hideScores = false) {
+  if (hideScores) return 'LIVE'
   const label = game.statusLabel || ''
   if (/half/i.test(label)) return 'HALF'
   if (/end/i.test(label)) return label.toUpperCase()
@@ -52,20 +55,26 @@ function Side({ abbr, score, winner, hideScores }) {
 
 // The when-column: live period, void badge, final, or tip time — shared by the regular
 // and All-Star cards.
-function Timing({ game, tz, state }) {
+function Timing({ game, tz, state, hideScores }) {
   return (
     <div className="game-when">
       {state === 'live' ? (
         // A basketball score changes every ~35 seconds, so anything shown here is stale
         // by up to one refresh. The period is durable enough to display; the exact game
         // clock is not, so it stays in the tooltip.
-        <span className="live-badge" title={`${game.statusLabel || 'Live'} — as of the last refresh`}>
-          ● {livePeriod(game)}
+        <span
+          className="live-badge"
+          title={`${(!hideScores && game.statusLabel) || 'Live'} — as of the last refresh`}
+        >
+          ● {livePeriod(game, hideScores)}
         </span>
       ) : state === 'void' ? (
         <span className="void-badge">{game.canceled ? 'Canceled' : 'Postponed'}</span>
       ) : game.score ? (
-        <span className="final-badge">Final{game.ot ? (game.ot > 1 ? `/${game.ot}OT` : '/OT') : ''}</span>
+        // The OT suffix is a spoiler too: it says the game was tied after regulation.
+        <span className="final-badge">
+          Final{game.ot && !hideScores ? (game.ot > 1 ? `/${game.ot}OT` : '/OT') : ''}
+        </span>
       ) : (
         <>
           <span className="time">{gameTime(game, tz)}</span>
@@ -176,7 +185,7 @@ export default function GameCard({ game, tz, hideScores, onOpen }) {
   if (game.seasonType === 'allstar') {
     return (
       <article className="game allstar" role="button" tabIndex={0} onClick={open} onKeyDown={onKey}>
-        <Timing game={game} tz={tz} state={state} />
+        <Timing game={game} tz={tz} state={state} hideScores={hideScores} />
         <div className="allstar-body">
           <span className="allstar-tag">⭐ {game.note || 'All-Star Game'}</span>
           <span className="allstar-matchup">
@@ -205,7 +214,7 @@ export default function GameCard({ game, tz, hideScores, onOpen }) {
 
   return (
     <article className={`game state-${state}`} role="button" tabIndex={0} onClick={open} onKeyDown={onKey}>
-      <Timing game={game} tz={tz} state={state} />
+      <Timing game={game} tz={tz} state={state} hideScores={hideScores} />
 
       <div className="game-teams">
         <Side abbr={game.away} score={as} winner={awayWon} hideScores={hideScores} />
