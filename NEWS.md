@@ -6,6 +6,9 @@ data/source updates, deployment). Newest day on top.
 
 ## 2026-10-31
 
+- **Spoiler-free brackets no longer show how long a series ran.** Every series now shows
+  its full row of hollow game dots, and the next-game line is hidden, since both say
+  whether a series is over. The games are still on the schedule.
 - **Spoiler-free mode keeps only the tipoff alert.** Lead-change, close-finish, and final alerts say who leads,
   how close it is, or who won, so with scores hidden only the tipoff alert shows.
 - **A close finish in overtime now says "in overtime".** The close-finish alert now says

@@ -19,17 +19,31 @@ describe('Bracket in spoiler-free mode', () => {
     expect(container.querySelectorAll('.bx-won, .bx-lost, .bx-series.is-done')).toHaveLength(0)
   })
 
-  it('shows played games as neutral dots with no score in the label', async () => {
-    const onOpen = vi.fn()
-    const { container } = render(
-      <Bracket games={PLAYOFFS_2025} tz={TZ} onOpen={onOpen} hideScores />
-    )
+  it('draws every dot hollow and inert, so the dots do not say how long a series ran', () => {
+    const { container } = render(<Bracket games={PLAYOFFS_2025} tz={TZ} hideScores />)
+    expect(container.querySelectorAll('.dots .dot')).toHaveLength(0)
     expect(container.querySelectorAll('.dot-w, .dot-l')).toHaveLength(0)
-    const dot = container.querySelector('.dots .dot')
-    expect(dot).toHaveClass('dot-played')
-    expect(dot).toHaveAccessibleName(/^Game 1$/)
-    // The dot still opens its game; the detail view does its own hiding.
-    await userEvent.click(dot)
+    // Every series shows its full best-of row of hollow dots, whatever it ran to.
+    for (const row of container.querySelectorAll('.dots')) {
+      expect(row.querySelectorAll('.dot-empty').length).toBe(row.children.length)
+    }
+    expect(container.querySelectorAll('.dot-empty').length).toBeGreaterThan(0)
+  })
+
+  it('drops the next-game line, which says a series is still alive', () => {
+    // Unplay the last postseason game so its series has a next game to show.
+    const last = PLAYOFFS_2025.findLastIndex((g) => g.score && g.game)
+    const games = PLAYOFFS_2025.map((g, i) => (i === last ? { ...g, score: null } : g))
+    const shown = render(<Bracket games={games} tz={TZ} />).container
+    expect(shown.querySelectorAll('.bx-next').length).toBeGreaterThan(0)
+    const hidden = render(<Bracket games={games} tz={TZ} hideScores />).container
+    expect(hidden.querySelectorAll('.bx-next')).toHaveLength(0)
+  })
+
+  it('keeps played dots as handles onto each game when scores are shown', async () => {
+    const onOpen = vi.fn()
+    const { container } = render(<Bracket games={PLAYOFFS_2025} tz={TZ} onOpen={onOpen} />)
+    await userEvent.click(container.querySelector('.dots .dot'))
     expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ seasonType: 'playoffs', game: 1 }))
   })
 
