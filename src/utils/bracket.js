@@ -190,6 +190,33 @@ export function buildBracket(games, { seeds, lengths = SERIES_LENGTH } = {}) {
   }
 }
 
+// Spoiler-free mode: the same bracket with every result taken out. A series keeps its
+// games (so its dots and next tip still show) but loses its win counts, its winner and
+// loser, and its "done" state. A semifinal or Finals slot is filled only because a team
+// WON its way there, so those slots drop their teams and show their feeder labels. The
+// first round is the seeding, which exists before any game, so it keeps its teams.
+const stripResult = (s, order) => ({
+  ...s,
+  order,
+  wins: {},
+  winner: null,
+  loser: null,
+  complete: false,
+})
+
+export function blindBracket(bracket) {
+  const { rounds } = bracket
+  return {
+    ...bracket,
+    rounds: {
+      R1: rounds.R1.map((s) => stripResult(s, s.order)),
+      SF: rounds.SF.map((s) => stripResult(s, [])),
+      Final: rounds.Final.map((s) => stripResult(s, [])),
+    },
+    champion: null,
+  }
+}
+
 // ── Radial geometry ──────────────────────────────────────────────────────────
 // Kept here rather than in the component so it can be tested without a DOM.
 //

@@ -121,6 +121,8 @@ describe('live alerts fire toasts', () => {
 
   it('keeps an existing toast and stacks the next moment on top (line 190)', async () => {
     localStorage.setItem('wnba:alerts', '1')
+    // Scores are hidden by default here, and spoiler-free mode drops the final toast.
+    localStorage.setItem('wnba:spoilerFree', '0')
     // Poll 1 tips the game off; poll 2 finals it. The second pass has to diff the
     // new moment against the toast already on screen, which is the only time the
     // existing-key set is built from a non-empty list.
@@ -164,6 +166,47 @@ describe('live alerts fire toasts', () => {
     // already-seen key set is built from a non-empty stack.
     await waitFor(() => expect(stack).toHaveTextContent('Final'), { timeout: 10_000 })
     expect(stack).toHaveTextContent('Tipoff')
+  })
+
+  it('keeps the tipoff but drops the final toast in spoiler-free mode', async () => {
+    localStorage.setItem('wnba:alerts', '1')
+    localStorage.setItem('wnba:spoilerFree', '1')
+    const finalEvent = () => ({
+      id: LIVE_ID,
+      competitions: [
+        {
+          status: { period: 4, displayClock: '0:00', type: { state: 'post', completed: true, shortDetail: 'Final' } },
+          competitors: [
+            { homeAway: 'home', score: { value: 82 } },
+            { homeAway: 'away', score: { value: 79 } },
+          ],
+        },
+      ],
+    })
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-01-15T12:00:00Z'))
+    let release
+    const gate = new Promise((r) => { release = r })
+    let calls = 0
+    fetch.mockImplementation(async () => {
+      calls += 1
+      if (calls <= 3) return scoreboard([liveEvent()])
+      await gate
+      return scoreboard([finalEvent()])
+    })
+
+    await mount()
+    const stack = await screen.findByRole('status', {}, { timeout: 10_000 })
+    expect(stack).toHaveTextContent('Tipoff')
+    release()
+    // Wait for the poll that carries the final to land, then check that no final
+    // toast (which names the winner and the score) joined the tipoff.
+    await waitFor(() => expect(calls).toBeGreaterThan(3), { timeout: 10_000 })
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 300))
+    })
+    expect(stack).toHaveTextContent('Tipoff')
+    expect(stack).not.toHaveTextContent('Final')
   })
 
   it('lets a toast be dismissed', async () => {

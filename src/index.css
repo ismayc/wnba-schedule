@@ -2176,6 +2176,10 @@ button.drill-row:hover {
 .dot-l {
   background: var(--viz-neg);
 }
+/* Spoiler-free mode: a played game with no win/loss colour. */
+.dot-played {
+  background: var(--text-dim);
+}
 .dot-empty {
   border: 1px solid var(--border);
 }

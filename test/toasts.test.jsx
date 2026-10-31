@@ -34,10 +34,16 @@ describe('Toasts', () => {
     const { rerender } = render(
       <Toasts events={[evt({ kind: 'nailbiter', leader: 'MIN', margin: 3 })]} />
     )
-    expect(screen.getByText('Lynx by 3 in the fourth')).toBeInTheDocument()
+    expect(screen.getByText('Lynx by 3 in the fourth quarter')).toBeInTheDocument()
 
     rerender(<Toasts events={[evt({ kind: 'nailbiter', leader: 'tie', margin: 0 })]} />)
-    expect(screen.getByText('Tied in the fourth')).toBeInTheDocument()
+    expect(screen.getByText('Tied in the fourth quarter')).toBeInTheDocument()
+  })
+
+  it('says overtime, not the fourth quarter, for a close finish past regulation', () => {
+    const ot = { ...game, period: 5 }
+    render(<Toasts events={[evt({ kind: 'nailbiter', game: ot, leader: 'MIN', margin: 2 })]} />)
+    expect(screen.getByText('Lynx by 2 in overtime')).toBeInTheDocument()
   })
 
   it('phrases a final as winner-first, regardless of home or away', () => {

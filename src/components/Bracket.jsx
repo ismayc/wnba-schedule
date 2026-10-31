@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { buildBracket, PLAYOFF_ROUNDS } from '../utils/bracket.js'
+import { buildBracket, blindBracket, PLAYOFF_ROUNDS } from '../utils/bracket.js'
 import { TEAM_BY_ABBR } from '../data/teams.js'
 import { formatDate } from '../utils/time.js'
 import { useFollow } from '../context/follow.jsx'
@@ -11,7 +11,9 @@ import TeamLogo from './TeamLogo.jsx'
 // only per-game handle the bracket offers, so making them inert wasted the one place
 // you'd naturally click to ask "what happened in game 3?". Hollow dots are games that
 // don't exist (a sweep leaves two of them), so they stay inert.
-function SeriesDots({ series, team, onOpen }) {
+// In spoiler-free mode a played dot stays a neutral handle onto its game: no win/loss
+// colour and no score in its label.
+function SeriesDots({ series, team, onOpen, hideScores }) {
   const played = series.games.filter((g) => g.score)
   return (
     <span className="dots">
@@ -19,14 +21,18 @@ function SeriesDots({ series, team, onOpen }) {
         const g = played[i]
         if (!g) return <i key={i} className="dot-empty" aria-hidden="true" />
         const winner = g.score[0] > g.score[1] ? g.home : g.away
-        const label = `Game ${g.game ?? i + 1}: ${TEAM_BY_ABBR[g.away]?.name} ${g.score[1]}, ${
-          TEAM_BY_ABBR[g.home]?.name
-        } ${g.score[0]}`
+        const n = g.game ?? i + 1
+        const label = hideScores
+          ? `Game ${n}`
+          : `Game ${n}: ${TEAM_BY_ABBR[g.away]?.name} ${g.score[1]}, ${
+              TEAM_BY_ABBR[g.home]?.name
+            } ${g.score[0]}`
+        const cls = hideScores ? 'dot-played' : winner === team ? 'dot-w' : 'dot-l'
         return (
           <button
             key={i}
             type="button"
-            className={`dot ${winner === team ? 'dot-w' : 'dot-l'}`}
+            className={`dot ${cls}`}
             title={label}
             aria-label={label}
             onClick={() => onOpen?.(g)}
@@ -37,7 +43,7 @@ function SeriesDots({ series, team, onOpen }) {
   )
 }
 
-function Side({ abbr, label, seed, wins, isWinner, decided, onPick }) {
+function Side({ abbr, label, seed, wins, isWinner, decided, onPick, hideScores }) {
   const team = TEAM_BY_ABBR[abbr]
   const { isFollowed } = useFollow()
 
@@ -60,12 +66,12 @@ function Side({ abbr, label, seed, wins, isWinner, decided, onPick }) {
         <TeamLogo abbr={abbr} size={24} />
         <span className="bx-name">{team.name}</span>
       </button>
-      <span className="bx-wins">{wins}</span>
+      {!hideScores && <span className="bx-wins">{wins}</span>}
     </div>
   )
 }
 
-function Series({ series, onPick, tz, onOpen }) {
+function Series({ series, onPick, tz, onOpen, hideScores }) {
   const [a, b] = series.order
   const decided = series.complete
   const next = series.games.find((g) => !g.score)
@@ -84,6 +90,7 @@ function Series({ series, onPick, tz, onOpen }) {
         isWinner={series.winner === a}
         decided={decided}
         onPick={onPick}
+        hideScores={hideScores}
       />
       <Side
         abbr={b}
@@ -93,10 +100,11 @@ function Series({ series, onPick, tz, onOpen }) {
         isWinner={series.winner === b}
         decided={decided}
         onPick={onPick}
+        hideScores={hideScores}
       />
       <div className="bx-foot">
         <span className="bx-bo">Best of {series.bestOf}</span>
-        {series.games.length > 0 && <SeriesDots series={series} team={a} onOpen={onOpen} />}
+        {series.games.length > 0 && <SeriesDots series={series} team={a} onOpen={onOpen} hideScores={hideScores} />}
         {next && <span className="bx-next">Game {next.game} · {formatDate(next.tip, tz)}</span>}
         {series.live && <span className="bx-live">● LIVE</span>}
       </div>
@@ -110,8 +118,11 @@ function Series({ series, onPick, tz, onOpen }) {
 // through exactly this component. A historical season ships its final standings, only its
 // playoff games, and its OWN series lengths (the Finals grew from best-of-5 to best-of-7
 // in 2025), so it passes `seeds` and `lengths` in rather than having them assumed.
-export function BracketBody({ games, seeds, lengths, tz, onPick, onOpen }) {
-  const bracket = useMemo(() => buildBracket(games, { seeds, lengths }), [games, seeds, lengths])
+export function BracketBody({ games, seeds, lengths, tz, onPick, onOpen, hideScores = false }) {
+  const bracket = useMemo(() => {
+    const built = buildBracket(games, { seeds, lengths })
+    return hideScores ? blindBracket(built) : built
+  }, [games, seeds, lengths, hideScores])
   const { rounds, champion, projected, seeded } = bracket
 
   return (
@@ -132,25 +143,25 @@ export function BracketBody({ games, seeds, lengths, tz, onPick, onOpen }) {
       <div className="bx">
         <div className="bx-col">
           <h4 className="bx-round">{PLAYOFF_ROUNDS.R1}</h4>
-          <Series series={rounds.R1[0]} onPick={onPick} tz={tz} onOpen={onOpen} />
-          <Series series={rounds.R1[1]} onPick={onPick} tz={tz} onOpen={onOpen} />
+          <Series series={rounds.R1[0]} onPick={onPick} tz={tz} onOpen={onOpen} hideScores={hideScores} />
+          <Series series={rounds.R1[1]} onPick={onPick} tz={tz} onOpen={onOpen} hideScores={hideScores} />
         </div>
         <div className="bx-col bx-col-mid">
           <h4 className="bx-round">{PLAYOFF_ROUNDS.SF}</h4>
-          <Series series={rounds.SF[0]} onPick={onPick} tz={tz} onOpen={onOpen} />
+          <Series series={rounds.SF[0]} onPick={onPick} tz={tz} onOpen={onOpen} hideScores={hideScores} />
         </div>
         <div className="bx-col bx-col-final">
           <h4 className="bx-round">{PLAYOFF_ROUNDS.Final}</h4>
-          <Series series={rounds.Final[0]} onPick={onPick} tz={tz} onOpen={onOpen} />
+          <Series series={rounds.Final[0]} onPick={onPick} tz={tz} onOpen={onOpen} hideScores={hideScores} />
         </div>
         <div className="bx-col bx-col-mid">
           <h4 className="bx-round">{PLAYOFF_ROUNDS.SF}</h4>
-          <Series series={rounds.SF[1]} onPick={onPick} tz={tz} onOpen={onOpen} />
+          <Series series={rounds.SF[1]} onPick={onPick} tz={tz} onOpen={onOpen} hideScores={hideScores} />
         </div>
         <div className="bx-col">
           <h4 className="bx-round">{PLAYOFF_ROUNDS.R1}</h4>
-          <Series series={rounds.R1[2]} onPick={onPick} tz={tz} onOpen={onOpen} />
-          <Series series={rounds.R1[3]} onPick={onPick} tz={tz} onOpen={onOpen} />
+          <Series series={rounds.R1[2]} onPick={onPick} tz={tz} onOpen={onOpen} hideScores={hideScores} />
+          <Series series={rounds.R1[3]} onPick={onPick} tz={tz} onOpen={onOpen} hideScores={hideScores} />
         </div>
       </div>
 
@@ -175,7 +186,7 @@ export function BracketBody({ games, seeds, lengths, tz, onPick, onOpen }) {
   )
 }
 
-export default function Bracket({ games, tz, onPick, onOpen }) {
+export default function Bracket({ games, tz, onPick, onOpen, hideScores = false }) {
   return (
     <section className="view">
       <div className="view-head">
@@ -189,7 +200,7 @@ export default function Bracket({ games, tz, onPick, onOpen }) {
         </div>
       </div>
 
-      <BracketBody games={games} tz={tz} onPick={onPick} onOpen={onOpen} />
+      <BracketBody games={games} tz={tz} onPick={onPick} onOpen={onOpen} hideScores={hideScores} />
     </section>
   )
 }
