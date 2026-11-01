@@ -51,7 +51,10 @@ export const SERVICE_CATALOG = [
   { key: 'leaguepass', label: 'WNBA League Pass', kind: 'stream', match: carries('WNBA League Pass') },
   { key: 'youtubetv', label: 'YouTube TV', kind: 'bundle', match: carries(ESPN, ABC, CBS, NBC, USA, ION, CNBC, NBATV) },
   { key: 'hulu', label: 'Hulu + Live TV', kind: 'bundle', match: carries(ESPN, ABC, CBS, NBC, USA, CNBC, NBATV) },
-  { key: 'fubo', label: 'Fubo', kind: 'bundle', match: carries(ABC, CBS, NBC, USA, ION, CNBC) },
+  // Fubo has carried ESPN, ESPN2, ESPNEWS, and ESPNU in every plan since its 2020
+  // Disney deal (confirmed November 1, 2026). The NFL viewer and the hub already count
+  // it; this matcher had left ESPN out since the scaffold.
+  { key: 'fubo', label: 'Fubo', kind: 'bundle', match: carries(ESPN, ABC, CBS, NBC, USA, ION, CNBC) },
   { key: 'sling', label: 'Sling TV', kind: 'bundle', match: carries(ESPN, USA, CNBC, NBATV) },
   { key: 'cable', label: 'Cable / Satellite', kind: 'bundle', match: carries(ESPN, ABC, CBS, NBC, USA, ION, CNBC, NBATV) },
 ]

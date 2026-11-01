@@ -4,6 +4,12 @@ A dated changelog for The WNBA Schedule. Each heading is a calendar
 day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-11-01
+
+- **Fubo now counts ESPN games.** Fubo has carried ESPN in every plan since 2020, but
+  the Fubo matcher had left it out since the app was built, so a Fubo subscriber saw
+  every ESPN game as on no service. Same fix as the NBA viewer.
+
 ## 2026-10-31
 
 - **Spoiler-free brackets no longer show how long a series ran.** Every series now shows

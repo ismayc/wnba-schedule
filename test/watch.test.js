@@ -48,10 +48,11 @@ describe('watchableServices', () => {
   it('lists ALL of a viewer’s many services that carry the game — never capped', () => {
     // A viewer with more services than average, on a nationally-televised (ESPN) game:
     // every bundle/service that carries ESPN is returned, not a truncated subset.
-    expect(labels(['ESPN'], ['youtubetv', 'hulu', 'sling', 'cable', 'disney'])).toEqual([
+    expect(labels(['ESPN'], ['youtubetv', 'hulu', 'fubo', 'sling', 'cable', 'disney'])).toEqual([
       'Disney+ / ESPN+',
       'YouTube TV',
       'Hulu + Live TV',
+      'Fubo',
       'Sling TV',
       'Cable / Satellite',
     ])
