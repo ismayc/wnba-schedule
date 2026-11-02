@@ -4,6 +4,10 @@ A dated changelog for The WNBA Schedule. Each heading is a calendar
 day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-11-02
+
+- **No more sideways page scroll on a phone.** The leaders tables and team panel rosters now stay inside the screen. The scoring-margin labels also clear their bars on a small laptop, and the schedule's time column has room for any kickoff time.
+
 ## 2026-11-01
 
 - **Fubo now counts ESPN games.** Fubo has carried ESPN in every plan since 2020, but

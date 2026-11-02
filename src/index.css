@@ -1110,7 +1110,7 @@ select:hover,
    runs the full height. Ten rows read as one board rather than ten boxes. */
 .game {
   display: grid;
-  grid-template-columns: 96px 1fr;
+  grid-template-columns: 126px 1fr;
   gap: 16px;
   align-items: center;
   background: transparent;
@@ -4088,4 +4088,40 @@ button.drill-row:hover {
   margin-top: 0;
   padding-top: 0;
   border-top: 0;
+}
+
+/* Phone leaders: the name wraps and the bar gives up its minimum, or a long name pushes
+   the value column off the screen and the whole page scrolls sideways (November 2, 2026). */
+@media (max-width: 460px) {
+  .lead-name {
+    white-space: normal;
+  }
+  .lead-bar {
+    width: 30%;
+    min-width: 28px;
+  }
+}
+@media (max-width: 460px) {
+  /* A button centers its text, which shows once a long name takes two lines. */
+  .lead-player {
+    text-align: left;
+  }
+}
+
+/* Team panel roster: minmax(0, ...) lets a row stay inside the panel on a small phone. */
+.tp-roster {
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (max-width: 360px) {
+  .tp-player {
+    flex-wrap: wrap;
+  }
+}
+
+/* The Stats page puts this chart in a half-width column on a small laptop, so the track is
+   as narrow as a phone's and needs the same arm scale (November 2, 2026). */
+@media (max-width: 1280px) {
+  .margin {
+    --arm-scale: 0.68;
+  }
 }
