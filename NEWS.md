@@ -6,6 +6,7 @@ data/source updates, deployment). Newest day on top.
 
 ## 2026-11-02
 
+- **An unannounced channel now says "Channel TBA".** ESPN lists no channel until a few days before a game, and the card and game detail used to show nothing. Only games still to come get the tag.
 - **No more sideways page scroll on a phone.** The leaders tables and team panel rosters now stay inside the screen. The scoring-margin labels also clear their bars on a small laptop, and the schedule's time column has room for any kickoff time.
 
 ## 2026-11-01

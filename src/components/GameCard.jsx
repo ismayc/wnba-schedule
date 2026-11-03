@@ -94,7 +94,7 @@ function Timing({ game, tz, state, hideScores }) {
 }
 
 // The 📺 badge + the leftover networks, shared by both card types.
-function Meta({ game, watch, lead, extra }) {
+function Meta({ game, watch, lead, extra, channelTba }) {
   const meta = []
   if (game.venue) meta.push(game.city ? `${game.venue}, ${game.city}` : game.venue)
   // Drop any network already shown as a badge (e.g. "Peacock") so it isn't repeated; a
@@ -108,6 +108,7 @@ function Meta({ game, watch, lead, extra }) {
       {meta.map((m) => (
         <span key={m}>{m}</span>
       ))}
+      {channelTba && <span className="net-tba">Channel TBA</span>}
       {watch.length > 0 && (
         <span className="watch" aria-label={`Watch on ${watch.map((s) => s.label).join(', ')}`}>
           <span className="watch-tv" aria-hidden="true">
@@ -225,6 +226,7 @@ export default function GameCard({ game, tz, hideScores, onOpen }) {
       <Meta
         game={game}
         watch={watch}
+        channelTba={state === 'upcoming' && !game.broadcast?.length}
         lead={game.note && <span className="note">{game.note}</span>}
         extra={
           state === 'upcoming' &&

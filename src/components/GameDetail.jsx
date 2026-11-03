@@ -267,6 +267,12 @@ export default function GameDetail({ game, games, tz, hideScores, onClose, onPic
               </dd>
             </div>
           )}
+          {state === 'upcoming' && !game.broadcast?.length && (
+            <div>
+              <dt>Watch</dt>
+              <dd><span className="net-tba">Channel TBA</span></dd>
+            </div>
+          )}
           {game.broadcast?.length && (
             <div>
               <dt>Watch</dt>
