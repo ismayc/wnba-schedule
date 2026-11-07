@@ -20,7 +20,7 @@ snapshot of the season.
 
 | View | What it does |
 |---|---|
-| 📋 **Schedule** | Every game grouped by the calendar day *you* see, opening on today — previous days are hidden behind a toggle. Filter by team or by the teams you follow. |
+| 📋 **Schedule** | Every game grouped by the calendar day *you* see, opening on today — previous days are hidden behind a toggle. Filter by team or by the teams you follow. A playoff game whose opponent is still being decided shows as a card naming the series that will fill it. |
 | 📆 **Week** | A Sun–Sat grid you can page through, collapsing to a two-column agenda on a phone. |
 | 📊 **Regular Season** | League seeding with the playoff cutline, or conference tables. W/L, PCT, GB, home/road splits, last-10, streak, net rating. |
 | 🔀 **Scenarios** | Pick winners for the games left and every combination of the rest is played out under the official tiebreakers. A grid shows each seed every team can still reach (as a share of the possible outcomes). Tap a cell to see exactly which combinations of results produce it (with how many outcomes each covers) and which tiebreakers decide it; tap a combination to pick it. Point-differential tiebreaks are checked against every margin a picked game could finish by, and seeds that depend on them are marked. Once every game is picked, it shows the exact seeding, how each tie broke, and the first-round pairings. |
@@ -58,6 +58,11 @@ regenerates the data, runs the test suite against it, and commits to `main` if i
 Standings are
 *derived* from the committed scores, so a bad refresh surfaces as a failing test rather
 than a quietly wrong table.
+
+Two more workflows watch that pipeline. `data-freshness.yml` runs every 6 hours and goes
+red, with an issue, when no refresh has reached ESPN recently. `new-season-watch.yml` runs
+daily, and when ESPN posts next season's schedule it opens an issue and drafts the
+rollover PR, because a rollover is a decision and not an automatic step.
 
 ### Three feed quirks worth knowing
 
@@ -130,7 +135,7 @@ of a best-of-N takes exactly ceil(N/2) games, so N = 2 × wins − 1. A 4-0 swee
 a best-of-7. Nothing is hardcoded, so the next format change is picked up automatically.
 
 Each season commits its **final standings**, its **playoff games**, its **season totals**
-and its **leader boards**; the ~200 regular-season games are summarised into the standings
+and its **leader boards**; the 216 to 286 regular-season games are summarized into the standings
 rather than committed. The bracket is rebuilt at runtime by the same `buildBracket()` the
 live season uses, and box scores are fetched from ESPN by event id, so every archived game
 opens one.
