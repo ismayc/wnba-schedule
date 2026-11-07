@@ -26,32 +26,36 @@ snapshot of the season.
 | 🔀 **Scenarios** | Pick winners for the games left and every combination of the rest is played out under the official tiebreakers. A grid shows each seed every team can still reach (as a share of the possible outcomes). Tap a cell to see exactly which combinations of results produce it (with how many outcomes each covers) and which tiebreakers decide it; tap a combination to pick it. Point-differential tiebreaks are checked against every margin a picked game could finish by, and seeds that depend on them are marked. Once every game is picked, it shows the exact seeding, how each tie broke, and the first-round pairings. |
 | 🏆 **Playoffs** | The bracket, where each slot is a best-of series. Projected from current standings until the real field is set. |
 | 🎯 **Radial** | The same bracket as concentric rings — seeds outside, the title in the middle. |
-| 📈 **Stats** | Season totals, league leaders across 8 categories, scoring margin, and the playoff race with magic numbers. |
+| 📈 **Stats** | Season totals, league leaders across 9 categories, scoring margin, and the playoff race with magic numbers. |
 | 📜 **History** | Every completed season back to **2022**, in three modes: one season in full (bracket + final table), that season's **stats** (totals, all leaderboards, scoring margin), and every **champion** with its seed and the Finals format it won under. |
 
 **Star a team** from any game card, standings row, or team panel to highlight it
 across every view, filter the schedule to "My teams", and scope live alerts to it.
 Clicking any team opens a **team panel** — splits, form, leading scorers, and what's
 next. Each game card also flags **where to watch** — a 📺 badge naming the streaming
-services that carry it (YouTube TV, Prime Video, Peacock). Plus: light/dark themes,
+services and live-TV bundles that carry it (YouTube TV, Fubo, Peacock, Prime Video, and
+more). An upcoming game with no channel yet shows "Channel TBA". Plus: light/dark themes,
 spoiler-free mode (**on by default** — one 🙈 toggle reveals scores, and the choice is
-remembered per-device), shareable URLs, live alerts for notable moments, a game-detail modal
-with a quarter line score and season series, `.ics` calendar export (whole season or one
-team's), and installable-PWA support.
+remembered per-device; it also hides overtime, bracket results, and series length, and
+only the tipoff alert fires), shareable URLs, live alerts for notable moments, a game-detail modal
+with a quarter line score and season series, an auto-updating `webcal://` calendar subscription (Netlify host only) plus `.ics`
+export (whole season or one team's), and installable-PWA support.
 
 ## Data
 
 Everything comes from ESPN's public, keyless, CORS-open feeds.
 
 **The season is committed, not fetched.** `scripts/fetch-schedule.mjs` generates
-`src/data/schedule.js`, `src/data/teams.js`, and `src/data/leaders.js`, and mirrors team
+`src/data/schedule.js`, `src/data/teams.js`, `src/data/leaders.js`, and `src/data/meta.js`
+(which feeds the footer's "Data as of" time), and mirrors team
 logos into `public/logos/`. The app therefore renders a complete season — including
 every result so far — with **zero requests on load**. At runtime, ESPN's scoreboard is
 polled only to overlay games that are live or just finished (every 30s while a game is
 in progress, 2 min otherwise, never once the season ends).
 
 That snapshot is refreshed twice daily by `.github/workflows/refresh-data.yml`, which
-regenerates the data, runs the test suite against it, and opens a PR. Standings are
+regenerates the data, runs the test suite against it, and commits to `main` if it passes.
+Standings are
 *derived* from the committed scores, so a bad refresh surfaces as a failing test rather
 than a quietly wrong table.
 
@@ -210,14 +214,12 @@ a subpath (GitHub Pages `/wnba-schedule/`) with no separate build.
 
 - **GitHub Pages** deploys automatically from `ci.yml` on every push to `main`, gated on
   tests passing.
-- **Netlify** deploys from the same workflow, but only once `NETLIFY_AUTH_TOKEN` is set
-  as a repository secret (`NETLIFY_SITE_ID` is already stored as a repo variable). Until
-  then that step is skipped and Netlify can be updated with
-  `npx netlify-cli deploy --prod --dir dist`.
+- **Netlify** deploys through its own GitHub integration, building from `netlify.toml` on
+  each push (there is no Netlify job in `ci.yml`).
 
 ## Credits
 
-Created by [Chester Ismay](https://chester.rbind.io). Source on
+Created by [Chester Ismay](https://chesterismay.com). Source on
 [GitHub](https://github.com/ismayc/wnba-schedule).
 
 Unofficial fan project. Not affiliated with, endorsed by, or sponsored by the WNBA.
