@@ -271,8 +271,10 @@ function normalizeEvent(ev, forcedType) {
   const score = st.completed
     ? [Number(home.score?.value ?? home.score), Number(away.score?.value ?? away.score)]
     : undefined
-  // Regulation is 4 quarters; anything beyond is overtime.
-  const otPeriods = c.status?.period > 4 ? c.status.period - 4 : undefined
+  // Regulation is 4 quarters; anything beyond is overtime. Like the score, only for a
+  // completed game: an NFL refresh during a live overtime (November 8, 2026) committed
+  // overtime on an unscored game, and its refresh gate failed.
+  const otPeriods = st.completed && c.status?.period > 4 ? c.status.period - 4 : undefined
 
   const venue = c.venue || {}
   const broadcast = broadcastNames(c)

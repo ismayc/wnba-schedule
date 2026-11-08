@@ -26,6 +26,19 @@ const event = (over = {}) => ({
 const KNOWN = new Set(['MIN', 'NY', 'LV', 'IND'])
 
 describe('playoffsFromScoreboard', () => {
+  // On November 8, 2026 the NFL sibling's refresh ran during a live overtime and committed
+  // overtime on a game with no score. Overtime, like the score, waits for the final.
+  it('marks overtime only on a completed game', () => {
+    const at = (id, completed) => {
+      const ev = event({ id })
+      ev.competitions[0].status = { period: 5, type: { name: completed ? 'STATUS_FINAL' : 'STATUS_IN_PROGRESS', completed } }
+      return ev
+    }
+    const byId = Object.fromEntries(playoffsFromScoreboard([at('done', true), at('live', false)], KNOWN).map((g) => [g.id, g]))
+    expect(byId.done.ot).toBe(1)
+    expect([byId.live.ot, byId.live.score]).toEqual([undefined, undefined])
+  })
+
   it('reads a first-round game from the scoreboard shape', () => {
     expect(playoffsFromScoreboard([event()], KNOWN)).toEqual([
       expect.objectContaining({

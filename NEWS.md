@@ -4,6 +4,10 @@ A dated changelog for The WNBA Schedule. Each heading is a calendar
 day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-11-08
+
+- **A refresh during a live overtime no longer marks overtime on an unfinished game.** Overtime was set from the period number while the score waited for the final, so a refresh that ran during an overtime game committed an overtime mark with no score. Overtime now waits for the final too. Found when the NFL viewer's refresh gate failed on a live overtime game on November 8, 2026.
+
 ## 2026-11-07
 
 - **The README is up to date again.** It now says the refresh commits to `main` instead of opening a PR, that Netlify builds through its own GitHub integration, and that leaders cover 9 categories, and it covers spoiler-free mode, Channel TBA, and the `webcal://` subscription.
