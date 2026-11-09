@@ -6,6 +6,7 @@ data/source updates, deployment). Newest day on top.
 
 ## 2026-11-08
 
+- **The clock rehearsal in CI runs its seven dates in parallel.** It ran them one after another, which made that job take 10 minutes. Each date is now its own job, with the same dates, the same command, and the same coverage gate, as in the NBA viewer since September 29, 2026.
 - **A refresh during a live overtime no longer marks overtime on an unfinished game.** Overtime was set from the period number while the score waited for the final, so a refresh that ran during an overtime game committed an overtime mark with no score. Overtime now waits for the final too. Found when the NFL viewer's refresh gate failed on a live overtime game on November 8, 2026.
 
 ## 2026-11-07
