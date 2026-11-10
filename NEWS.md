@@ -4,6 +4,11 @@ A dated changelog for The WNBA Schedule. Each heading is a calendar
 day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-11-10
+
+- **The refresh runs again after ESPN retired the Connecticut Sun.** On November 1, 2026, ESPN marked Connecticut (id 18) inactive and took it off its current team list, as its 2027 season lists the Houston Comets in that place. The 2026 season still has all 15 teams, but the refresh kept only teams on the current list, so the roster guard refused every run for 9 days ("the team list changed from 15 teams to 14. gone: CON"; issue #8). A team in the season's conferences that is not on the current list now comes from its own team record. Team schedules are fetched by team id, because ESPN answers 400 for an inactive team's abbreviation.
+- **Players who are on no roster today stay in the leaderboards.** ESPN also emptied Connecticut's roster, so 6 players who spent 2026 there (Brittney Griner among them) dropped out of the player list. A player in the committed list whom no roster and no leaders feed turns up is now looked up again by id, and the row is rebuilt from that player's live season stats.
+
 ## 2026-11-08
 
 - **The clock rehearsal in CI runs its seven dates in parallel.** It ran them one after another, which made that job take 10 minutes. Each date is now its own job, with the same dates, the same command, and the same coverage gate, as in the NBA viewer since September 29, 2026.

@@ -15,11 +15,14 @@ import {
   parseAthleteSeason,
   parseSeasonTeams,
   resolveSeasonTeams,
+  committedOffRoster,
   servesSeason,
 } from './leaders.mjs'
 import { CONCURRENCY, mapLimit, fetchRetry, getJson } from './lib/fetch.mjs'
 import { createDataWriter } from './lib/stamp.mjs'
+import { splitFranchises } from './lib/franchises.mjs'
 import { SEASON as COMMITTED_SEASON, TEAMS as COMMITTED_TEAMS } from '../src/data/teams.js'
+import { PLAYERS as COMMITTED_PLAYERS } from '../src/data/leaders.js'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 // Both feeds live on site.web.api, NOT site.api. They serve the same `apis/site/v2`
@@ -203,14 +206,16 @@ export async function fetchTeams(season = SEASON) {
     fetchFranchiseIds(season),
   ])
   const listed = d.sports[0].leagues[0].teams.map(({ team: t }) => t)
-  // An empty set means the group feed itself is unusable. Filtering on it would drop
-  // every team and report the wrong problem, so leave the list alone and let
-  // guardAgainstRosterChange be the backstop it already is.
+  // See scripts/lib/franchises.mjs for both directions the two feeds disagree in.
   if (!franchises.size) console.warn('  ⚠ no conference membership available; not filtering')
-  const teams = franchises.size ? listed.filter((t) => franchises.has(t.id)) : listed
-  const dropped = listed.filter((t) => !teams.includes(t))
+  const { teams, dropped, missing } = splitFranchises(listed, franchises)
   if (dropped.length)
     console.log(`  ignored ${dropped.length} non-franchise: ${dropped.map((t) => t.abbreviation).join(' ')}`)
+  if (missing.length) {
+    const added = await Promise.all(missing.map((id) => getJson(`${SITE}/teams/${id}`)))
+    teams.push(...added.map((r) => r.team))
+    console.log(`  added ${missing.length} off the current list: ${added.map((r) => r.team.abbreviation).join(' ')}`)
+  }
   return teams
     .map((t) => ({
       id: t.id,
@@ -379,8 +384,10 @@ export async function fetchSchedule(teams, season = SEASON) {
   const results = await mapLimit(teams, CONCURRENCY, async (t) => {
     const seen = []
     for (const type of [2, 3]) {
+      // By id, not abbreviation: once ESPN marks a team inactive (Connecticut, 2026-11-01)
+      // `/teams/CON/schedule` answers 400 while `/teams/18/schedule` still serves it.
       const d = await getJson(
-        `${SITE}/teams/${t.abbr}/schedule?season=${season}&seasontype=${type}`
+        `${SITE}/teams/${t.id}/schedule?season=${season}&seasontype=${type}`
       )
       seen.push(...(d.events || []))
     }
@@ -629,6 +636,11 @@ export async function fetchLeaders(season = SEASON, teams) {
           pos: a.position?.abbreviation || null,
           current: team.abbr,
         })
+  // Only for the season the snapshot holds: fetch-history calls this for other years.
+  if (season === COMMITTED_SEASON)
+    missing.push(
+      ...committedOffRoster(COMMITTED_PLAYERS, new Set([...byId.keys(), ...missing.map((p) => p.id)]))
+    )
 
   // One request per player, for EVERY player — not just the ones byathlete skipped.
   //

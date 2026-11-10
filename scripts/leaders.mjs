@@ -200,6 +200,25 @@ export function parseSeasonTeams(data, season, abbrById) {
     .filter((t) => t.abbr && Number.isFinite(t.gp))
 }
 
+// A roster is today's, not the season's. On 2026-11-01 ESPN emptied the Connecticut Sun's
+// roster (every feed: site, `?season=2026`, and the core season athletes) as the franchise
+// moved to Houston, and six players who spent all of 2026 in Connecticut fell out of the
+// leaderboards, Brittney Griner among them. Their per-athlete stats pages still answer.
+// So anyone the committed snapshot already ranks for this season, and whom neither
+// byathlete nor a roster turned up this run, is looked up by id again. The row is still
+// rebuilt from live data; only the id is carried over.
+export function committedOffRoster(committed, knownIds) {
+  return committed
+    .filter((p) => !knownIds.has(String(p.id)))
+    .map((p) => ({
+      id: String(p.id),
+      name: p.name,
+      short: p.short || p.name,
+      pos: p.pos ?? null,
+      current: p.team ?? p.teams?.at(-1)?.abbr ?? null,
+    }))
+}
+
 // Settle each player's season teams, and pick the club the badge should show: whoever they
 // played the most games for. A 12-game Spark who finished on a 4-game Mercury stint belongs
 // under LAS, and her season line is mostly LAS's.
